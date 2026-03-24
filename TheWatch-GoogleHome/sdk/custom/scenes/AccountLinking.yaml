@@ -1,0 +1,45 @@
+# ============================================================================
+# WRITE-AHEAD LOG (WAL)
+# ============================================================================
+# File:        AccountLinking.yaml
+# Module:      TheWatch Google Home - Account Linking Scene
+# Created:     2026-03-24
+# Author:      TheWatch Platform Team
+# ----------------------------------------------------------------------------
+# PURPOSE:
+#   Handles the OAuth2 account linking flow. When a user has not yet
+#   linked their TheWatch account, they are redirected here. The scene
+#   prompts the user to complete linking via the Google Home app and
+#   handles both success and failure outcomes.
+#
+# FLOW:
+#   1. System: "To use The Watch, please link your account..."
+#   2. Google handles OAuth2 redirect in the companion app
+#   3. On success -> transitions to MainScene
+#   4. On failure -> ends conversation with guidance
+#
+# CHANGES:
+#   2026-03-24  Initial creation
+# ============================================================================
+
+onEnter:
+  staticPrompt:
+    candidates:
+      - promptText:
+          text: "To use The Watch safety features, I need to link your account. Please check your Google Home app to sign in to your Watch account."
+          speech: "<speak>To use The Watch safety features, I need to link your account. <break time=\"300ms\"/> Please check your Google Home app to sign in to your Watch account.</speak>"
+
+conditionalEvents:
+  - condition: user.accountLinkingStatus == "LINKED"
+    transitionTo: MainScene
+  - condition: user.accountLinkingStatus == "NOT_LINKED"
+    handler:
+      staticPrompt:
+        candidates:
+          - promptText:
+              text: "Account linking was not completed. You can try again anytime by saying 'Hey Google, talk to The Watch'. For immediate emergencies, please call 911."
+    transitionTo: actions.page.END_CONVERSATION
+
+accountLinkingPrompt:
+  prompt:
+    text: "Sign in to The Watch to access your safety profile, emergency contacts, and alert features."

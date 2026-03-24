@@ -1,0 +1,202 @@
+@page "/devwork"
+@inject DashboardApiClient Api
+@inject ISnackbar Snackbar
+
+<PageTitle>DevWork / Claude Code - TheWatch</PageTitle>
+
+<div style="padding: 24px;">
+
+    <MudText Typo="Typo.h4" Class="mb-2">DevWork / Claude Code Integration</MudText>
+    <MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+        Structured logging of all Claude Code interactions, webhook receipts, and automated work within the Aspire application.
+        Serilog enriches every log entry with CorrelationId for end-to-end tracing.
+    </MudText>
+
+    <MudGrid Class="mb-4">
+        @* ── Quick stats ── *@
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.caption">TOTAL WORK ENTRIES</MudText>
+                <MudText Typo="Typo.h5">@_logs.Count</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2" Style="border-left: 3px solid #4CAF50;">
+                <MudText Typo="Typo.caption">SUCCESSFUL</MudText>
+                <MudText Typo="Typo.h5" Color="Color.Success">@_logs.Count(l => l.Status == "Success")</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2" Style="border-left: 3px solid #2196F3;">
+                <MudText Typo="Typo.caption">WEBHOOKS RECEIVED</MudText>
+                <MudText Typo="Typo.h5" Color="Color.Info">@_logs.Count(l => l.Action.StartsWith("Webhook:"))</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.caption">TOTAL TOKENS</MudText>
+                <MudText Typo="Typo.h5">@_logs.Sum(l => l.TokensUsed).ToString("N0")</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid>
+        @* ── Work Log Table ── *@
+        <MudItem xs="12" md="8">
+            <MudPaper Elevation="2" Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-2">Recent Work Log</MudText>
+
+                <MudDataGrid T="DevWorkLog"
+                             Items="@_logs"
+                             Dense="true"
+                             Hover="true"
+                             Striped="true"
+                             Loading="@_loading"
+                             SortMode="SortMode.Single"
+                             RowsPerPage="15">
+                    <Columns>
+                        <PropertyColumn Property="x => x.Timestamp" Title="Time" Format="HH:mm:ss" />
+
+                        <TemplateColumn Title="Action">
+                            <CellTemplate>
+                                <MudChip T="string"
+                                         Size="Size.Small"
+                                         Color="@(context.Item.Action.StartsWith("Webhook:") ? Color.Tertiary : Color.Primary)"
+                                         Variant="Variant.Outlined">
+                                    @context.Item.Action
+                                </MudChip>
+                            </CellTemplate>
+                        </TemplateColumn>
+
+                        <TemplateColumn Title="Status">
+                            <CellTemplate>
+                                <MudChip T="string"
+                                         Size="Size.Small"
+                                         Color="@GetLogStatusColor(context.Item.Status)"
+                                         Variant="Variant.Filled">
+                                    @context.Item.Status
+                                </MudChip>
+                            </CellTemplate>
+                        </TemplateColumn>
+
+                        <PropertyColumn Property="x => x.DurationMs" Title="Duration (ms)" />
+                        <PropertyColumn Property="x => x.TokensUsed" Title="Tokens" />
+                        <PropertyColumn Property="x => x.WebhookSource" Title="Source" />
+
+                        <TemplateColumn Title="Files">
+                            <CellTemplate>
+                                <MudText Typo="Typo.caption">
+                                    @(context.Item.FilesCreated.Count + context.Item.FilesModified.Count) files
+                                </MudText>
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+
+                    <PagerContent>
+                        <MudDataGridPager T="DevWorkLog" PageSizeOptions="new[] { 10, 15, 25, 50 }" />
+                    </PagerContent>
+                </MudDataGrid>
+            </MudPaper>
+        </MudItem>
+
+        @* ── Quick Actions Panel ── *@
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="2" Class="pa-4 mb-4">
+                <MudText Typo="Typo.h6" Class="mb-3">Webhook Endpoints</MudText>
+                <MudList T="string" Dense="true">
+                    <MudListItem T="string">
+                        <MudText Typo="Typo.body2"><strong>GitHub:</strong> POST /api/devwork/github</MudText>
+                        <MudText Typo="Typo.caption">Header: X-GitHub-Event</MudText>
+                    </MudListItem>
+                    <MudListItem T="string">
+                        <MudText Typo="Typo.body2"><strong>Firestore:</strong> POST /api/devwork/firestore</MudText>
+                        <MudText Typo="Typo.caption">Google Cloud Functions trigger</MudText>
+                    </MudListItem>
+                    <MudListItem T="string">
+                        <MudText Typo="Typo.body2"><strong>Custom:</strong> POST /api/devwork/custom</MudText>
+                        <MudText Typo="Typo.caption">Headers: X-Webhook-Source, X-Webhook-Event</MudText>
+                    </MudListItem>
+                    <MudListItem T="string">
+                        <MudText Typo="Typo.body2"><strong>API:</strong> POST /api/devwork/webhook</MudText>
+                        <MudText Typo="Typo.caption">Dashboard API direct webhook</MudText>
+                    </MudListItem>
+                </MudList>
+            </MudPaper>
+
+            <MudPaper Elevation="2" Class="pa-4 mb-4">
+                <MudText Typo="Typo.h6" Class="mb-3">Claude Code Session</MudText>
+                <MudTextField @bind-Value="_newPrompt"
+                              Label="Prompt / Task Description"
+                              Variant="Variant.Outlined"
+                              Lines="3"
+                              Class="mb-2" />
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           OnClick="LogManualWork"
+                           FullWidth="true"
+                           Disabled="@string.IsNullOrWhiteSpace(_newPrompt)">
+                    Log Work Entry
+                </MudButton>
+            </MudPaper>
+
+            <MudPaper Elevation="2" Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-3">Serilog Integration</MudText>
+                <MudText Typo="Typo.body2" Class="mb-2">
+                    All services use Serilog via ServiceDefaults. Structured logs flow to:
+                </MudText>
+                <MudList T="string" Dense="true">
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.Terminal">Console (development)</MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.InsertDriveFile">Rolling file (logs/thewatch-*.log)</MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.Hub">OpenTelemetry (Aspire Dashboard)</MudListItem>
+                </MudList>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+</div>
+
+@code {
+    private List<DevWorkLog> _logs = new();
+    private bool _loading = true;
+    private string _newPrompt = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _logs = await Api.GetDevWorkLogsAsync(100);
+        _loading = false;
+    }
+
+    private async Task LogManualWork()
+    {
+        var log = new DevWorkLog
+        {
+            Action = "ManualEntry",
+            Prompt = _newPrompt,
+            Status = "Logged",
+            Timestamp = DateTime.UtcNow
+        };
+
+        var result = await Api.LogDevWorkAsync(log);
+        if (result is not null)
+        {
+            _logs.Insert(0, result);
+            _newPrompt = "";
+            Snackbar.Add("Work entry logged", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add("Failed to log work entry", Severity.Error);
+        }
+    }
+
+    private Color GetLogStatusColor(string status) => status switch
+    {
+        "Success" => Color.Success,
+        "Error" => Color.Error,
+        "Received" => Color.Info,
+        "Pending" => Color.Default,
+        "Partial" => Color.Warning,
+        "Logged" => Color.Primary,
+        _ => Color.Default
+    };
+}

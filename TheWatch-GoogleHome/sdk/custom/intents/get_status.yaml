@@ -1,0 +1,45 @@
+# ============================================================================
+# WRITE-AHEAD LOG (WAL)
+# ============================================================================
+# File:        get_status.yaml
+# Module:      TheWatch Google Home - Get Status Intent
+# Created:     2026-03-24
+# Author:      TheWatch Platform Team
+# ----------------------------------------------------------------------------
+# PURPOSE:
+#   Intent for retrieving the user's current safety status including
+#   active alerts, last check-in time, and responder counts.
+#
+# TRAINING PHRASES: 20+
+# CHANGES:
+#   2026-03-24  Initial creation
+# ============================================================================
+
+parameters: []
+
+trainingPhrases:
+  - what's my status
+  - what is my status
+  - get my status
+  - check my status
+  - my safety status
+  - am I safe
+  - show my status
+  - what's happening
+  - any active alerts
+  - do I have any alerts
+  - is my alert still active
+  - show me my current status
+  - give me a status update
+  - status update
+  - status report
+  - how am I doing
+  - check on me
+  - what's my safety status
+  - when was my last check in
+  - are there any active emergencies
+  - tell me my status
+  - current situation
+  - sitrep
+  - situation report
+  - what is going on

@@ -1,0 +1,43 @@
+{
+  "name": "thewatch-alexa-skill",
+  "version": "1.0.0",
+  "description": "TheWatch Safety & Security Alexa Skill - AWS Lambda backend for SOS alerts, check-ins, and safety profile management via voice on Alexa devices.",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha ../tests/**/*.js --timeout 10000",
+    "lint": "eslint .",
+    "start": "node index.js",
+    "package": "zip -r ../deploy/lambda.zip . -x '*.git*' 'node_modules/.cache/*'"
+  },
+  "keywords": [
+    "alexa",
+    "thewatch",
+    "safety",
+    "security",
+    "sos",
+    "emergency",
+    "iot",
+    "voice-assistant"
+  ],
+  "author": "TheWatch Safety Platform",
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "ask-sdk-core": "^2.14.0",
+    "ask-sdk-model": "^1.39.0",
+    "axios": "^1.7.0",
+    "axios-retry": "^4.1.0",
+    "uuid": "^9.0.0",
+    "i18next": "^23.11.0"
+  },
+  "devDependencies": {
+    "mocha": "^10.4.0",
+    "chai": "^4.4.0",
+    "sinon": "^17.0.0",
+    "eslint": "^8.57.0",
+    "nock": "^13.5.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

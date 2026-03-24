@@ -1,0 +1,19 @@
+<!--
+  TheWatch.Adapters.Cloudflare — Live Cloudflare adapter implementations
+  (Workers, R2 Storage, D1 Database, Turnstile).
+  Used in Production with "Cloudflare": "Live" in AdapterRegistry.
+
+  Example — proxies through Cloudflare Workers for edge compute.
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\TheWatch.Shared\TheWatch.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+  </ItemGroup>
+
+</Project>

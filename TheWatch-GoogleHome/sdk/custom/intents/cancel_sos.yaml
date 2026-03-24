@@ -1,0 +1,42 @@
+# ============================================================================
+# WRITE-AHEAD LOG (WAL)
+# ============================================================================
+# File:        cancel_sos.yaml
+# Module:      TheWatch Google Home - Cancel SOS Intent
+# Created:     2026-03-24
+# Author:      TheWatch Platform Team
+# ----------------------------------------------------------------------------
+# PURPOSE:
+#   Intent for cancelling an active SOS alert. Important for false alarms
+#   or resolved situations.
+#
+# TRAINING PHRASES: 18+
+# CHANGES:
+#   2026-03-24  Initial creation
+# ============================================================================
+
+parameters: []
+
+trainingPhrases:
+  - cancel SOS
+  - cancel my SOS
+  - cancel my SOS alert
+  - cancel the alert
+  - cancel the emergency
+  - stop the alert
+  - stop the SOS
+  - turn off the alarm
+  - deactivate SOS
+  - deactivate the alert
+  - false alarm
+  - it was a false alarm
+  - everything is okay now
+  - I'm safe now cancel the alert
+  - stand down
+  - call off the alert
+  - dismiss the alert
+  - revoke the SOS
+  - end the emergency
+  - cancel my emergency alert
+  - I don't need help anymore
+  - nevermind the alert

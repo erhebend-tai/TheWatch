@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:TheWatch.Maui.ViewModels"
+             x:Class="TheWatch.Maui.Views.TestDashboardPage"
+             Title="Test Orchestrator"
+             BackgroundColor="#0F172A">
+
+    <Grid RowDefinitions="Auto, *, Auto" Padding="16" RowSpacing="12">
+
+        <!-- Header + Controls -->
+        <VerticalStackLayout Grid.Row="0" Spacing="10">
+            <Label Text="🧪 Test Orchestrator"
+                   FontSize="24" FontAttributes="Bold"
+                   TextColor="#E2E8F0" />
+
+            <Label Text="{Binding StatusMessage}"
+                   FontSize="14" TextColor="#94A3B8" />
+
+            <!-- Suite Picker + Device -->
+            <Grid ColumnDefinitions="*, Auto" ColumnSpacing="10">
+                <Picker Title="Select Test Suite"
+                        ItemsSource="{Binding Suites}"
+                        ItemDisplayBinding="{Binding Name}"
+                        SelectedItem="{Binding SelectedSuite}"
+                        BackgroundColor="#1E293B"
+                        TextColor="#E2E8F0" />
+                <Entry Grid.Column="1"
+                       Placeholder="Device ID"
+                       Text="{Binding TargetDevice}"
+                       BackgroundColor="#1E293B"
+                       TextColor="#E2E8F0"
+                       PlaceholderColor="#475569"
+                       WidthRequest="180" />
+            </Grid>
+
+            <!-- Action Buttons -->
+            <HorizontalStackLayout Spacing="10">
+                <Button Text="📋 Load Suites"
+                        Command="{Binding LoadSuitesCommand}"
+                        BackgroundColor="#334155" TextColor="White"
+                        CornerRadius="8" HeightRequest="40" />
+                <Button Text="▶️ Start Run"
+                        Command="{Binding StartRunCommand}"
+                        BackgroundColor="#166534" TextColor="White"
+                        CornerRadius="8" HeightRequest="40"
+                        IsEnabled="{Binding HasActiveRun, Converter={StaticResource InverseBoolConverter}}" />
+                <Button Text="⏹️ Cancel"
+                        Command="{Binding CancelRunCommand}"
+                        BackgroundColor="#7F1D1D" TextColor="White"
+                        CornerRadius="8" HeightRequest="40"
+                        IsVisible="{Binding HasActiveRun}" />
+            </HorizontalStackLayout>
+
+            <ActivityIndicator IsRunning="{Binding IsLoading}"
+                               IsVisible="{Binding IsLoading}"
+                               Color="#60A5FA" />
+        </VerticalStackLayout>
+
+        <!-- Live Results -->
+        <Frame Grid.Row="1" BackgroundColor="#1E293B" CornerRadius="12"
+               Padding="12" BorderColor="Transparent">
+            <VerticalStackLayout Spacing="8">
+                <Label Text="📊 Live Results" FontSize="16" FontAttributes="Bold" TextColor="#E2E8F0" />
+
+                <!-- Active Run Stats -->
+                <Grid ColumnDefinitions="*, *, *, *" IsVisible="{Binding HasActiveRun}">
+                    <VerticalStackLayout HorizontalOptions="Center">
+                        <Label Text="{Binding ActiveRun.CompletedSteps}" FontSize="20" FontAttributes="Bold" TextColor="#60A5FA" HorizontalOptions="Center" />
+                        <Label Text="Done" FontSize="11" TextColor="#94A3B8" HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Column="1" HorizontalOptions="Center">
+                        <Label Text="{Binding ActiveRun.TotalSteps}" FontSize="20" FontAttributes="Bold" TextColor="#CBD5E1" HorizontalOptions="Center" />
+                        <Label Text="Total" FontSize="11" TextColor="#94A3B8" HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Column="2" HorizontalOptions="Center">
+                        <Label Text="{Binding ActiveRun.PassedSteps}" FontSize="20" FontAttributes="Bold" TextColor="#4ADE80" HorizontalOptions="Center" />
+                        <Label Text="Pass" FontSize="11" TextColor="#94A3B8" HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Column="3" HorizontalOptions="Center">
+                        <Label Text="{Binding ActiveRun.FailedSteps}" FontSize="20" FontAttributes="Bold" TextColor="#F87171" HorizontalOptions="Center" />
+                        <Label Text="Fail" FontSize="11" TextColor="#94A3B8" HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </Grid>
+
+                <!-- Step Results List -->
+                <CollectionView ItemsSource="{Binding LiveResults}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid ColumnDefinitions="Auto, *, Auto, Auto"
+                                  Padding="6,4" ColumnSpacing="10">
+                                <Label Text="{Binding StatusIcon}" FontSize="16" VerticalOptions="Center" />
+                                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                                    <Label Text="{Binding ScreenName}" TextColor="#E2E8F0" FontSize="13" FontAttributes="Bold" />
+                                    <Label Text="{Binding Action}" TextColor="#94A3B8" FontSize="11" />
+                                </VerticalStackLayout>
+                                <Label Grid.Column="2"
+                                       Text="{Binding DurationMs, StringFormat='{0}ms'}"
+                                       TextColor="#94A3B8" FontSize="11"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="3"
+                                       Text="{Binding ErrorMessage}"
+                                       TextColor="#F87171" FontSize="11"
+                                       VerticalOptions="Center"
+                                       IsVisible="{Binding ErrorMessage, Converter={StaticResource IsNotNullConverter}}" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+        </Frame>
+
+        <!-- Run History -->
+        <Frame Grid.Row="2" BackgroundColor="#1E293B" CornerRadius="12"
+               Padding="12" BorderColor="Transparent"
+               HeightRequest="180">
+            <VerticalStackLayout Spacing="8">
+                <HorizontalStackLayout Spacing="10">
+                    <Label Text="📜 Run History" FontSize="16" FontAttributes="Bold" TextColor="#E2E8F0" VerticalOptions="Center" />
+                    <Button Text="Refresh" Command="{Binding LoadHistoryCommand}"
+                            BackgroundColor="#334155" TextColor="#94A3B8"
+                            CornerRadius="6" HeightRequest="30" FontSize="11" />
+                </HorizontalStackLayout>
+
+                <CollectionView ItemsSource="{Binding RunHistory}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid ColumnDefinitions="Auto, *, Auto, Auto"
+                                  Padding="6,3" ColumnSpacing="10">
+                                <Label Text="{Binding StatusIcon}" FontSize="14" VerticalOptions="Center" />
+                                <Label Grid.Column="1" Text="{Binding SuiteName}" TextColor="#CBD5E1" FontSize="13" VerticalOptions="Center" />
+                                <Label Grid.Column="2"
+                                       Text="{Binding PassedSteps, StringFormat='{0} passed'}"
+                                       TextColor="#4ADE80" FontSize="11" VerticalOptions="Center" />
+                                <Label Grid.Column="3" Text="{Binding StartedAt}" TextColor="#94A3B8" FontSize="11" VerticalOptions="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+        </Frame>
+
+    </Grid>
+</ContentPage>

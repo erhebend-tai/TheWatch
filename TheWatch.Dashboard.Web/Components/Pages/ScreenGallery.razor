@@ -1,0 +1,516 @@
+@page "/screens"
+@rendermode InteractiveServer
+@inject NavigationManager NavigationManager
+
+<div class="screen-gallery-container">
+    <div class="gallery-sidebar">
+        <div class="sidebar-header">
+            <h2>App Screens</h2>
+            <span class="screen-count">@screens.Length screens</span>
+        </div>
+
+        <div class="screens-list">
+            @foreach (var screen in screens)
+            {
+                var isSelected = selectedScreen == screen.Id;
+                <div class="screen-item @(isSelected ? "active" : "")"
+                     @onclick="() => SelectScreen(screen.Id)">
+                    <span class="screen-indicator @screen.Status"></span>
+                    <span class="screen-name">@screen.Name</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="gallery-main">
+        <div class="preview-header">
+            <h3>@GetSelectedScreenName()</h3>
+
+            <div class="device-toggle">
+                <label>
+                    <input type="radio" name="device" value="iphone"
+                           @onchange='() => SetDeviceType("iphone")'
+                           checked="@(deviceType == "iphone")" />
+                    iPhone
+                </label>
+                <label>
+                    <input type="radio" name="device" value="android"
+                           @onchange='() => SetDeviceType("android")'
+                           checked="@(deviceType == "android")" />
+                    Android
+                </label>
+            </div>
+        </div>
+
+        <div class="preview-container">
+            <PhoneFrame DeviceType="@deviceType">
+                @GetScreenRender()
+            </PhoneFrame>
+        </div>
+
+        <div class="props-inspector">
+            <div class="inspector-header">
+                <h4>Props Inspector</h4>
+                <span class="inspector-badge">@GetSelectedScreenName()</span>
+            </div>
+
+            <div class="props-list">
+                @if (screenProps.TryGetValue(selectedScreen, out var props))
+                {
+                    @foreach (var prop in props)
+                    {
+                        <div class="prop-item">
+                            <span class="prop-key">@prop.Key:</span>
+                            <span class="prop-value">@prop.Value</span>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="prop-item empty">No props available</div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string selectedScreen = "login";
+    private string deviceType = "iphone";
+
+    private class Screen
+    {
+        public string Id { get; set; }
+        public string Name { get; set; }
+        public string Status { get; set; }
+    }
+
+    private Screen[] screens = new[]
+    {
+        new Screen { Id = "login", Name = "Login", Status = "implemented" },
+        new Screen { Id = "signup", Name = "Sign Up", Status = "implemented" },
+        new Screen { Id = "forgot-password", Name = "Forgot Password", Status = "implemented" },
+        new Screen { Id = "reset-password", Name = "Reset Password", Status = "implemented" },
+        new Screen { Id = "eula", Name = "EULA", Status = "implemented" },
+        new Screen { Id = "home-map", Name = "Home (Map)", Status = "implemented" },
+        new Screen { Id = "nav-drawer", Name = "Navigation Drawer", Status = "implemented" },
+        new Screen { Id = "profile", Name = "Profile", Status = "implemented" },
+        new Screen { Id = "permissions", Name = "Permissions", Status = "implemented" },
+        new Screen { Id = "history", Name = "History", Status = "implemented" },
+        new Screen { Id = "volunteering", Name = "Volunteering", Status = "implemented" },
+        new Screen { Id = "contacts", Name = "Contacts", Status = "implemented" },
+        new Screen { Id = "settings", Name = "Settings", Status = "implemented" },
+        new Screen { Id = "evacuation", Name = "Evacuation", Status = "implemented" },
+    };
+
+    private Dictionary<string, Dictionary<string, string>> screenProps = new()
+    {
+        {
+            "login", new Dictionary<string, string>
+            {
+                { "User email", "alex@example.com" },
+                { "Biometric enrolled", "true" },
+                { "Network status", "online" },
+                { "Last login device", "iPhone 15 Pro" },
+                { "Offline SOS available", "true" },
+            }
+        },
+        {
+            "signup", new Dictionary<string, string>
+            {
+                { "Current step", "2 of 3" },
+                { "Email verified", "true" },
+                { "Phone verified", "false" },
+                { "Terms accepted", "false" },
+                { "Form progress", "40%" },
+            }
+        },
+        {
+            "forgot-password", new Dictionary<string, string>
+            {
+                { "Email input", "alex@example.com" },
+                { "Verification method", "Email" },
+                { "Reset code sent", "true" },
+                { "Expiry time", "10 minutes" },
+            }
+        },
+        {
+            "reset-password", new Dictionary<string, string>
+            {
+                { "Code verified", "true" },
+                { "New password length", "14 chars" },
+                { "Password strength", "Strong" },
+                { "Confirm match", "true" },
+            }
+        },
+        {
+            "eula", new Dictionary<string, string>
+            {
+                { "Scroll position", "85%" },
+                { "Content pages", "4" },
+                { "Accept enabled", "true" },
+                { "Last updated", "March 1, 2026" },
+            }
+        },
+        {
+            "home-map", new Dictionary<string, string>
+            {
+                { "Latitude", "34.0522" },
+                { "Longitude", "-118.2437" },
+                { "Nearby responders", "3" },
+                { "Active alerts", "2" },
+                { "Shelters found", "3" },
+                { "Current status", "Safe" },
+                { "GPS update interval", "1 sec" },
+            }
+        },
+        {
+            "nav-drawer", new Dictionary<string, string>
+            {
+                { "User name", "Alex Rivera" },
+                { "User status", "Active" },
+                { "Notification count", "2" },
+                { "Menu items", "8" },
+            }
+        },
+        {
+            "profile", new Dictionary<string, string>
+            {
+                { "Name", "Alex Rivera" },
+                { "Email", "alex.rivera@email.com" },
+                { "Phone", "+1 (555) 234-5678" },
+                { "Blood type", "O+" },
+                { "Wearable connected", "true" },
+                { "Auto-escalation", "30 min" },
+            }
+        },
+        {
+            "permissions", new Dictionary<string, string>
+            {
+                { "Location access", "Granted" },
+                { "Camera access", "Denied" },
+                { "Microphone access", "Granted" },
+                { "Health data", "Granted" },
+                { "Contacts access", "Granted" },
+                { "Notifications", "Enabled" },
+            }
+        },
+        {
+            "history", new Dictionary<string, string>
+            {
+                { "Total events", "47" },
+                { "Active alerts", "0" },
+                { "Last alert", "March 15, 2026" },
+                { "Filter range", "Last 30 days" },
+                { "Export available", "true" },
+            }
+        },
+        {
+            "volunteering", new Dictionary<string, string>
+            {
+                { "Enrollment status", "Active" },
+                { "Role", "Volunteer EMT" },
+                { "Verification status", "Verified" },
+                { "Total responses", "12" },
+                { "Avg response time", "4.2 min" },
+                { "Acceptance rate", "92%" },
+            }
+        },
+        {
+            "contacts", new Dictionary<string, string>
+            {
+                { "Total contacts", "5" },
+                { "Emergency contacts", "2" },
+                { "Last updated", "March 10, 2026" },
+                { "Import available", "true" },
+            }
+        },
+        {
+            "settings", new Dictionary<string, string>
+            {
+                { "Theme", "Dark" },
+                { "Language", "English" },
+                { "Auto-lock timer", "5 minutes" },
+                { "Data backup", "Enabled" },
+                { "Analytics", "Enabled" },
+                { "App version", "1.0.0-beta" },
+            }
+        },
+        {
+            "evacuation", new Dictionary<string, string>
+            {
+                { "Nearest shelter", "1.2 km away" },
+                { "Route status", "Clear" },
+                { "Evacuation alert", "false" },
+                { "Shelters nearby", "3" },
+                { "Last updated", "Today" },
+            }
+        },
+    };
+
+    private void SelectScreen(string screenId)
+    {
+        selectedScreen = screenId;
+    }
+
+    private void SetDeviceType(string type)
+    {
+        deviceType = type;
+    }
+
+    private string GetSelectedScreenName()
+    {
+        var screen = screens.FirstOrDefault(s => s.Id == selectedScreen);
+        return screen?.Name ?? "Unknown";
+    }
+
+    private RenderFragment GetScreenRender()
+    {
+        return selectedScreen switch
+        {
+            "login" => @<LoginScreen />,
+            "signup" => @<SignUpScreen />,
+            "forgot-password" => @<ForgotPasswordScreen />,
+            "reset-password" => @<ResetPasswordScreen />,
+            "eula" => @<EULAScreen />,
+            "home-map" => @<HomeMapScreen />,
+            "nav-drawer" => @<NavigationDrawer />,
+            "profile" => @<ProfileScreen />,
+            "permissions" => @<PermissionsScreen />,
+            "history" => @<HistoryScreen />,
+            "volunteering" => @<VolunteeringScreen />,
+            "contacts" => @<ContactsScreen />,
+            "settings" => @<SettingsScreen />,
+            "evacuation" => @<EvacuationScreen />,
+            _ => @<div>Unknown screen</div>,
+        };
+    }
+}
+
+<style>
+    .screen-gallery-container {
+        display: flex;
+        height: 100vh;
+        background: #f5f5f5;
+        margin-left: 0;
+    }
+
+    .gallery-sidebar {
+        width: 220px;
+        background: white;
+        border-right: 1px solid #e0e0e0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .sidebar-header {
+        padding: 20px 16px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .sidebar-header h2 {
+        margin: 0;
+        font-size: 18px;
+        color: #1b2a4a;
+        font-weight: 700;
+    }
+
+    .screen-count {
+        display: block;
+        font-size: 12px;
+        color: #888;
+        margin-top: 4px;
+    }
+
+    .screens-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px 0;
+    }
+
+    .screen-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 16px;
+        cursor: pointer;
+        transition: all 0.15s;
+        border-left: 3px solid transparent;
+    }
+
+    .screen-item:hover {
+        background: #f9f9f9;
+    }
+
+    .screen-item.active {
+        background: #e8f4ff;
+        border-left-color: #dc3545;
+    }
+
+    .screen-indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .screen-indicator.implemented {
+        background: #28a745;
+        box-shadow: 0 0 4px #28a745;
+    }
+
+    .screen-indicator.partial {
+        background: #ffc107;
+    }
+
+    .screen-indicator.planned {
+        background: #ccc;
+    }
+
+    .screen-name {
+        font-size: 13px;
+        color: #333;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .screen-item.active .screen-name {
+        color: #dc3545;
+        font-weight: 600;
+    }
+
+    .gallery-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .preview-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 24px;
+        background: white;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .preview-header h3 {
+        margin: 0;
+        font-size: 20px;
+        color: #1b2a4a;
+        font-weight: 700;
+    }
+
+    .device-toggle {
+        display: flex;
+        gap: 16px;
+    }
+
+    .device-toggle label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: #333;
+        cursor: pointer;
+    }
+
+    .device-toggle input[type="radio"] {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+    }
+
+    .preview-container {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 24px;
+        overflow: auto;
+    }
+
+    .props-inspector {
+        background: white;
+        border-top: 1px solid #e0e0e0;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .inspector-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 24px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .inspector-header h4 {
+        margin: 0;
+        font-size: 14px;
+        color: #1b2a4a;
+        font-weight: 700;
+    }
+
+    .inspector-badge {
+        font-size: 11px;
+        background: #e8f4ff;
+        color: #1b2a4a;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-weight: 600;
+    }
+
+    .props-list {
+        padding: 0;
+    }
+
+    .prop-item {
+        display: flex;
+        gap: 12px;
+        padding: 8px 24px;
+        font-size: 12px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .prop-item.empty {
+        justify-content: center;
+        color: #999;
+        font-style: italic;
+    }
+
+    .prop-key {
+        color: #1b2a4a;
+        font-weight: 600;
+        min-width: 120px;
+    }
+
+    .prop-value {
+        color: #666;
+        font-family: 'Courier New', monospace;
+        word-break: break-all;
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #d0d0d0;
+        border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #b0b0b0;
+    }
+</style>

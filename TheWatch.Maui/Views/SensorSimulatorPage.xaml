@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TheWatch.Maui.Views.SensorSimulatorPage"
+             Title="Sensor Simulator"
+             BackgroundColor="#FFFFFF">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+
+            <!-- Heart Rate Control -->
+            <Frame BorderColor="#1B2A4A" CornerRadius="8" Padding="16" HasShadow="True">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Heart Rate (bpm)" FontSize="14" FontAttributes="Bold" TextColor="#1B2A4A" />
+
+                    <HorizontalStackLayout Spacing="8">
+                        <Slider
+                            Value="{Binding HeartRateValue}"
+                            Minimum="40"
+                            Maximum="200"
+                            HorizontalOptions="FillAndExpand" />
+                        <Label
+                            Text="{Binding HeartRateValue, StringFormat='{0:F0}'}"
+                            FontSize="16"
+                            FontAttributes="Bold"
+                            TextColor="#1B2A4A"
+                            WidthRequest="50" />
+                    </HorizontalStackLayout>
+
+                    <Label
+                        Text="{Binding Sensor.HeartRate, StringFormat='Current: {0} bpm'}"
+                        FontSize="12"
+                        TextColor="#666666" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Blood Oxygen Control -->
+            <Frame BorderColor="#1B2A4A" CornerRadius="8" Padding="16" HasShadow="True">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Blood Oxygen (%)" FontSize="14" FontAttributes="Bold" TextColor="#1B2A4A" />
+
+                    <HorizontalStackLayout Spacing="8">
+                        <Slider
+                            Value="{Binding BloodOxygenValue}"
+                            Minimum="80"
+                            Maximum="100"
+                            HorizontalOptions="FillAndExpand" />
+                        <Label
+                            Text="{Binding BloodOxygenValue, StringFormat='{0:F0}'}"
+                            FontSize="16"
+                            FontAttributes="Bold"
+                            TextColor="#1B2A4A"
+                            WidthRequest="50" />
+                    </HorizontalStackLayout>
+
+                    <Label
+                        Text="{Binding Sensor.BloodOxygen, StringFormat='Current: {0}%'}"
+                        FontSize="12"
+                        TextColor="#666666" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Temperature Control -->
+            <Frame BorderColor="#1B2A4A" CornerRadius="8" Padding="16" HasShadow="True">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Body Temperature (°C)" FontSize="14" FontAttributes="Bold" TextColor="#1B2A4A" />
+
+                    <HorizontalStackLayout Spacing="8">
+                        <Slider
+                            Value="{Binding TemperatureValue}"
+                            Minimum="35"
+                            Maximum="42"
+                            HorizontalOptions="FillAndExpand" />
+                        <Label
+                            Text="{Binding TemperatureValue, StringFormat='{0:F1}'}"
+                            FontSize="16"
+                            FontAttributes="Bold"
+                            TextColor="#1B2A4A"
+                            WidthRequest="50" />
+                    </HorizontalStackLayout>
+
+                    <Label
+                        Text="{Binding Sensor.BodyTemperature, StringFormat='Current: {0:F1}°C'}"
+                        FontSize="12"
+                        TextColor="#666666" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Stress Level Control -->
+            <Frame BorderColor="#1B2A4A" CornerRadius="8" Padding="16" HasShadow="True">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Stress Level" FontSize="14" FontAttributes="Bold" TextColor="#1B2A4A" />
+
+                    <HorizontalStackLayout Spacing="8">
+                        <Slider
+                            Value="{Binding StressLevelValue}"
+                            Minimum="0"
+                            Maximum="10"
+                            HorizontalOptions="FillAndExpand" />
+                        <Label
+                            Text="{Binding StressLevelValue, StringFormat='{0:F0}'}"
+                            FontSize="16"
+                            FontAttributes="Bold"
+                            TextColor="#1B2A4A"
+                            WidthRequest="50" />
+                    </HorizontalStackLayout>
+
+                    <Label
+                        Text="{Binding Sensor.StressLevel, StringFormat='Current: {0}/10'}"
+                        FontSize="12"
+                        TextColor="#666666" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Abnormality Toggles -->
+            <Frame BorderColor="#1B2A4A" CornerRadius="8" Padding="16" HasShadow="True">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Abnormalities" FontSize="14" FontAttributes="Bold" TextColor="#1B2A4A" />
+
+                    <VerticalStackLayout Spacing="8">
+                        <HorizontalStackLayout Spacing="12">
+                            <Label Text="Fall Detected" FontSize="12" FontAttributes="Bold" TextColor="#1B2A4A" />
+                            <Switch IsToggled="{Binding IsFallDetected}" />
+                        </HorizontalStackLayout>
+
+                        <HorizontalStackLayout Spacing="12">
+                            <Label Text="ECG Anomaly" FontSize="12" FontAttributes="Bold" TextColor="#1B2A4A" />
+                            <Switch IsToggled="{Binding HasEcgAnomaly}" />
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Quick Actions -->
+            <Frame BorderColor="#1B2A4A" CornerRadius="8" Padding="16" HasShadow="True">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Quick Actions" FontSize="14" FontAttributes="Bold" TextColor="#1B2A4A" />
+
+                    <Button
+                        Text="Generate Normal Reading"
+                        Command="{Binding GenerateNormalReadingCommand}"
+                        BackgroundColor="#28A745"
+                        TextColor="#FFFFFF"
+                        FontSize="12"
+                        Padding="12,8"
+                        CornerRadius="4" />
+
+                    <Button
+                        Text="Generate Anomalous Reading"
+                        Command="{Binding GenerateAnomalousReadingCommand}"
+                        BackgroundColor="#DC3545"
+                        TextColor="#FFFFFF"
+                        FontSize="12"
+                        Padding="12,8"
+                        CornerRadius="4" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Publish Button -->
+            <VerticalStackLayout Spacing="12">
+                <Button
+                    Text="Publish Sensor Reading"
+                    Command="{Binding PublishSensorReadingCommand}"
+                    BackgroundColor="#1B2A4A"
+                    TextColor="#FFFFFF"
+                    FontSize="16"
+                    FontAttributes="Bold"
+                    Padding="12,12"
+                    CornerRadius="4"
+                    IsEnabled="{Binding IsLoading, Converter={StaticResource InvertedBoolConverter}}" />
+
+                <Button
+                    Text="Reset"
+                    Command="{Binding ResetFormCommand}"
+                    BackgroundColor="#6C757D"
+                    TextColor="#FFFFFF"
+                    FontSize="14"
+                    Padding="12,8"
+                    CornerRadius="4"
+                    IsEnabled="{Binding IsLoading, Converter={StaticResource InvertedBoolConverter}}" />
+            </VerticalStackLayout>
+
+            <!-- Status Message -->
+            <Frame
+                BorderColor="#E0E0E0"
+                CornerRadius="4"
+                Padding="12"
+                IsVisible="{Binding StatusMessage, Converter={StaticResource StrToBoolConverter}}">
+                <Label
+                    Text="{Binding StatusMessage}"
+                    FontSize="12"
+                    TextColor="#1B2A4A"
+                    LineBreakMode="WordWrap" />
+            </Frame>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

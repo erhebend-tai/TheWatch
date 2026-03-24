@@ -1,0 +1,127 @@
+# ============================================================================
+# WRITE-AHEAD LOG (WAL)
+# ============================================================================
+# File:        settings.yaml
+# Module:      TheWatch Google Home - Project Settings
+# Created:     2026-03-24
+# Author:      TheWatch Platform Team
+# ----------------------------------------------------------------------------
+# PURPOSE:
+#   Project-level settings for the Google Actions project. Defines the
+#   display name, description, category, surface capabilities, account
+#   linking configuration, and locale settings.
+#
+# ACCOUNT LINKING:
+#   Uses OAuth2 Authorization Code grant type with TheWatch's auth server.
+#   Scopes map to feature permissions in the backend.
+#
+# SURFACE CAPABILITIES:
+#   - AUDIO_OUTPUT: Google Home speakers (primary target)
+#   - SCREEN_OUTPUT: Google Nest Hub, phones (cards, tables)
+#   - WEB_BROWSER: Link-out to TheWatch web app
+#
+# EXAMPLE:
+#   gactions push --project thewatch-safety
+#
+# CHANGES:
+#   2026-03-24  Initial creation
+# ============================================================================
+
+projectId: thewatch-safety
+
+localizedSettings:
+  displayName: The Watch
+  pronunciation: The Watch
+  shortDescription: Personal safety and emergency alert system with community response network.
+  fullDescription: >
+    The Watch is a comprehensive safety and security platform that connects you
+    with emergency contacts, nearby volunteer responders, and first responders.
+    Use your voice to trigger SOS alerts, check in with your safety network,
+    manage your emergency contacts, and access critical safety information.
+
+    Features include:
+    - Voice-activated SOS alerts with automatic contact and responder notification
+    - Scheduled and manual safety check-ins
+    - Silent duress signals for covert emergency alerts
+    - Nearby volunteer responder discovery (geohash/H3 indexed)
+    - Emergency contact management
+    - Evacuation route and shelter information
+    - Medical profile access for first responders
+    - Designated responder volunteer program
+    - Emergency phrase configuration for automatic SOS triggering
+
+    Your safety is our priority. The Watch works with Google Home speakers,
+    Nest Hub displays, and Android/iOS phones with Google Assistant.
+
+  developerName: TheWatch Platform Team
+  developerEmail: dev@thewatch.app
+  termsOfServiceUrl: https://thewatch.app/terms
+  privacyUrl: https://thewatch.app/privacy
+  sampleInvocations:
+    - Talk to The Watch
+    - Ask The Watch to check my status
+    - Ask The Watch to trigger SOS
+    - Ask The Watch for evacuation routes
+    - Tell The Watch I'm checking in
+
+  smallLogoImage: https://cdn.thewatch.app/branding/logo-small.png
+  largeBannerImage: https://cdn.thewatch.app/branding/banner.png
+
+  themeCustomization:
+    primaryColor: "#1B5E20"
+    backgroundColor: "#FFFFFF"
+
+category: SAFETY_AND_EMERGENCY
+
+surfaceRequirements:
+  minimumRequirements:
+    - capability: AUDIO_OUTPUT
+
+usesDigitalPurchaseApi: false
+usesHomeStorage: true
+usesTransactionsApi: false
+usesInteractiveCanvas: false
+designedForFamilies: false
+containsAlcoholOrTobaccoContent: false
+
+accountLinking:
+  enableAccountCreation: true
+  linkingType: OAUTH
+  authGrantType: AUTH_CODE
+  app:
+    clientId: ${THEWATCH_OAUTH_CLIENT_ID}
+    clientSecret: ${THEWATCH_OAUTH_CLIENT_SECRET}
+    authorizationUrl: https://auth.thewatch.app/oauth2/authorize
+    tokenUrl: https://auth.thewatch.app/oauth2/token
+    scopes:
+      - openid
+      - profile
+      - email
+      - thewatch.sos
+      - thewatch.checkin
+      - thewatch.status
+      - thewatch.contacts
+      - thewatch.medical
+      - thewatch.volunteer
+
+selectedRegions:
+  - US
+  - CA
+  - GB
+  - AU
+  - NZ
+  - IE
+
+testingInstructions: >
+  1. Link a test TheWatch account using the companion app.
+  2. Say "Hey Google, talk to The Watch" to start.
+  3. Try "Trigger SOS" and confirm with "Yes".
+  4. Try "Check in" to record a safety check-in.
+  5. Try "My status" to verify the alert is reflected.
+  6. Try "Cancel SOS" to cancel the active alert.
+  7. Try "Emergency contacts" to list contacts.
+  8. Try "Nearby responders" to check volunteer availability.
+  9. Try "Evacuation routes" for disaster info.
+  10. Try "Shelter info" for nearby shelters.
+  11. Try "Medical info" for medical profile readback.
+  12. Test silent duress phrases for minimal-response behavior.

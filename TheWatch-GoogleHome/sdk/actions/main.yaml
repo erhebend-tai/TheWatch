@@ -1,0 +1,60 @@
+# ============================================================================
+# WRITE-AHEAD LOG (WAL)
+# ============================================================================
+# File:        main.yaml
+# Module:      TheWatch Google Home Integration - Main Action Configuration
+# Created:     2026-03-24
+# Author:      TheWatch Platform Team
+# ----------------------------------------------------------------------------
+# PURPOSE:
+#   Defines the main action configuration including the webhook endpoint,
+#   conversation settings, and fulfillment handler mapping.
+#
+# EXAMPLE:
+#   When a user says "Hey Google, talk to The Watch", this configuration
+#   determines the initial scene and webhook URL.
+#
+# CHANGES:
+#   2026-03-24  Initial creation
+# ============================================================================
+
+name: thewatch-safety
+defaultLocale: en
+
+webhook:
+  handlers:
+    - name: actions.intent.MAIN
+    - name: trigger_sos
+    - name: check_in
+    - name: get_status
+    - name: cancel_sos
+    - name: set_emergency_phrase
+    - name: nearby_responders
+    - name: volunteer_status
+    - name: emergency_contacts
+    - name: silent_duress
+    - name: evacuation_info
+    - name: shelter_info
+    - name: medical_info
+    - name: sos_confirmed_yes
+    - name: sos_confirmed_no
+  httpsEndpoint:
+    baseUrl: ${THEWATCH_WEBHOOK_URL}
+
+accountLinking:
+  enableAccountCreation: true
+  linkingType: OAUTH
+  authGrantType: AUTH_CODE
+  app:
+    clientId: ${THEWATCH_OAUTH_CLIENT_ID}
+    clientSecret: ${THEWATCH_OAUTH_CLIENT_SECRET}
+    authorizationUrl: https://auth.thewatch.app/oauth2/authorize
+    tokenUrl: https://auth.thewatch.app/oauth2/token
+    scopes:
+      - openid
+      - profile
+      - thewatch.sos
+      - thewatch.checkin
+      - thewatch.status
+      - thewatch.contacts
+      - thewatch.medical

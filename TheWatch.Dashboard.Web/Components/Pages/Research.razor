@@ -1,0 +1,206 @@
+@page "/research"
+@using TheWatch.Shared.Dtos
+@using TheWatch.Shared.Enums
+
+<PageTitle>Research - TheWatch</PageTitle>
+
+<div class="research-container">
+
+    <div class="page-header">
+        <h1>Research Tracker</h1>
+        <p class="subtitle">Track investigations, findings, and technical explorations</p>
+    </div>
+
+    <div class="research-projects">
+
+        <div class="research-card active">
+            <div class="research-header">
+                <h3>Multi-Agent Orchestration Architecture</h3>
+                <span class="status-badge active">IN PROGRESS</span>
+            </div>
+            <div class="research-body">
+                <div class="research-meta">
+                    <span class="meta-item">
+                        <strong>Owner:</strong> Research Analyst Agent
+                    </span>
+                    <span class="meta-item">
+                        <strong>Priority:</strong> HIGH
+                    </span>
+                    <span class="meta-item">
+                        <strong>Progress:</strong> 60%
+                    </span>
+                </div>
+                <div class="research-description">
+                    <p>Investigating optimal patterns for coordinating multiple AI agents in a distributed system, including communication protocols, task distribution, and conflict resolution mechanisms.</p>
+                </div>
+                <div class="research-findings">
+                    <h4>Key Findings:</h4>
+                    <ul>
+                        <li>Event-driven architecture with message queues provides best scalability</li>
+                        <li>Service mesh (Istio) improves inter-agent communication reliability</li>
+                        <li>State synchronization via distributed consensus algorithm essential</li>
+                        <li>Circuit breaker pattern prevents cascade failures</li>
+                    </ul>
+                </div>
+                <div class="research-footer">
+                    <span class="last-updated">Updated: 2h ago</span>
+                    <button class="btn-small">View Details</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="research-card completed">
+            <div class="research-header">
+                <h3>Real-time Dashboard Performance</h3>
+                <span class="status-badge completed">COMPLETED</span>
+            </div>
+            <div class="research-body">
+                <div class="research-meta">
+                    <span class="meta-item">
+                        <strong>Owner:</strong> Code Quality Monitor
+                    </span>
+                    <span class="meta-item">
+                        <strong>Priority:</strong> HIGH
+                    </span>
+                    <span class="meta-item">
+                        <strong>Progress:</strong> 100%
+                    </span>
+                </div>
+                <div class="research-description">
+                    <p>Evaluated SignalR real-time capabilities for dashboard updates, stress testing connection limits and latency characteristics.</p>
+                </div>
+                <div class="research-findings">
+                    <h4>Key Findings:</h4>
+                    <ul>
+                        <li>SignalR handles 10,000+ concurrent connections efficiently</li>
+                        <li>Message latency &lt; 50ms under normal load</li>
+                        <li>Recommended connection pooling for backend services</li>
+                        <li>WebSocket transport outperforms Server-Sent Events</li>
+                    </ul>
+                </div>
+                <div class="research-footer">
+                    <span class="last-updated">Completed: 3d ago</span>
+                    <button class="btn-small">View Report</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="research-card in-progress">
+            <div class="research-header">
+                <h3>Cross-Platform Mobile Optimization</h3>
+                <span class="status-badge in-progress">IN PROGRESS</span>
+            </div>
+            <div class="research-body">
+                <div class="research-meta">
+                    <span class="meta-item">
+                        <strong>Owner:</strong> Project Manager Agent
+                    </span>
+                    <span class="meta-item">
+                        <strong>Priority:</strong> MEDIUM
+                    </span>
+                    <span class="meta-item">
+                        <strong>Progress:</strong> 45%
+                    </span>
+                </div>
+                <div class="research-description">
+                    <p>Analyzing MAUI framework capabilities for unified codebase across iOS, Android, Windows, and macOS with platform-specific optimizations.</p>
+                </div>
+                <div class="research-findings">
+                    <h4>Preliminary Findings:</h4>
+                    <ul>
+                        <li>MAUI reduces codebase by 60% vs individual platform projects</li>
+                        <li>Platform-specific performance characteristics require attention</li>
+                        <li>Offline sync mechanism recommended for mobile variants</li>
+                        <li>Testing matrix complexity remains high despite unified framework</li>
+                    </ul>
+                </div>
+                <div class="research-footer">
+                    <span class="last-updated">Updated: 1h ago</span>
+                    <button class="btn-small">View Details</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="research-card pending">
+            <div class="research-header">
+                <h3>Security & Compliance Framework</h3>
+                <span class="status-badge pending">PENDING</span>
+            </div>
+            <div class="research-body">
+                <div class="research-meta">
+                    <span class="meta-item">
+                        <strong>Owner:</strong> TBD
+                    </span>
+                    <span class="meta-item">
+                        <strong>Priority:</strong> HIGH
+                    </span>
+                    <span class="meta-item">
+                        <strong>Progress:</strong> 0%
+                    </span>
+                </div>
+                <div class="research-description">
+                    <p>Investigate HIPAA compliance requirements, encryption standards, and security audit mechanisms for health-critical data handling.</p>
+                </div>
+                <div class="research-findings">
+                    <h4>Scope:</h4>
+                    <ul>
+                        <li>End-to-end encryption for data in transit</li>
+                        <li>Encryption at rest for sensitive data</li>
+                        <li>Audit logging and accountability trails</li>
+                        <li>Access control and role-based permissions</li>
+                    </ul>
+                </div>
+                <div class="research-footer">
+                    <span class="last-updated">Created: 5d ago</span>
+                    <button class="btn-small">Start Research</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="research-card completed">
+            <div class="research-header">
+                <h3>Database Scalability Analysis</h3>
+                <span class="status-badge completed">COMPLETED</span>
+            </div>
+            <div class="research-body">
+                <div class="research-meta">
+                    <span class="meta-item">
+                        <strong>Owner:</strong> Research Analyst Agent
+                    </span>
+                    <span class="meta-item">
+                        <strong>Priority:</strong> HIGH
+                    </span>
+                    <span class="meta-item">
+                        <strong>Progress:</strong> 100%
+                    </span>
+                </div>
+                <div class="research-description">
+                    <p>Load testing PostgreSQL database with concurrent connections and high-throughput data ingestion scenarios.</p>
+                </div>
+                <div class="research-findings">
+                    <h4>Key Findings:</h4>
+                    <ul>
+                        <li>PostgreSQL handles 5000+ writes/sec with proper indexing</li>
+                        <li>Replication lag &lt; 100ms in synchronous mode</li>
+                        <li>Recommended connection pooling with PgBouncer</li>
+                        <li>Partitioning strategy essential for historical data</li>
+                    </ul>
+                </div>
+                <div class="research-footer">
+                    <span class="last-updated">Completed: 7d ago</span>
+                    <button class="btn-small">View Report</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        // Load research projects
+        await Task.CompletedTask;
+    }
+}

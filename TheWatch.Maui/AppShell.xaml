@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="TheWatch.Maui.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <TabBar>
+        <ShellContent
+            Title="Dashboard"
+            ContentTemplate="{DataTemplate local:MainPage}"
+            Route="MainPage"
+            Icon="home.png" />
+
+        <ShellContent
+            Title="Alert Sim"
+            ContentTemplate="{DataTemplate local:AlertSimulatorPage}"
+            Route="AlertSimulator"
+            Icon="alert.png" />
+
+        <ShellContent
+            Title="Sensor Sim"
+            ContentTemplate="{DataTemplate local:SensorSimulatorPage}"
+            Route="SensorSimulator"
+            Icon="sensor.png" />
+
+        <ShellContent
+            Title="Device Sim"
+            ContentTemplate="{DataTemplate local:DeviceSimulatorPage}"
+            Route="DeviceSimulator"
+            Icon="device.png" />
+
+        <ShellContent
+            Title="Event Log"
+            ContentTemplate="{DataTemplate local:EventLogPage}"
+            Route="EventLog"
+            Icon="log.png" />
+    </TabBar>
+
+</Shell>

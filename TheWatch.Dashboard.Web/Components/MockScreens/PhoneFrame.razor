@@ -1,0 +1,207 @@
+@using System.ComponentModel.DataAnnotations
+
+<div class="phone-frame-container">
+    <div class="device-toggle">
+        <button class="toggle-btn" @onclick="@(() => SwitchDevice())" title="Toggle device type">
+            @(DeviceType == "iphone" ? "📱 iPhone" : "🤖 Android")
+        </button>
+    </div>
+
+    <div class="phone-frame @DeviceType">
+        @if (DeviceType == "iphone")
+        {
+            <div class="iphone-notch"></div>
+        }
+        else
+        {
+            <div class="android-status-bar">
+                <span class="status-time">9:41</span>
+                <div class="status-icons">
+                    <span class="signal-icon">▓▒░</span>
+                    <span class="battery-icon">🔋</span>
+                </div>
+            </div>
+        }
+
+        <div class="viewport">
+            @ChildContent
+        </div>
+
+        @if (DeviceType == "iphone")
+        {
+            <div class="iphone-home-indicator"></div>
+        }
+        else
+        {
+            <div class="android-nav-bar"></div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string DeviceType { get; set; } = "iphone";
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    private void SwitchDevice()
+    {
+        DeviceType = DeviceType == "iphone" ? "android" : "iphone";
+    }
+}
+
+<style scoped>
+    .phone-frame-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+        padding: 40px 20px;
+        background: #f5f5f5;
+    }
+
+    .device-toggle {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .toggle-btn {
+        padding: 8px 16px;
+        background: #1B2A4A;
+        color: #FFFFFF;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .toggle-btn:hover {
+        background: #DC3545;
+        transform: translateY(-2px);
+    }
+
+    .phone-frame {
+        position: relative;
+        background: #000;
+        border: 12px solid #1a1a1a;
+        border-radius: 47px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+    }
+
+    .phone-frame.iphone {
+        width: 390px;
+        height: 844px;
+    }
+
+    .phone-frame.android {
+        width: 412px;
+        height: 915px;
+        border-radius: 20px;
+    }
+
+    .iphone-notch {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 150px;
+        height: 30px;
+        background: #000;
+        border-radius: 0 0 40px 40px;
+        z-index: 10;
+    }
+
+    .iphone-home-indicator {
+        position: absolute;
+        bottom: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 120px;
+        height: 4px;
+        background: #fff;
+        border-radius: 2px;
+        z-index: 10;
+    }
+
+    .android-status-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 24px;
+        background: #1B2A4A;
+        color: #fff;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 4px 16px;
+        font-size: 12px;
+        z-index: 10;
+    }
+
+    .status-time {
+        font-weight: 600;
+    }
+
+    .status-icons {
+        display: flex;
+        gap: 4px;
+        font-size: 10px;
+    }
+
+    .android-nav-bar {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 48px;
+        background: #1B2A4A;
+        border-top: 1px solid #333;
+        z-index: 10;
+    }
+
+    .viewport {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .phone-frame.iphone .viewport {
+        padding-top: 30px;
+        padding-bottom: 34px;
+    }
+
+    .phone-frame.android .viewport {
+        padding-top: 24px;
+        padding-bottom: 48px;
+    }
+
+    /* Scrollbar styling for viewport */
+    .viewport::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .viewport::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .viewport::-webkit-scrollbar-thumb {
+        background: rgba(27, 42, 74, 0.3);
+        border-radius: 3px;
+    }
+
+    .viewport::-webkit-scrollbar-thumb:hover {
+        background: rgba(27, 42, 74, 0.5);
+    }
+</style>

@@ -1,0 +1,343 @@
+@page "/swarm"
+@rendermode InteractiveServer
+@inject SwarmInventoryService InventoryService
+
+<PageTitle>Swarm Dashboard - TheWatch</PageTitle>
+
+<MudThemeProvider />
+
+<div class="swarm-page">
+
+    @* ══════════════════════════════════════════════════════════════ *@
+    @* MISSION — front, top, and center                              *@
+    @* ══════════════════════════════════════════════════════════════ *@
+    <MudPaper Class="mission-banner pa-6 mb-4" Elevation="3">
+        <MudStack Row="false" Spacing="2" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.h4" Align="Align.Center" Class="mission-title">
+                @InventoryService.MissionStatement
+            </MudText>
+            <MudText Typo="Typo.body2" Align="Align.Center" Class="mission-detail">
+                @InventoryService.MissionDetail
+            </MudText>
+            <MudStack Row="true" Spacing="4" Justify="Justify.Center" Class="mt-2">
+                <MudChip T="string" Color="Color.Success" Size="Size.Small">@activeAgentCount Active Agents</MudChip>
+                <MudChip T="string" Color="Color.Info" Size="Size.Small">@totalFiles Files Tracked</MudChip>
+                <MudChip T="string" Color="Color.Warning" Size="Size.Small">@goalsInProgress Goals In Progress</MudChip>
+                <MudChip T="string" Color="Color.Primary" Size="Size.Small">@goalsDone / @goalsTotal Goals Done</MudChip>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+
+    @* ══════════════════════════════════════════════════════════════ *@
+    @* SUPERVISORS — domain leads under the mission                  *@
+    @* ══════════════════════════════════════════════════════════════ *@
+    <MudText Typo="Typo.h6" Class="section-title mb-2">Supervisor Assignments</MudText>
+    <MudGrid Class="mb-4">
+        @foreach (var sup in supervisors)
+        {
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="2" Class="supervisor-card">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudAvatar Color="@(sup.Status == "Active" ? Color.Success : Color.Default)" Size="Size.Small">
+                                    @sup.Name[0]
+                                </MudAvatar>
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.subtitle2">@sup.Name</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@sup.Domain</MudText>
+                                </MudStack>
+                            </MudStack>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudChip T="string" Size="Size.Small"
+                                     Color="@(sup.Status == "Active" ? Color.Success : Color.Default)">
+                                @sup.Status
+                            </MudChip>
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent Class="pt-0">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-2">
+                            <MudText Typo="Typo.caption">@sup.FileCount files</MudText>
+                            <MudText Typo="Typo.caption">@sup.ActiveAgents active</MudText>
+                        </MudStack>
+                        <MudProgressLinear Color="Color.Primary" Size="Size.Small" Rounded="true"
+                                           Value="@(sup.GoalsTotal > 0 ? (int)(100.0 * sup.GoalsCompleted / sup.GoalsTotal) : 0)" />
+                        <MudText Typo="Typo.caption" Align="Align.Right" Class="mt-1">
+                            @sup.GoalsCompleted / @sup.GoalsTotal goals
+                        </MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+
+    @* ══════════════════════════════════════════════════════════════ *@
+    @* FILE INVENTORY DATAGRID — every file, its agent, its goals    *@
+    @* ══════════════════════════════════════════════════════════════ *@
+    <MudText Typo="Typo.h6" Class="section-title mb-2">File Inventory</MudText>
+
+    <MudStack Row="true" Spacing="2" Class="mb-3">
+        <MudTextField @bind-Value="searchText" Placeholder="Search files..." Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" Class="flex-grow-1" />
+        <MudSelect T="string" @bind-Value="projectFilter" Label="Project" Variant="Variant.Outlined"
+                   Margin="Margin.Dense" Clearable="true" Style="min-width:180px;">
+            @foreach (var p in projects)
+            {
+                <MudSelectItem T="string" Value="@p">@p</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect T="string" @bind-Value="statusFilter" Label="Agent Status" Variant="Variant.Outlined"
+                   Margin="Margin.Dense" Clearable="true" Style="min-width:150px;">
+            <MudSelectItem T="string" Value="@("Active")">Active</MudSelectItem>
+            <MudSelectItem T="string" Value="@("Idle")">Idle</MudSelectItem>
+            <MudSelectItem T="string" Value="@("Done")">Done</MudSelectItem>
+            <MudSelectItem T="string" Value="@("Queued")">Queued</MudSelectItem>
+        </MudSelect>
+    </MudStack>
+
+    <MudDataGrid T="FileInventoryItem" Items="@filteredInventory" Dense="true" Hover="true" Bordered="true"
+                 Striped="true" RowsPerPage="25" Filterable="false" SortMode="SortMode.Multiple"
+                 Class="inventory-grid">
+        <Columns>
+            <PropertyColumn Property="x => x.Project" Title="Project" />
+            <PropertyColumn Property="x => x.FileName" Title="File" />
+            <PropertyColumn Property="x => x.FileType" Title="Type" />
+            <TemplateColumn Title="Purpose" SortBy="x => x.PurposeShort">
+                <CellTemplate>
+                    <MudTooltip Text="@context.Item.PurposeFull" Placement="Placement.Top" Arrow="true">
+                        <MudText Typo="Typo.body2" Class="purpose-cell">@context.Item.PurposeShort</MudText>
+                    </MudTooltip>
+                </CellTemplate>
+            </TemplateColumn>
+            <TemplateColumn Title="Agent" SortBy="x => x.AgentName">
+                <CellTemplate>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudIcon Icon="@GetAgentIcon(context.Item.AgentStatus)" Size="Size.Small"
+                                 Color="@GetAgentColor(context.Item.AgentStatus)" />
+                        <MudText Typo="Typo.body2">@context.Item.AgentName</MudText>
+                    </MudStack>
+                </CellTemplate>
+            </TemplateColumn>
+            <TemplateColumn Title="Role">
+                <CellTemplate>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                             Color="@GetRoleColor(context.Item.AgentRole)">
+                        @context.Item.AgentRole
+                    </MudChip>
+                </CellTemplate>
+            </TemplateColumn>
+            <TemplateColumn Title="Goals">
+                <CellTemplate>
+                    @{
+                        var done = context.Item.Goals.Count(g => g.Status == "Done");
+                        var total = context.Item.Goals.Count;
+                        var inProg = context.Item.Goals.Count(g => g.Status == "InProgress");
+                    }
+                    <MudTooltip Arrow="true" Placement="Placement.Left">
+                        <ChildContent>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                <MudProgressLinear Color="Color.Success" Size="Size.Small" Rounded="true"
+                                                   Value="@(total > 0 ? (int)(100.0 * done / total) : 0)"
+                                                   Style="width:60px;" />
+                                <MudText Typo="Typo.caption">@done/@total</MudText>
+                                @if (inProg > 0)
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.Autorenew" Size="Size.Small" Color="Color.Warning" />
+                                }
+                            </MudStack>
+                        </ChildContent>
+                        <TooltipContent>
+                            <MudStack Spacing="1">
+                                @foreach (var goal in context.Item.Goals)
+                                {
+                                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                        <MudIcon Icon="@GetGoalIcon(goal.Status)" Size="Size.Small"
+                                                 Color="@GetGoalColor(goal.Status)" />
+                                        <MudText Typo="Typo.caption">@goal.Description</MudText>
+                                    </MudStack>
+                                }
+                            </MudStack>
+                        </TooltipContent>
+                    </MudTooltip>
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+        <PagerContent>
+            <MudDataGridPager T="FileInventoryItem" />
+        </PagerContent>
+    </MudDataGrid>
+
+</div>
+
+@code {
+    private List<FileInventoryItem> inventory = [];
+    private List<SupervisorAssignment> supervisors = [];
+    private List<string> projects = [];
+
+    private string searchText = "";
+    private string? projectFilter;
+    private string? statusFilter;
+
+    private int totalFiles;
+    private int activeAgentCount;
+    private int goalsInProgress;
+    private int goalsDone;
+    private int goalsTotal;
+
+    private IEnumerable<FileInventoryItem> filteredInventory => inventory
+        .Where(f => string.IsNullOrEmpty(searchText) ||
+                     f.FileName.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                     f.PurposeShort.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                     f.AgentName.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                     f.FilePath.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+        .Where(f => string.IsNullOrEmpty(projectFilter) || f.Project == projectFilter)
+        .Where(f => string.IsNullOrEmpty(statusFilter) || f.AgentStatus == statusFilter);
+
+    protected override void OnInitialized()
+    {
+        // Sync fallback for immediate render
+        inventory = InventoryService.GetInventory();
+        supervisors = InventoryService.GetSupervisors();
+        ComputeMetrics();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        // Async load from Firestore — replaces static data if available
+        try
+        {
+            var firestoreFiles = await InventoryService.GetInventoryAsync();
+            var firestoreSups = await InventoryService.GetSupervisorsAsync();
+
+            if (firestoreFiles.Count > 0)
+            {
+                inventory = firestoreFiles;
+                supervisors = firestoreSups.Count > 0 ? firestoreSups : supervisors;
+                ComputeMetrics();
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch
+        {
+            // Static fallback already loaded in OnInitialized
+        }
+    }
+
+    private void ComputeMetrics()
+    {
+        projects = inventory.Select(f => f.Project).Distinct().OrderBy(p => p).ToList();
+        totalFiles = inventory.Count;
+        activeAgentCount = inventory.Count(f => f.AgentStatus == "Active");
+        goalsInProgress = inventory.SelectMany(f => f.Goals).Count(g => g.Status == "InProgress");
+        goalsDone = inventory.SelectMany(f => f.Goals).Count(g => g.Status == "Done");
+        goalsTotal = inventory.SelectMany(f => f.Goals).Count();
+    }
+
+    // ── Icon / Color Helpers ─────────────────────────────────────
+
+    private static string GetAgentIcon(string status) => status switch
+    {
+        "Active" => Icons.Material.Filled.PlayCircle,
+        "Idle" => Icons.Material.Filled.PauseCircle,
+        "Done" => Icons.Material.Filled.CheckCircle,
+        "Queued" => Icons.Material.Filled.HourglassEmpty,
+        "Error" => Icons.Material.Filled.Error,
+        _ => Icons.Material.Filled.Help
+    };
+
+    private static Color GetAgentColor(string status) => status switch
+    {
+        "Active" => Color.Success,
+        "Idle" => Color.Default,
+        "Done" => Color.Info,
+        "Queued" => Color.Warning,
+        "Error" => Color.Error,
+        _ => Color.Default
+    };
+
+    private static Color GetRoleColor(string role) => role switch
+    {
+        "Orchestrator" => Color.Primary,
+        "Specialist" => Color.Info,
+        "Reviewer" => Color.Warning,
+        "SafetyGuard" => Color.Error,
+        "CodeGen" => Color.Secondary,
+        "Aggregator" => Color.Tertiary,
+        _ => Color.Default
+    };
+
+    private static string GetGoalIcon(string status) => status switch
+    {
+        "Done" => Icons.Material.Filled.CheckCircle,
+        "InProgress" => Icons.Material.Filled.Autorenew,
+        "Pending" => Icons.Material.Filled.RadioButtonUnchecked,
+        "Blocked" => Icons.Material.Filled.Block,
+        _ => Icons.Material.Filled.Help
+    };
+
+    private static Color GetGoalColor(string status) => status switch
+    {
+        "Done" => Color.Success,
+        "InProgress" => Color.Warning,
+        "Pending" => Color.Default,
+        "Blocked" => Color.Error,
+        _ => Color.Default
+    };
+}
+
+<style>
+    .swarm-page {
+        padding: 24px 32px;
+        margin-left: 0;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #f5f7fa 0%, #e9eef5 100%);
+    }
+
+    .mission-banner {
+        background: linear-gradient(135deg, #1B2A4A 0%, #2a3f5f 100%) !important;
+        color: white !important;
+        border-radius: 12px !important;
+    }
+
+    .mission-title {
+        font-weight: 700 !important;
+        letter-spacing: -0.5px;
+    }
+
+    .mission-detail {
+        max-width: 900px;
+        opacity: 0.85;
+    }
+
+    .section-title {
+        color: #1B2A4A;
+        font-weight: 600 !important;
+        border-left: 4px solid #DC3545;
+        padding-left: 12px;
+    }
+
+    .supervisor-card {
+        border-radius: 8px !important;
+        transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .supervisor-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12) !important;
+    }
+
+    .purpose-cell {
+        font-weight: 600;
+        white-space: nowrap;
+        cursor: help;
+    }
+
+    .inventory-grid {
+        border-radius: 8px !important;
+        overflow: hidden;
+    }
+</style>

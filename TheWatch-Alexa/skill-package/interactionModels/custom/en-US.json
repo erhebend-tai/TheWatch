@@ -1,0 +1,304 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "the watch",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.YesIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NoIntent",
+          "samples": []
+        },
+        {
+          "name": "TriggerSOSIntent",
+          "slots": [],
+          "samples": [
+            "I need help",
+            "help me",
+            "emergency",
+            "S O S",
+            "send help",
+            "I'm in danger",
+            "I'm not safe",
+            "trigger alert",
+            "trigger emergency",
+            "activate alert",
+            "activate emergency",
+            "send an alert",
+            "send emergency alert",
+            "help me please",
+            "I need emergency help",
+            "someone help me",
+            "call for help",
+            "panic",
+            "I'm in trouble",
+            "send S O S"
+          ]
+        },
+        {
+          "name": "TriggerSOSConfirmIntent",
+          "slots": [],
+          "samples": [
+            "yes I need help",
+            "confirm emergency",
+            "yes send help",
+            "confirm alert",
+            "yes activate",
+            "confirm S O S",
+            "yes trigger alert",
+            "I confirm",
+            "affirmative",
+            "yes please send help"
+          ]
+        },
+        {
+          "name": "CheckInIntent",
+          "slots": [],
+          "samples": [
+            "I'm okay",
+            "I'm safe",
+            "check in",
+            "I'm fine",
+            "I'm alright",
+            "all good",
+            "I'm doing okay",
+            "everything is fine",
+            "I'm good",
+            "report safe",
+            "mark me safe",
+            "confirm I'm okay",
+            "I'm not in danger",
+            "check me in",
+            "register check in"
+          ]
+        },
+        {
+          "name": "StatusIntent",
+          "slots": [],
+          "samples": [
+            "what's my status",
+            "safety report",
+            "my status",
+            "any alerts",
+            "do I have alerts",
+            "give me my status",
+            "safety status",
+            "what's happening",
+            "am I safe",
+            "check my alerts",
+            "status report",
+            "how am I doing",
+            "are there any alerts",
+            "show me my status",
+            "what's going on"
+          ]
+        },
+        {
+          "name": "CancelSOSIntent",
+          "slots": [],
+          "samples": [
+            "cancel alert",
+            "cancel emergency",
+            "cancel my alert",
+            "false alarm",
+            "it was a false alarm",
+            "cancel the S O S",
+            "stop the alert",
+            "deactivate alert",
+            "I'm okay now cancel",
+            "never mind cancel the alert",
+            "call off the alert",
+            "stand down",
+            "cancel my emergency alert",
+            "disregard the alert",
+            "abort alert"
+          ]
+        },
+        {
+          "name": "SetEmergencyPhraseIntent",
+          "slots": [
+            {
+              "name": "emergencyPhrase",
+              "type": "AMAZON.SearchQuery",
+              "samples": [
+                "set it to {emergencyPhrase}",
+                "{emergencyPhrase}",
+                "make it {emergencyPhrase}",
+                "use {emergencyPhrase}",
+                "change it to {emergencyPhrase}"
+              ]
+            }
+          ],
+          "samples": [
+            "set my emergency phrase",
+            "set my emergency phrase to {emergencyPhrase}",
+            "change my emergency phrase",
+            "change my emergency phrase to {emergencyPhrase}",
+            "update my emergency phrase",
+            "update my emergency phrase to {emergencyPhrase}",
+            "set my safe word",
+            "set my safe word to {emergencyPhrase}",
+            "change my safe word to {emergencyPhrase}",
+            "set my panic phrase",
+            "set my panic phrase to {emergencyPhrase}",
+            "I want my emergency phrase to be {emergencyPhrase}",
+            "my new emergency phrase is {emergencyPhrase}"
+          ]
+        },
+        {
+          "name": "GetNearbyRespondersIntent",
+          "slots": [],
+          "samples": [
+            "who is nearby",
+            "nearby responders",
+            "who's around",
+            "responders near me",
+            "are there volunteers nearby",
+            "how many responders are nearby",
+            "who can help me",
+            "nearby volunteers",
+            "any responders close by",
+            "show me nearby help",
+            "who's available to help",
+            "check for nearby responders",
+            "are there people nearby"
+          ]
+        },
+        {
+          "name": "VolunteerStatusIntent",
+          "slots": [],
+          "samples": [
+            "my volunteer status",
+            "am I on duty",
+            "volunteer status",
+            "am I volunteering",
+            "check my volunteer status",
+            "responder status",
+            "am I a responder",
+            "what's my volunteer schedule",
+            "my responder status",
+            "how many shifts do I have",
+            "am I active as a volunteer"
+          ]
+        },
+        {
+          "name": "EmergencyContactsIntent",
+          "slots": [],
+          "samples": [
+            "my contacts",
+            "my emergency contacts",
+            "who are my emergency contacts",
+            "list my contacts",
+            "show my contacts",
+            "emergency contacts",
+            "who will be notified",
+            "who gets alerted",
+            "tell me my contacts",
+            "read my emergency contacts",
+            "what contacts do I have",
+            "who is on my contact list"
+          ]
+        },
+        {
+          "name": "SilentDuressIntent",
+          "slots": [],
+          "samples": [
+            "update my settings",
+            "change my preferences",
+            "adjust my notification settings",
+            "modify my profile settings",
+            "update my notification preferences",
+            "change my account settings",
+            "reset my preferences",
+            "configure my settings",
+            "edit my settings",
+            "update preferences"
+          ]
+        }
+      ],
+      "types": []
+    },
+    "dialog": {
+      "intents": [
+        {
+          "name": "SetEmergencyPhraseIntent",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": [
+            {
+              "name": "emergencyPhrase",
+              "type": "AMAZON.SearchQuery",
+              "confirmationRequired": true,
+              "elicitationRequired": true,
+              "prompts": {
+                "confirmation": "Confirm.Slot.emergencyPhrase",
+                "elicitation": "Elicit.Slot.emergencyPhrase"
+              }
+            }
+          ]
+        },
+        {
+          "name": "TriggerSOSIntent",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": []
+        }
+      ],
+      "delegationStrategy": "SKILL_RESPONSE"
+    },
+    "prompts": [
+      {
+        "id": "Elicit.Slot.emergencyPhrase",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "What would you like your emergency phrase to be? Say any phrase or sentence you will remember."
+          },
+          {
+            "type": "PlainText",
+            "value": "Please tell me your new emergency phrase."
+          },
+          {
+            "type": "PlainText",
+            "value": "What phrase should trigger your emergency alert?"
+          }
+        ]
+      },
+      {
+        "id": "Confirm.Slot.emergencyPhrase",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "I heard your emergency phrase. For security I won't repeat it. Is that correct?"
+          },
+          {
+            "type": "PlainText",
+            "value": "Got it. Do you want to save this as your emergency phrase?"
+          }
+        ]
+      }
+    ]
+  }
+}

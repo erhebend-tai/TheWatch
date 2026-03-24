@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    TheWatch Launcher Icon Background Color
+    =========================================
+    Used as the adaptive icon background layer.
+    Dark green conveys safety, trust, and emergency readiness.
+
+    Referenced by: @color/ic_launcher_background
+    Used in: res/mipmap-anydpi-v26/ic_launcher.xml
+
+    Example:
+      <adaptive-icon>
+          <background android:drawable="@color/ic_launcher_background" />
+      </adaptive-icon>
+-->
+<resources>
+    <color name="ic_launcher_background">#2E7D32</color>
+</resources>

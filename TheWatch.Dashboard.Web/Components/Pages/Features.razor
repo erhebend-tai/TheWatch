@@ -1,0 +1,167 @@
+@page "/features"
+@inject DashboardApiClient Api
+@inject ISnackbar Snackbar
+
+<PageTitle>Feature Tracker - TheWatch</PageTitle>
+
+<div style="padding: 24px;">
+
+    <MudText Typo="Typo.h4" Class="mb-2">Feature Implementation Tracker</MudText>
+    <MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+        Tracks all feature implementations across the TheWatch platform. Data sourced from Firestore, Aspire logs, and Claude Code sessions.
+    </MudText>
+
+    @* ── Status summary cards ── *@
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="6" md="2">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.caption">TOTAL</MudText>
+                <MudText Typo="Typo.h5">@_features.Count</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <MudPaper Class="pa-4" Elevation="2" Style="border-left: 3px solid #4CAF50;">
+                <MudText Typo="Typo.caption">COMPLETED</MudText>
+                <MudText Typo="Typo.h5" Color="Color.Success">@_features.Count(f => f.Status == FeatureStatus.Completed)</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <MudPaper Class="pa-4" Elevation="2" Style="border-left: 3px solid #2196F3;">
+                <MudText Typo="Typo.caption">IN PROGRESS</MudText>
+                <MudText Typo="Typo.h5" Color="Color.Info">@_features.Count(f => f.Status == FeatureStatus.InProgress)</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <MudPaper Class="pa-4" Elevation="2" Style="border-left: 3px solid #9E9E9E;">
+                <MudText Typo="Typo.caption">PLANNED</MudText>
+                <MudText Typo="Typo.h5">@_features.Count(f => f.Status == FeatureStatus.Planned)</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <MudPaper Class="pa-4" Elevation="2" Style="border-left: 3px solid #FF9800;">
+                <MudText Typo="Typo.caption">BLOCKED</MudText>
+                <MudText Typo="Typo.h5" Color="Color.Warning">@_features.Count(f => f.Status == FeatureStatus.Blocked)</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.caption">AVG PROGRESS</MudText>
+                <MudText Typo="Typo.h5">@(_features.Count > 0 ? _features.Average(f => f.ProgressPercent).ToString("F0") : "0")%</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* ── MudBlazor DataGrid ── *@
+    <MudDataGrid T="FeatureImplementation"
+                 Items="@_features"
+                 SortMode="SortMode.Multiple"
+                 Filterable="true"
+                 FilterMode="DataGridFilterMode.ColumnFilterRow"
+                 Hideable="true"
+                 Groupable="true"
+                 Dense="true"
+                 Hover="true"
+                 Striped="true"
+                 Loading="@_loading"
+                 RowsPerPage="25"
+                 Style="max-height: calc(100vh - 340px); overflow: auto;">
+
+        <Columns>
+            <PropertyColumn Property="x => x.Name" Title="Feature" Filterable="true" />
+
+            <TemplateColumn Title="Status" SortBy="x => x.Status" Filterable="true">
+                <CellTemplate>
+                    <MudChip T="string"
+                             Color="@GetStatusColor(context.Item.Status)"
+                             Size="Size.Small"
+                             Variant="Variant.Filled">
+                        @context.Item.Status.ToString()
+                    </MudChip>
+                </CellTemplate>
+            </TemplateColumn>
+
+            <TemplateColumn Title="Progress" SortBy="x => x.ProgressPercent">
+                <CellTemplate>
+                    <MudProgressLinear Color="@GetProgressColor(context.Item.ProgressPercent)"
+                                       Value="@context.Item.ProgressPercent"
+                                       Size="Size.Medium"
+                                       Rounded="true"
+                                       Style="min-width: 100px;">
+                        <MudText Typo="Typo.caption">@context.Item.ProgressPercent%</MudText>
+                    </MudProgressLinear>
+                </CellTemplate>
+            </TemplateColumn>
+
+            <PropertyColumn Property="x => x.Category" Title="Category" Filterable="true" Groupable="true" />
+            <PropertyColumn Property="x => x.Project" Title="Project" Filterable="true" Groupable="true" />
+            <PropertyColumn Property="x => x.AssignedTo" Title="Assigned To" Filterable="true" />
+
+            <TemplateColumn Title="Priority" SortBy="x => x.Priority">
+                <CellTemplate>
+                    <MudChip T="string"
+                             Color="@GetPriorityColor(context.Item.Priority)"
+                             Size="Size.Small"
+                             Variant="Variant.Outlined">
+                        P@context.Item.Priority
+                    </MudChip>
+                </CellTemplate>
+            </TemplateColumn>
+
+            <TemplateColumn Title="Tags">
+                <CellTemplate>
+                    @foreach (var tag in context.Item.Tags.Take(3))
+                    {
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Default">@tag</MudChip>
+                    }
+                </CellTemplate>
+            </TemplateColumn>
+
+            <PropertyColumn Property="x => x.LastUpdatedAt" Title="Last Updated" Format="yyyy-MM-dd HH:mm" />
+        </Columns>
+
+        <PagerContent>
+            <MudDataGridPager T="FeatureImplementation" PageSizeOptions="new[] { 10, 25, 50, 100 }" />
+        </PagerContent>
+
+    </MudDataGrid>
+
+</div>
+
+@code {
+    private List<FeatureImplementation> _features = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _features = await Api.GetFeaturesAsync();
+        _loading = false;
+    }
+
+    private Color GetStatusColor(FeatureStatus status) => status switch
+    {
+        FeatureStatus.Completed => Color.Success,
+        FeatureStatus.InProgress => Color.Info,
+        FeatureStatus.InReview => Color.Primary,
+        FeatureStatus.Testing => Color.Secondary,
+        FeatureStatus.Planned => Color.Default,
+        FeatureStatus.Blocked => Color.Warning,
+        FeatureStatus.Deferred => Color.Dark,
+        _ => Color.Default
+    };
+
+    private Color GetProgressColor(int percent) => percent switch
+    {
+        100 => Color.Success,
+        >= 60 => Color.Info,
+        >= 30 => Color.Warning,
+        _ => Color.Default
+    };
+
+    private Color GetPriorityColor(int priority) => priority switch
+    {
+        1 => Color.Error,
+        2 => Color.Warning,
+        3 => Color.Info,
+        _ => Color.Default
+    };
+}

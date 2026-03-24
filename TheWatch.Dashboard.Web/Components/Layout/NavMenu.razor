@@ -1,0 +1,218 @@
+<div class="nav-menu">
+    <div class="nav-header">
+        <div class="nav-brand">
+            <div class="brand-icon">W</div>
+            <div class="brand-text">
+                <span class="brand-name">TheWatch</span>
+                <span class="brand-subtitle">Command Center</span>
+            </div>
+        </div>
+    </div>
+
+    <nav class="nav-links">
+        <div class="nav-section">
+            <div class="nav-section-title">MAIN</div>
+            <NavLink href="" Match="NavLinkMatch.All" class="nav-link">
+                <span class="nav-icon">&#x25A3;</span> Dashboard
+            </NavLink>
+            <NavLink href="milestones" class="nav-link">
+                <span class="nav-icon">&#x25CE;</span> Milestones
+            </NavLink>
+            <NavLink href="workitems" class="nav-link">
+                <span class="nav-icon">&#x2630;</span> Work Items
+            </NavLink>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">APP PREVIEW</div>
+            <NavLink href="screens" class="nav-link">
+                <span class="nav-icon">&#x25A1;</span> Screen Gallery
+            </NavLink>
+            <NavLink href="screens/flow" class="nav-link">
+                <span class="nav-icon">&#x2192;</span> Navigation Flow
+            </NavLink>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">OPERATIONS</div>
+            <NavLink href="swarm" class="nav-link">
+                <span class="nav-icon">&#x2604;</span> Swarm Dashboard
+            </NavLink>
+            <NavLink href="agents" class="nav-link">
+                <span class="nav-icon">&#x2699;</span> AI Agents
+            </NavLink>
+            <NavLink href="builds" class="nav-link">
+                <span class="nav-icon">&#x2692;</span> Builds
+            </NavLink>
+            <NavLink href="research" class="nav-link">
+                <span class="nav-icon">&#x2315;</span> Research
+            </NavLink>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">TRACKING</div>
+            <NavLink href="features" class="nav-link">
+                <span class="nav-icon">&#x2611;</span> Feature Tracker
+            </NavLink>
+            <NavLink href="devwork" class="nav-link">
+                <span class="nav-icon">&#x2318;</span> DevWork / Claude
+            </NavLink>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">TOOLS</div>
+            <NavLink href="simulation" class="nav-link">
+                <span class="nav-icon">&#x26A1;</span> Simulation
+            </NavLink>
+        </div>
+    </nav>
+
+    <div class="nav-footer">
+        <div class="nav-status">
+            <span class="status-dot online"></span>
+            <span class="status-text">All Systems Operational</span>
+        </div>
+    </div>
+</div>
+
+<style>
+    .nav-menu {
+        width: 240px;
+        height: 100vh;
+        background: #1B2A4A;
+        color: white;
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 100;
+        overflow-y: auto;
+    }
+
+    .nav-header {
+        padding: 20px 16px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .nav-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .brand-icon {
+        width: 36px;
+        height: 36px;
+        background: #DC3545;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 18px;
+    }
+
+    .brand-name {
+        font-weight: 700;
+        font-size: 16px;
+        display: block;
+    }
+
+    .brand-subtitle {
+        font-size: 11px;
+        color: rgba(255,255,255,0.5);
+        display: block;
+    }
+
+    .nav-links {
+        flex: 1;
+        padding: 8px 0;
+    }
+
+    .nav-section {
+        padding: 4px 0;
+    }
+
+    .nav-section-title {
+        padding: 8px 20px 4px;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 1.2px;
+        color: rgba(255,255,255,0.35);
+    }
+
+    .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 20px;
+        color: rgba(255,255,255,0.7);
+        text-decoration: none;
+        font-size: 13px;
+        transition: all 0.15s;
+        border-left: 3px solid transparent;
+    }
+
+    .nav-link:hover {
+        background: rgba(255,255,255,0.05);
+        color: white;
+    }
+
+    .nav-link.active {
+        background: rgba(255,255,255,0.1);
+        color: white;
+        border-left-color: #DC3545;
+    }
+
+    .nav-icon {
+        font-size: 14px;
+        width: 18px;
+        text-align: center;
+    }
+
+    .nav-footer {
+        padding: 16px 20px;
+        border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .nav-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+
+    .status-dot.online {
+        background: #28A745;
+        box-shadow: 0 0 4px #28A745;
+    }
+
+    .status-text {
+        font-size: 11px;
+        color: rgba(255,255,255,0.5);
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.1);
+        border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255,255,255,0.2);
+    }
+</style>

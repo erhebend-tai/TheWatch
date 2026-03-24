@@ -1,0 +1,138 @@
+@page "/simulation"
+@using TheWatch.Shared.Dtos
+@using TheWatch.Shared.Enums
+
+<PageTitle>Simulation Console - TheWatch</PageTitle>
+
+<div class="simulation-container">
+
+    <div class="page-header">
+        <h1>Simulation Console</h1>
+        <p class="subtitle">Send and receive events from MAUI simulator</p>
+    </div>
+
+    <div class="simulation-grid">
+
+        <!-- Send Events Panel -->
+        <div class="panel send-panel">
+            <div class="panel-header">
+                <h2>📤 Send Event</h2>
+            </div>
+
+            <div class="panel-body">
+                <div class="form-group">
+                    <label>Event Type</label>
+                    <select class="form-control">
+                        <option>-- Select Event Type --</option>
+                        <option>Device State</option>
+                        <option>Sensor Reading</option>
+                        <option>Alert</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Payload (JSON)</label>
+                    <textarea class="form-control" rows="8" placeholder="{&#10;  &quot;type&quot;: &quot;device&quot;,&#10;  &quot;online&quot;: true&#10;}"></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button class="btn btn-primary">Send Event</button>
+                    <button class="btn btn-secondary">Clear</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Receive Events Panel -->
+        <div class="panel receive-panel">
+            <div class="panel-header">
+                <h2>📥 Recent Events</h2>
+                <div class="panel-controls">
+                    <button class="btn-icon" title="Auto-scroll">📍</button>
+                    <button class="btn-icon" title="Clear">🗑</button>
+                </div>
+            </div>
+
+            <div class="panel-body">
+                <div class="event-console">
+                    <div class="console-line info">
+                        <span class="timestamp">[10:45:32]</span>
+                        <span class="type">[DEVICE]</span>
+                        <span class="message">Device state published: online=true, battery=87%</span>
+                    </div>
+
+                    <div class="console-line success">
+                        <span class="timestamp">[10:44:18]</span>
+                        <span class="type">[SENSOR]</span>
+                        <span class="message">Sensor reading: HR=72bpm, SpO2=98%, Temp=36.5°C</span>
+                    </div>
+
+                    <div class="console-line warning">
+                        <span class="timestamp">[10:42:05]</span>
+                        <span class="type">[ALERT]</span>
+                        <span class="message">Alert published: Fall detected, confidence=85%</span>
+                    </div>
+
+                    <div class="console-line info">
+                        <span class="timestamp">[10:40:43]</span>
+                        <span class="type">[DEVICE]</span>
+                        <span class="message">Security event: Device jailbreak status=false</span>
+                    </div>
+
+                    <div class="console-line success">
+                        <span class="timestamp">[10:38:22]</span>
+                        <span class="type">[SENSOR]</span>
+                        <span class="message">Sensor reading: HR=68bpm, SpO2=99%, Temp=36.4°C</span>
+                    </div>
+
+                    <div class="console-line info">
+                        <span class="timestamp">[10:36:11]</span>
+                        <span class="type">[DEVICE]</span>
+                        <span class="message">Battery update: 92% → 87%</span>
+                    </div>
+
+                    <div class="console-line success">
+                        <span class="timestamp">[10:34:08]</span>
+                        <span class="type">[SENSOR]</span>
+                        <span class="message">Sensor reading: HR=71bpm, SpO2=98%, Temp=36.6°C</span>
+                    </div>
+
+                    <div class="console-line info">
+                        <span class="timestamp">[10:32:45]</span>
+                        <span class="type">[DEVICE]</span>
+                        <span class="message">Location updated: lat=37.7749, lon=-122.4194</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Event Statistics -->
+    <div class="stats-section">
+        <div class="stat-box">
+            <div class="stat-header">Total Published</div>
+            <div class="stat-value">156</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-header">Total Received</div>
+            <div class="stat-value">156</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-header">Events This Session</div>
+            <div class="stat-value">8</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-header">Connection</div>
+            <div class="stat-value connected">CONNECTED</div>
+        </div>
+    </div>
+
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        // Initialize simulation console
+        await Task.CompletedTask;
+    }
+}

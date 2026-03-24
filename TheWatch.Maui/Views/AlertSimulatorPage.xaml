@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TheWatch.Maui.Views.AlertSimulatorPage"
+             Title="Alert Simulator"
+             BackgroundColor="#FFFFFF">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+
+            <!-- Alert Configuration -->
+            <Frame BorderColor="#1B2A4A" CornerRadius="8" Padding="16" HasShadow="True">
+                <VerticalStackLayout Spacing="16">
+                    <Label Text="Alert Configuration" FontSize="18" FontAttributes="Bold" TextColor="#1B2A4A" />
+
+                    <!-- Severity Selection -->
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Severity Level" FontSize="14" FontAttributes="Bold" TextColor="#1B2A4A" />
+                        <Picker
+                            ItemsSource="{Binding SeverityOptions}"
+                            SelectedIndex="{Binding SelectedSeverityIndex}"
+                            TextColor="#1B2A4A"
+                            BackgroundColor="#F5F5F5"
+                            FontSize="14" />
+                    </VerticalStackLayout>
+
+                    <!-- Trigger Type Selection -->
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Trigger Type" FontSize="14" FontAttributes="Bold" TextColor="#1B2A4A" />
+                        <Picker
+                            ItemsSource="{Binding TriggerOptions}"
+                            SelectedIndex="{Binding SelectedTriggerIndex}"
+                            TextColor="#1B2A4A"
+                            BackgroundColor="#F5F5F5"
+                            FontSize="14" />
+                    </VerticalStackLayout>
+
+                    <!-- Description -->
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Description" FontSize="14" FontAttributes="Bold" TextColor="#1B2A4A" />
+                        <Entry
+                            Text="{Binding Alert.Description}"
+                            Placeholder="Optional alert description"
+                            PlaceholderColor="#CCCCCC"
+                            TextColor="#1B2A4A"
+                            BackgroundColor="#F5F5F5"
+                            FontSize="14" />
+                    </VerticalStackLayout>
+
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Location Settings -->
+            <Frame BorderColor="#1B2A4A" CornerRadius="8" Padding="16" HasShadow="True">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Location" FontSize="18" FontAttributes="Bold" TextColor="#1B2A4A" />
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <VerticalStackLayout Grid.Column="0" Spacing="4">
+                            <Label Text="Latitude" FontSize="12" FontAttributes="Bold" TextColor="#666666" />
+                            <Entry
+                                Text="{Binding Alert.Latitude}"
+                                Keyboard="Numeric"
+                                PlaceholderColor="#CCCCCC"
+                                TextColor="#1B2A4A"
+                                BackgroundColor="#F5F5F5"
+                                FontSize="12" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Grid.Column="1" Spacing="4">
+                            <Label Text="Longitude" FontSize="12" FontAttributes="Bold" TextColor="#666666" />
+                            <Entry
+                                Text="{Binding Alert.Longitude}"
+                                Keyboard="Numeric"
+                                PlaceholderColor="#CCCCCC"
+                                TextColor="#1B2A4A"
+                                BackgroundColor="#F5F5F5"
+                                FontSize="12" />
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <Button
+                        Text="Get Current Location"
+                        Command="{Binding GetCurrentLocationCommand}"
+                        BackgroundColor="#28A745"
+                        TextColor="#FFFFFF"
+                        FontSize="14"
+                        Padding="12,8"
+                        CornerRadius="4" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Confidence Level -->
+            <Frame BorderColor="#1B2A4A" CornerRadius="8" Padding="16" HasShadow="True">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Confidence Level" FontSize="14" FontAttributes="Bold" TextColor="#1B2A4A" />
+
+                    <HorizontalStackLayout Spacing="8">
+                        <Slider
+                            Value="{Binding Alert.ConfidenceLevel}"
+                            Minimum="0"
+                            Maximum="100"
+                            HorizontalOptions="FillAndExpand" />
+                        <Label
+                            Text="{Binding Alert.ConfidenceLevel, StringFormat='{0}%'}"
+                            FontSize="14"
+                            FontAttributes="Bold"
+                            TextColor="#1B2A4A"
+                            WidthRequest="50" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Action Buttons -->
+            <VerticalStackLayout Spacing="12">
+                <Button
+                    Text="Publish Alert"
+                    Command="{Binding PublishAlertCommand}"
+                    BackgroundColor="#DC3545"
+                    TextColor="#FFFFFF"
+                    FontSize="16"
+                    FontAttributes="Bold"
+                    Padding="12,12"
+                    CornerRadius="4"
+                    IsEnabled="{Binding IsLoading, Converter={StaticResource InvertedBoolConverter}}" />
+
+                <Button
+                    Text="Reset Form"
+                    Command="{Binding ResetFormCommand}"
+                    BackgroundColor="#1B2A4A"
+                    TextColor="#FFFFFF"
+                    FontSize="14"
+                    Padding="12,8"
+                    CornerRadius="4"
+                    IsEnabled="{Binding IsLoading, Converter={StaticResource InvertedBoolConverter}}" />
+            </VerticalStackLayout>
+
+            <!-- Status Message -->
+            <Frame
+                BorderColor="#E0E0E0"
+                CornerRadius="4"
+                Padding="12"
+                IsVisible="{Binding StatusMessage, Converter={StaticResource StrToBoolConverter}}">
+                <Label
+                    Text="{Binding StatusMessage}"
+                    FontSize="12"
+                    TextColor="#1B2A4A"
+                    LineBreakMode="WordWrap" />
+            </Frame>
+
+            <!-- Loading Indicator -->
+            <ActivityIndicator
+                IsRunning="{Binding IsLoading}"
+                IsVisible="{Binding IsLoading}"
+                Color="#1B2A4A" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

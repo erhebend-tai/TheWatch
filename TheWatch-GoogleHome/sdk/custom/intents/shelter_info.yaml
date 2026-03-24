@@ -1,0 +1,41 @@
+# ============================================================================
+# WRITE-AHEAD LOG (WAL)
+# ============================================================================
+# File:        shelter_info.yaml
+# Module:      TheWatch Google Home - Shelter Info Intent
+# Created:     2026-03-24
+# Author:      TheWatch Platform Team
+# ----------------------------------------------------------------------------
+# PURPOSE:
+#   Intent for retrieving nearby emergency shelter information including
+#   name, address, capacity, and distance. Displayed as a table on
+#   smart displays.
+#
+# TRAINING PHRASES: 18+
+# CHANGES:
+#   2026-03-24  Initial creation
+# ============================================================================
+
+parameters: []
+
+trainingPhrases:
+  - nearby shelters
+  - find shelters
+  - where are the shelters
+  - show me shelters
+  - shelter information
+  - get shelter info
+  - nearest shelter
+  - where is the nearest shelter
+  - emergency shelters
+  - find emergency shelters
+  - where can I go for shelter
+  - is there a shelter nearby
+  - list shelters
+  - show shelters near me
+  - where do I go for safety
+  - safe haven locations
+  - refuge locations
+  - where are the safe places
+  - find a safe place
+  - show me safe locations

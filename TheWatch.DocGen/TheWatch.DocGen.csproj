@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <RootNamespace>TheWatch.DocGen</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Roslyn — C# syntax analysis -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.12.0" />
+
+    <!-- Hangfire — job scheduling, retry, dashboard -->
+    <PackageReference Include="Hangfire.Core" Version="1.8.17" />
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.17" />
+    <PackageReference Include="Hangfire.InMemory" Version="1.0.0" />
+
+    <!-- RabbitMQ — file-change event messaging -->
+    <PackageReference Include="RabbitMQ.Client" Version="6.8.1" />
+    <PackageReference Include="Aspire.RabbitMQ.Client" Version="9.2.0" />
+
+    <!-- Worker service hosting -->
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TheWatch.ServiceDefaults\TheWatch.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\TheWatch.Shared\TheWatch.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

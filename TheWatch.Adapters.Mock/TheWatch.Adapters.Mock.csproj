@@ -1,0 +1,19 @@
+<!--
+  TheWatch.Adapters.Mock — In-memory mock adapters for all port interfaces.
+  Zero cloud dependencies. Used in Development and Test environments.
+
+  Example — registration happens automatically via AdapterRegistry:
+    "AdapterRegistry": { "PrimaryStorage": "Mock", "AuditTrail": "Mock" }
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\TheWatch.Shared\TheWatch.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+  </ItemGroup>
+
+</Project>

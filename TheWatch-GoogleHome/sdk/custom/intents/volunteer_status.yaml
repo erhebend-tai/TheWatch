@@ -1,0 +1,38 @@
+# ============================================================================
+# WRITE-AHEAD LOG (WAL)
+# ============================================================================
+# File:        volunteer_status.yaml
+# Module:      TheWatch Google Home - Volunteer Status Intent
+# Created:     2026-03-24
+# Author:      TheWatch Platform Team
+# ----------------------------------------------------------------------------
+# PURPOSE:
+#   Intent for checking the user's volunteer/designated responder status
+#   including response count, rating, and availability schedule.
+#
+# TRAINING PHRASES: 16+
+# CHANGES:
+#   2026-03-24  Initial creation
+# ============================================================================
+
+parameters: []
+
+trainingPhrases:
+  - my volunteer status
+  - check my volunteer status
+  - am I a volunteer
+  - am I registered as a volunteer
+  - volunteer status
+  - show my volunteer info
+  - how many emergencies have I responded to
+  - my responder status
+  - am I a designated responder
+  - check my responder status
+  - what's my volunteer rating
+  - my volunteer stats
+  - show my volunteer statistics
+  - am I active as a volunteer
+  - volunteer information
+  - designated responder status
+  - how is my volunteer record
+  - show me my volunteer history

@@ -1,0 +1,22 @@
+<!--
+  TheWatch.Adapters.Google — Live Google Cloud adapter implementations
+  (Firestore, Firebase Auth, Cloud Functions).
+  Used in Production with "Google": "Live" in AdapterRegistry.
+
+  Example — syncs work items to Firestore:
+    IFirestorePort firestore = serviceProvider.GetRequiredService<IFirestorePort>();
+    await firestore.SyncWorkItemsAsync(items);
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\TheWatch.Shared\TheWatch.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Cloud.Firestore" Version="3.10.0" />
+    <PackageReference Include="Google.Cloud.Functions.Framework" Version="2.2.0" />
+    <PackageReference Include="FirebaseAuthentication.Net" Version="4.1.0" />
+  </ItemGroup>
+
+</Project>

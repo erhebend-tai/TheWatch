@@ -1,0 +1,21 @@
+<!--
+  TheWatch.Adapters.GitHub — Live GitHub adapter implementations (Octokit).
+  Used in Production with "GitHub": "Live" in AdapterRegistry.
+
+  Example — fetches milestones from GitHub:
+    IGitHubPort github = serviceProvider.GetRequiredService<IGitHubPort>();
+    var milestones = await github.GetMilestonesAsync("owner", "repo");
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\TheWatch.Shared\TheWatch.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Octokit" Version="13.1.1" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+  </ItemGroup>
+
+</Project>

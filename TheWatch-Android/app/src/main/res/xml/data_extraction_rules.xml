@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Data Extraction Rules for Android 12+ (API 31+)
+    =================================================
+    TheWatch Safety & Security Application
+
+    SECURITY RATIONALE:
+    This is a safety-critical application that stores sensitive user data including:
+      - Emergency contact information
+      - Location history and geofence data
+      - SOS trigger phrases and detection models
+      - User health/infirmity profiles
+      - Volunteer responder availability schedules
+      - Incident reports (text, images, video, sitreps)
+      - Authentication tokens and 2FA secrets
+
+    POLICY: Deny ALL cloud backup by default.
+    Cloud transfer of this data would violate user confidentiality guarantees
+    and could expose emergency response patterns to third-party cloud providers.
+    Local device-to-device transfer is also denied to prevent data leakage
+    during device migration without explicit user re-authentication.
+
+    Reference: https://developer.android.com/guide/topics/data/autobackup#xml-syntax-cloud-device
+    See also: NIST SP 800-144, ISO/IEC 27001:2022 Annex A.8.10 (Information deletion)
+
+    Example usage in AndroidManifest.xml:
+      android:dataExtractionRules="@xml/data_extraction_rules"
+-->
+<data-extraction-rules>
+
+    <!--
+        Cloud Backup Rules (Google Drive, etc.)
+        Deny everything: no user data should be backed up to cloud services.
+    -->
+    <cloud-backup>
+        <!-- Deny all files in internal storage -->
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+    </cloud-backup>
+
+    <!--
+        Device Transfer Rules (device-to-device migration)
+        Deny everything: user must re-authenticate and re-consent on new device.
+        Emergency contacts, volunteer status, and responder data must be
+        re-provisioned through the server to maintain audit trail integrity.
+    -->
+    <device-transfer>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+    </device-transfer>
+
+</data-extraction-rules>

@@ -1,0 +1,74 @@
+# ============================================================================
+# WRITE-AHEAD LOG (WAL)
+# ============================================================================
+# File:        MainScene.yaml
+# Module:      TheWatch Google Home - Main Conversation Scene
+# Created:     2026-03-24
+# Author:      TheWatch Platform Team
+# ----------------------------------------------------------------------------
+# PURPOSE:
+#   The primary conversation scene that acts as the central hub for all
+#   TheWatch voice interactions. Handles intent routing, slot filling,
+#   and transitions to sub-scenes (SOSConfirmation, AccountLinking).
+#
+# FLOW:
+#   1. User invokes "Talk to The Watch"
+#   2. MAIN intent fires -> MainScene activates
+#   3. User states their need -> matched intent handler fires
+#   4. If SOS -> transition to SOSConfirmation for safety
+#   5. If no auth -> transition to AccountLinking
+#
+# EXAMPLE:
+#   User: "Hey Google, talk to The Watch"
+#   Assistant: "Welcome to The Watch. What can I help you with?"
+#   User: "Trigger SOS"
+#   -> Transitions to SOSConfirmation scene
+#
+# CHANGES:
+#   2026-03-24  Initial creation
+# ============================================================================
+
+onEnter:
+  webhookHandler: actions.intent.MAIN
+
+intentEvents:
+  - intent: trigger_sos
+    transitionTo: SOSConfirmation
+  - intent: check_in
+    handler:
+      webhookHandler: check_in
+  - intent: get_status
+    handler:
+      webhookHandler: get_status
+  - intent: cancel_sos
+    handler:
+      webhookHandler: cancel_sos
+  - intent: set_emergency_phrase
+    handler:
+      webhookHandler: set_emergency_phrase
+  - intent: nearby_responders
+    handler:
+      webhookHandler: nearby_responders
+  - intent: volunteer_status
+    handler:
+      webhookHandler: volunteer_status
+  - intent: emergency_contacts
+    handler:
+      webhookHandler: emergency_contacts
+  - intent: silent_duress
+    handler:
+      webhookHandler: silent_duress
+  - intent: evacuation_info
+    handler:
+      webhookHandler: evacuation_info
+  - intent: shelter_info
+    handler:
+      webhookHandler: shelter_info
+  - intent: medical_info
+    handler:
+      webhookHandler: medical_info
+
+conditionalEvents:
+  - condition: scene.slots.status == "FINAL"
+    handler:
+      webhookHandler: get_status

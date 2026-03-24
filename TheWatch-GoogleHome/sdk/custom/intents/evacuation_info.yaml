@@ -1,0 +1,41 @@
+# ============================================================================
+# WRITE-AHEAD LOG (WAL)
+# ============================================================================
+# File:        evacuation_info.yaml
+# Module:      TheWatch Google Home - Evacuation Info Intent
+# Created:     2026-03-24
+# Author:      TheWatch Platform Team
+# ----------------------------------------------------------------------------
+# PURPOSE:
+#   Intent for retrieving evacuation route information for the user's
+#   current location or registered address. Used during natural disasters,
+#   fires, or other large-scale emergencies.
+#
+# TRAINING PHRASES: 18+
+# CHANGES:
+#   2026-03-24  Initial creation
+# ============================================================================
+
+parameters: []
+
+trainingPhrases:
+  - evacuation routes
+  - show evacuation routes
+  - where do I evacuate
+  - how do I evacuate
+  - evacuation information
+  - get evacuation info
+  - what are the evacuation routes
+  - where should I go to evacuate
+  - nearest evacuation route
+  - find evacuation route
+  - is there an evacuation order
+  - are there any evacuations
+  - emergency evacuation
+  - show me how to evacuate
+  - evacuation directions
+  - which way do I evacuate
+  - tell me the evacuation routes
+  - where is the evacuation point
+  - evacuation plan
+  - what is the evacuation plan

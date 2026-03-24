@@ -1,0 +1,39 @@
+# ============================================================================
+# WRITE-AHEAD LOG (WAL)
+# ============================================================================
+# File:        emergency_contacts.yaml
+# Module:      TheWatch Google Home - Emergency Contacts Intent
+# Created:     2026-03-24
+# Author:      TheWatch Platform Team
+# ----------------------------------------------------------------------------
+# PURPOSE:
+#   Intent for listing the user's emergency contacts. Displays as a table
+#   on smart displays and reads names aloud on speakers.
+#
+# TRAINING PHRASES: 18+
+# CHANGES:
+#   2026-03-24  Initial creation
+# ============================================================================
+
+parameters: []
+
+trainingPhrases:
+  - my emergency contacts
+  - show my emergency contacts
+  - list my emergency contacts
+  - who are my emergency contacts
+  - emergency contacts
+  - show my contacts
+  - who gets notified in an emergency
+  - who will be notified
+  - list my safety contacts
+  - who is on my contact list
+  - read my emergency contacts
+  - tell me my emergency contacts
+  - who are my watchers
+  - my safety network
+  - show my safety network
+  - who do I have as contacts
+  - display my emergency contacts
+  - which contacts are set up
+  - who is in my emergency circle

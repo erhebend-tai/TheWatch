@@ -1,0 +1,422 @@
+
+<div class="volunteering-screen">
+    <div class="volunteering-header">
+        <button class="back-btn" title="Go back">‹</button>
+        <span class="header-title">Volunteering</span>
+        <div style="width: 44px;"></div>
+    </div>
+
+    <div class="volunteering-content">
+        <!-- Enrollment Section -->
+        <section class="section">
+            <h2 class="section-heading">Enrollment</h2>
+
+            <div class="form-group toggle-group">
+                <label class="form-label">Community Responder</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" checked />
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Role</label>
+                <select class="form-select">
+                    <option>Volunteer EMT</option>
+                    <option>Fire Safety</option>
+                    <option>Search & Rescue</option>
+                    <option>Mental Health First Aid</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Verification Status</label>
+                <div class="verification-row">
+                    <span class="verified-badge">✓ Verified</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Background Check</label>
+                <div class="check-row">
+                    <span class="completed-badge">✓ Completed</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Skills Section -->
+        <section class="section">
+            <h2 class="section-heading">Skills & Certifications</h2>
+            <div class="skills-container">
+                <span class="skill-chip verified">CPR ✓</span>
+                <span class="skill-chip verified">First Aid ✓</span>
+                <span class="skill-chip">Search & Rescue</span>
+                <span class="skill-chip">Fire Safety</span>
+                <span class="skill-chip verified">Mental Health First Aid ✓</span>
+                <span class="skill-chip verified">Language: Spanish ✓</span>
+            </div>
+        </section>
+
+        <!-- Availability Section -->
+        <section class="section">
+            <h2 class="section-heading">Availability</h2>
+
+            <div class="weekly-grid">
+                <div class="day-column">
+                    <span class="day-label">Mon</span>
+                    <div class="hours-bar" style="height: 60%; background: #28A745;"></div>
+                </div>
+                <div class="day-column">
+                    <span class="day-label">Tue</span>
+                    <div class="hours-bar" style="height: 0%; background: #ddd;"></div>
+                </div>
+                <div class="day-column">
+                    <span class="day-label">Wed</span>
+                    <div class="hours-bar" style="height: 80%; background: #28A745;"></div>
+                </div>
+                <div class="day-column">
+                    <span class="day-label">Thu</span>
+                    <div class="hours-bar" style="height: 40%; background: #28A745;"></div>
+                </div>
+                <div class="day-column">
+                    <span class="day-label">Fri</span>
+                    <div class="hours-bar" style="height: 100%; background: #28A745;"></div>
+                </div>
+                <div class="day-column">
+                    <span class="day-label">Sat</span>
+                    <div class="hours-bar" style="height: 0%; background: #ddd;"></div>
+                </div>
+                <div class="day-column">
+                    <span class="day-label">Sun</span>
+                    <div class="hours-bar" style="height: 50%; background: #28A745;"></div>
+                </div>
+            </div>
+
+            <div class="form-group toggle-group">
+                <label class="form-label">Instant Available</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" />
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Response Radius</label>
+                <div class="slider-container">
+                    <input type="range" min="1" max="50" value="10" class="slider" />
+                    <span class="slider-value">10 km</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Section -->
+        <section class="section">
+            <h2 class="section-heading">Performance Stats</h2>
+
+            <div class="stat-row">
+                <span class="stat-label">Total Responses</span>
+                <span class="stat-value">12</span>
+            </div>
+
+            <div class="stat-row">
+                <span class="stat-label">Avg Response Time</span>
+                <span class="stat-value">4.2 min</span>
+            </div>
+
+            <div class="stat-row">
+                <span class="stat-label">Acceptance Rate</span>
+                <span class="stat-value">92%</span>
+            </div>
+        </section>
+
+        <div style="height: 20px;"></div>
+    </div>
+</div>
+
+@code {
+}
+
+<style scoped>
+    .volunteering-screen {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        background: #f8f9fa;
+    }
+
+    .volunteering-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-bottom: 1px solid #eee;
+        background: #FFFFFF;
+    }
+
+    .back-btn {
+        background: none;
+        border: none;
+        font-size: 28px;
+        color: #1B2A4A;
+        cursor: pointer;
+        padding: 8px;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .header-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1B2A4A;
+    }
+
+    .volunteering-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .section {
+        background: #FFFFFF;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+
+    .section-heading {
+        font-size: 14px;
+        font-weight: 700;
+        color: #1B2A4A;
+        margin: 0 0 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 16px;
+    }
+
+    .form-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .toggle-group {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .toggle-switch {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        width: 50px;
+        height: 28px;
+        position: relative;
+    }
+
+    .toggle-switch input {
+        display: none;
+    }
+
+    .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: 0.3s;
+        border-radius: 14px;
+    }
+
+    .toggle-slider::before {
+        position: absolute;
+        content: "";
+        height: 22px;
+        width: 22px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.3s;
+        border-radius: 50%;
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+        background-color: #28A745;
+    }
+
+    .toggle-switch input:checked + .toggle-slider::before {
+        transform: translateX(22px);
+    }
+
+    .form-select {
+        padding: 10px 12px;
+        font-size: 14px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background: #FFFFFF;
+        color: #1B2A4A;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .form-select:focus {
+        outline: none;
+        border-color: #1B2A4A;
+        box-shadow: 0 0 0 3px rgba(27, 42, 74, 0.1);
+    }
+
+    .verification-row, .check-row {
+        padding: 8px 0;
+    }
+
+    .verified-badge, .completed-badge {
+        font-size: 13px;
+        color: #28A745;
+        font-weight: 600;
+    }
+
+    .skills-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .skill-chip {
+        padding: 8px 12px;
+        background: #f0f0f0;
+        border: 1px solid #ddd;
+        border-radius: 16px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #666;
+    }
+
+    .skill-chip.verified {
+        background: rgba(40, 167, 69, 0.1);
+        border-color: #28A745;
+        color: #28A745;
+    }
+
+    .weekly-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .day-column {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .day-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: #666;
+    }
+
+    .hours-bar {
+        width: 100%;
+        min-height: 80px;
+        border-radius: 4px;
+        max-width: 40px;
+        transition: all 0.3s ease;
+    }
+
+    .slider-container {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .slider {
+        flex: 1;
+        height: 6px;
+        border-radius: 3px;
+        background: #ddd;
+        outline: none;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+
+    .slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #1B2A4A;
+        cursor: pointer;
+    }
+
+    .slider::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #1B2A4A;
+        cursor: pointer;
+        border: none;
+    }
+
+    .slider-value {
+        font-size: 13px;
+        color: #1B2A4A;
+        font-weight: 600;
+        min-width: 50px;
+        text-align: right;
+    }
+
+    .stat-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .stat-row:last-child {
+        border-bottom: none;
+    }
+
+    .stat-label {
+        font-size: 13px;
+        color: #666;
+    }
+
+    .stat-value {
+        font-size: 16px;
+        font-weight: 700;
+        color: #1B2A4A;
+    }
+
+    /* Scrollbar */
+    .volunteering-content::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .volunteering-content::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .volunteering-content::-webkit-scrollbar-thumb {
+        background: rgba(27, 42, 74, 0.2);
+        border-radius: 3px;
+    }
+</style>

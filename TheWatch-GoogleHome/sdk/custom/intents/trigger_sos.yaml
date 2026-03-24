@@ -1,0 +1,51 @@
+# ============================================================================
+# WRITE-AHEAD LOG (WAL)
+# ============================================================================
+# File:        trigger_sos.yaml
+# Module:      TheWatch Google Home - Trigger SOS Intent
+# Created:     2026-03-24
+# Author:      TheWatch Platform Team
+# ----------------------------------------------------------------------------
+# PURPOSE:
+#   Intent definition for triggering an SOS emergency alert. Matches a wide
+#   range of emergency phrases including panic expressions, distress calls,
+#   and formal alert requests. Routes to SOSConfirmation scene.
+#
+# TRAINING PHRASES: 20+
+# CHANGES:
+#   2026-03-24  Initial creation
+# ============================================================================
+
+parameters: []
+
+trainingPhrases:
+  - trigger SOS
+  - trigger an SOS alert
+  - activate SOS
+  - activate emergency alert
+  - send SOS
+  - send an SOS signal
+  - I need help
+  - I need help now
+  - I need help immediately
+  - help me
+  - help me now
+  - emergency
+  - this is an emergency
+  - I am in danger
+  - I'm in danger
+  - send help
+  - call for help
+  - alert my contacts
+  - notify my emergency contacts
+  - I'm not safe
+  - I don't feel safe
+  - someone is following me
+  - I am being followed
+  - trigger my alarm
+  - raise the alarm
+  - activate my safety alert
+  - sound the alarm
+  - panic button
+  - press the panic button
+  - mayday

@@ -1,0 +1,16 @@
+<!--
+  TheWatch.Shared — Domain models, port interfaces, enums, DTOs.
+  ZERO external package dependencies. This is the dependency root.
+
+  Example — consuming a port:
+    using TheWatch.Shared.Domain.Ports;
+    public class MyService(IStorageService storage) { ... }
+
+  WAL: If you add a PackageReference here, you've violated the architecture.
+        Shared must remain dependency-free (only net10.0 BCL).
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- No PackageReferences — intentional. Domain layer has zero external dependencies. -->
+
+</Project>

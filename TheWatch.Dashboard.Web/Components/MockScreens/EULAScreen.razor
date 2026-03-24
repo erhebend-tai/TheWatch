@@ -1,0 +1,193 @@
+
+<div class="eula-screen">
+    <div class="eula-header">
+        <h1 class="eula-title">End User License Agreement</h1>
+        <p class="eula-version">v1.0 — March 2026</p>
+    </div>
+
+    <div class="eula-content">
+        <section class="eula-section">
+            <h2 class="section-heading">Emergency Services Disclaimer</h2>
+            <p class="section-text">TheWatch is not a substitute for emergency services. In case of life-threatening emergency, always contact 911 directly. TheWatch provides additional alerting capabilities but may experience technical failures. By using this service, you acknowledge that emergency response times are not guaranteed and depend on responder availability in your area.</p>
+        </section>
+
+        <section class="eula-section">
+            <h2 class="section-heading">Location Data Consent</h2>
+            <p class="section-text">You consent to continuous collection and sharing of your location data with emergency responders and trusted contacts when an alert is active. Location data is encrypted in transit and at rest. You may disable location sharing through app settings, but this may reduce emergency response accuracy. Historical location data is retained for 90 days and then deleted.</p>
+        </section>
+
+        <section class="eula-section">
+            <h2 class="section-heading">Health Data Consent (HIPAA)</h2>
+            <p class="section-text">TheWatch may collect health data from your wearable devices and biometric sensors. This data is protected under HIPAA regulations. Health information shared with emergency responders is limited to what you designate in your medical profile. TheWatch does not sell or license your health data to third parties. You retain full control over what health data is visible to responders.</p>
+        </section>
+
+        <section class="eula-section">
+            <h2 class="section-heading">Evidence Capture</h2>
+            <p class="section-text">With your permission, TheWatch can capture audio, video, and sensor data during emergency situations. This evidence is securely stored and may be provided to law enforcement upon request with proper authorization. You retain ownership of all captured evidence. Evidence is automatically deleted after 1 year unless flagged for retention.</p>
+        </section>
+
+        <section class="eula-section">
+            <h2 class="section-heading">Contact Sharing</h2>
+            <p class="section-text">Your emergency contacts will be notified during alerts via your selected communication methods. TheWatch shares only essential information (location, alert type, timestamp) with contacts. Contacts cannot see detailed historical data unless you grant them explicit access. You may manage contact permissions at any time in the app settings.</p>
+        </section>
+
+        <section class="eula-section">
+            <h2 class="section-heading">Data Retention & Deletion</h2>
+            <p class="section-text">TheWatch retains your account data for the duration of your subscription. Upon account deletion, all personal data is permanently removed from active systems within 30 days. Backups may persist for up to 90 days due to our data retention policies. You may request a data export at any time before deletion. Certain data may be retained if required by law.</p>
+        </section>
+    </div>
+
+    <div class="eula-footer">
+        <div class="checkbox-group">
+            <input id="agree-checkbox" type="checkbox" class="checkbox-input" />
+            <label for="agree-checkbox" class="checkbox-label">I have read and agree to the terms above</label>
+        </div>
+        <button class="btn-accept" disabled>Accept</button>
+        <button class="btn-decline">Decline</button>
+    </div>
+</div>
+
+@code {
+}
+
+<style scoped>
+    .eula-screen {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        background: #FFFFFF;
+    }
+
+    .eula-header {
+        padding: 16px;
+        border-bottom: 1px solid #eee;
+        background: #FFFFFF;
+    }
+
+    .eula-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #1B2A4A;
+        margin: 0 0 4px;
+    }
+
+    .eula-version {
+        font-size: 12px;
+        color: #999;
+        margin: 0;
+    }
+
+    .eula-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .eula-section {
+        margin-bottom: 24px;
+    }
+
+    .section-heading {
+        font-size: 14px;
+        font-weight: 700;
+        color: #1B2A4A;
+        margin: 0 0 8px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 8px;
+    }
+
+    .section-text {
+        font-size: 13px;
+        color: #444;
+        line-height: 1.5;
+        margin: 0;
+    }
+
+    .eula-footer {
+        border-top: 1px solid #eee;
+        padding: 16px;
+        background: #FFFFFF;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .checkbox-group {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .checkbox-input {
+        width: 20px;
+        height: 20px;
+        margin-top: 2px;
+        cursor: pointer;
+        accent-color: #1B2A4A;
+    }
+
+    .checkbox-label {
+        font-size: 13px;
+        color: #1B2A4A;
+        font-weight: 500;
+        cursor: pointer;
+        line-height: 1.4;
+    }
+
+    .btn-accept {
+        width: 100%;
+        padding: 14px 16px;
+        font-size: 16px;
+        font-weight: 600;
+        background: #1B2A4A;
+        color: #FFFFFF;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        min-height: 44px;
+        transition: all 0.3s ease;
+        opacity: 0.5;
+    }
+
+    .btn-accept:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .btn-accept:not(:disabled):active {
+        background: #0f1729;
+    }
+
+    .btn-decline {
+        width: 100%;
+        padding: 14px 16px;
+        font-size: 16px;
+        font-weight: 600;
+        background: transparent;
+        color: #DC3545;
+        border: 1px solid #DC3545;
+        border-radius: 8px;
+        cursor: pointer;
+        min-height: 44px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-decline:active {
+        background: rgba(220, 53, 69, 0.1);
+    }
+
+    /* Scrollbar */
+    .eula-content::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .eula-content::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .eula-content::-webkit-scrollbar-thumb {
+        background: rgba(27, 42, 74, 0.2);
+        border-radius: 3px;
+    }
+</style>

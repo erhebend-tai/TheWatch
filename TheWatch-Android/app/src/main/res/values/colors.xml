@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary Colors -->
+    <color name="navy">#0D1B2A</color>
+    <color name="navy_light">#1B2D42</color>
+    <color name="navy_lighter">#2E4057</color>
+
+    <!-- Accent Colors -->
+    <color name="red_primary">#E63946</color>
+    <color name="red_light">#F77F88</color>
+    <color name="red_dark">#A4161A</color>
+
+    <!-- Neutral Colors -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="gray_light">#F1FAEE</color>
+    <color name="gray_medium">#A8DADC</color>
+    <color name="gray_dark">#457B9D</color>
+
+    <!-- Status Colors -->
+    <color name="green_safe">#06A77D</color>
+    <color name="green_safe_light">#52D4A8</color>
+    <color name="orange_alert">#F77F88</color>
+    <color name="yellow_warning">#FFD60A</color>
+    <color name="gray_offline">#6C757D</color>
+
+    <!-- Ring Overlay Colors -->
+    <color name="ring_0_red">#E63946</color>
+    <color name="ring_1_orange">#F77F88</color>
+    <color name="ring_2_yellow">#FFD60A</color>
+    <color name="ring_3_gray">#A8DADC</color>
+
+    <!-- Marker Colors -->
+    <color name="marker_responder_green">#06A77D</color>
+    <color name="marker_alert_amber">#F4A261</color>
+    <color name="marker_shelter_blue">#457B9D</color>
+
+    <!-- Material 3 Colors (for reference) -->
+    <color name="md3_primary">#0D1B2A</color>
+    <color name="md3_on_primary">#FFFFFF</color>
+    <color name="md3_secondary">#E63946</color>
+    <color name="md3_tertiary">#06A77D</color>
+    <color name="md3_background">#F1FAEE</color>
+    <color name="md3_error">#E63946</color>
+</resources>

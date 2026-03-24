@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TheWatch</string>
+
+    <!-- Login Screen -->
+    <string name="email_or_phone">Email or Phone</string>
+    <string name="password">Password</string>
+    <string name="login">Login</string>
+    <string name="forgot_password">Forgot Password?</string>
+    <string name="sign_up">Sign Up</string>
+    <string name="biometric_login">Login with Biometric</string>
+    <string name="hardware_sos_bypass">Hardware SOS Bypass</string>
+    <string name="offline_mode">Offline Mode</string>
+
+    <!-- Sign Up Screen -->
+    <string name="step_1_of_3">Step 1 of 3</string>
+    <string name="step_2_of_3">Step 2 of 3</string>
+    <string name="step_3_of_3">Step 3 of 3</string>
+    <string name="full_name">Full Name</string>
+    <string name="email">Email</string>
+    <string name="phone">Phone</string>
+    <string name="date_of_birth">Date of Birth</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="password_strength">Password Strength</string>
+    <string name="weak">Weak</string>
+    <string name="fair">Fair</string>
+    <string name="good">Good</string>
+    <string name="strong">Strong</string>
+    <string name="emergency_contact">Emergency Contact</string>
+    <string name="emergency_contacts">Emergency Contacts</string>
+    <string name="contact_name">Contact Name</string>
+    <string name="contact_phone">Contact Phone</string>
+    <string name="contact_email">Contact Email</string>
+    <string name="relationship">Relationship</string>
+    <string name="priority">Priority</string>
+    <string name="add_contact">Add Contact</string>
+    <string name="review_and_confirm">Review and Confirm</string>
+    <string name="i_accept_eula">I accept the EULA</string>
+    <string name="create_account">Create Account</string>
+    <string name="next">Next</string>
+    <string name="back">Back</string>
+
+    <!-- Password Reset -->
+    <string name="reset_password">Reset Password</string>
+    <string name="verification_code">Verification Code</string>
+    <string name="new_password">New Password</string>
+    <string name="send_code">Send Code</string>
+    <string name="verify_code">Verify Code</string>
+    <string name="code_expires_in">Code expires in:</string>
+
+    <!-- EULA Screen -->
+    <string name="end_user_license_agreement">End User License Agreement</string>
+    <string name="accept">Accept</string>
+    <string name="decline">Decline</string>
+    <string name="scroll_to_accept">Please scroll to the bottom to accept</string>
+
+    <!-- Home Screen -->
+    <string name="map">Map</string>
+    <string name="sos_button">SOS Button</string>
+    <string name="sos">SOS</string>
+    <string name="emergency_active">Emergency Active</string>
+    <string name="cancel_alert">Cancel Alert</string>
+    <string name="search">Search</string>
+    <string name="notifications">Notifications</string>
+    <string name="menu">Menu</string>
+
+    <!-- Navigation -->
+    <string name="home">Home</string>
+    <string name="my_profile">My Profile</string>
+    <string name="emergency_phrases">Emergency Phrases</string>
+    <string name="my_contacts">My Contacts</string>
+    <string name="permissions">Permissions</string>
+    <string name="history">History</string>
+    <string name="volunteering">Volunteering</string>
+    <string name="evacuation_routes">Evacuation Routes</string>
+    <string name="settings">Settings</string>
+    <string name="sign_out">Sign Out</string>
+
+    <!-- Profile Screen -->
+    <string name="identity">Identity</string>
+    <string name="emergency_configuration">Emergency Configuration</string>
+    <string name="medical_information">Medical Information</string>
+    <string name="blood_type">Blood Type</string>
+    <string name="medical_conditions">Medical Conditions</string>
+    <string name="medications">Medications</string>
+    <string name="default_severity">Default Severity</string>
+    <string name="auto_escalation_timer">Auto-escalation Timer</string>
+    <string name="auto_escalate_to_911">Auto-escalate to 911</string>
+    <string name="duress_code">Duress Code</string>
+    <string name="personal_clear_word">Personal Clear Word</string>
+    <string name="check_in_schedule">Check-in Schedule</string>
+    <string name="wearable_integration">Wearable Integration</string>
+    <string name="connected_devices">Connected Devices</string>
+    <string name="health_sensors">Health Sensors</string>
+    <string name="implicit_detection">Implicit Detection</string>
+    <string name="edit_profile">Edit Profile</string>
+
+    <!-- Permissions Screen -->
+    <string name="location">Location</string>
+    <string name="notifications_permission">Notifications</string>
+    <string name="microphone">Microphone</string>
+    <string name="camera">Camera</string>
+    <string name="health">Health</string>
+    <string name="bluetooth">Bluetooth</string>
+    <string name="motion">Motion</string>
+    <string name="contacts">Contacts</string>
+    <string name="grant">Grant</string>
+    <string name="status">Status</string>
+    <string name="granted">Granted</string>
+    <string name="denied">Denied</string>
+    <string name="not_requested">Not Requested</string>
+
+    <!-- History Screen -->
+    <string name="timeline">Timeline</string>
+    <string name="date_range">Date Range</string>
+    <string name="filter_by_type">Filter by Type</string>
+    <string name="filter_by_severity">Filter by Severity</string>
+    <string name="filter_by_status">Filter by Status</string>
+    <string name="event_type">Event Type</string>
+    <string name="severity">Severity</string>
+    <string name="timestamp">Timestamp</string>
+    <string name="summary">Summary</string>
+    <string name="trigger_source">Trigger Source</string>
+    <string name="confidence_score">Confidence Score</string>
+    <string name="escalation_chain">Escalation Chain</string>
+    <string name="location_snapshot">Location Snapshot</string>
+
+    <!-- Volunteering Screen -->
+    <string name="responder_role">Responder Role</string>
+    <string name="skills_and_certifications">Skills & Certifications</string>
+    <string name="availability_schedule">Availability Schedule</string>
+    <string name="instant_availability">Instant Availability</string>
+    <string name="response_radius">Response Radius</string>
+    <string name="response_history">Response History</string>
+    <string name="become_volunteer">Become a Volunteer Responder</string>
+    <string name="verification_status">Verification Status</string>
+    <string name="verified">Verified</string>
+    <string name="pending">Pending</string>
+    <string name="not_verified">Not Verified</string>
+
+    <!-- Evacuation Routes -->
+    <string name="evacuation_routes_title">Evacuation Routes</string>
+    <string name="shelters">Shelters</string>
+    <string name="capacity">Capacity</string>
+    <string name="available_spaces">Available Spaces</string>
+    <string name="distance">Distance</string>
+    <string name="estimated_time">Estimated Time</string>
+    <string name="directions">Directions</string>
+
+    <!-- Common -->
+    <string name="loading">Loading...</string>
+    <string name="error">Error</string>
+    <string name="retry">Retry</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
+    <string name="close">Close</string>
+    <string name="success">Success</string>
+    <string name="offline">Offline</string>
+    <string name="online">Online</string>
+    <string name="no_data">No Data</string>
+    <string name="try_again">Try Again</string>
+</resources>

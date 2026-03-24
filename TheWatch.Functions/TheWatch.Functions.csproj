@@ -16,10 +16,32 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.1.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.3.1" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.7" />
+
+    <!-- RabbitMQ trigger for message-driven functions -->
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.RabbitMQ" Version="2.0.3" />
+
+    <!-- Aspire client integrations -->
+    <PackageReference Include="Aspire.RabbitMQ.Client" Version="9.2.0" />
+    <PackageReference Include="Aspire.StackExchange.Redis" Version="9.2.0" />
+
+    <!-- Hangfire client (schedule jobs from functions) -->
+    <PackageReference Include="Hangfire.Core" Version="1.8.17" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\TheWatch.ServiceDefaults\TheWatch.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\TheWatch.Shared\TheWatch.Shared.csproj" />
+    <ProjectReference Include="..\TheWatch.Adapters.Mock\TheWatch.Adapters.Mock.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="host.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="local.settings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

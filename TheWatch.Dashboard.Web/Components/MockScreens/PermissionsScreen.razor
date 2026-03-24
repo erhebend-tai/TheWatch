@@ -1,0 +1,295 @@
+
+<div class="permissions-screen">
+    <div class="permissions-header">
+        <button class="back-btn" title="Go back">‹</button>
+        <span class="header-title">Permissions</span>
+        <div style="width: 44px;"></div>
+    </div>
+
+    <div class="permissions-content">
+        <div class="warning-banner">
+            <span class="warning-icon">⚠</span>
+            <span class="warning-text">Microphone access recommended for voice-activated emergency phrases</span>
+        </div>
+
+        <div class="permissions-list">
+            <!-- Location -->
+            <div class="permission-card">
+                <div class="permission-header">
+                    <div class="permission-info">
+                        <h3 class="permission-name">Location</h3>
+                        <p class="permission-desc">Real-time GPS for emergency dispatch</p>
+                        <span class="permission-status-label">Always</span>
+                    </div>
+                    <span class="status-icon granted">✓</span>
+                </div>
+                <button class="btn-permission" disabled>Granted</button>
+            </div>
+
+            <!-- Notifications -->
+            <div class="permission-card">
+                <div class="permission-header">
+                    <div class="permission-info">
+                        <h3 class="permission-name">Notifications</h3>
+                        <p class="permission-desc">Receive alerts from contacts</p>
+                    </div>
+                    <span class="status-icon granted">✓</span>
+                </div>
+                <button class="btn-permission" disabled>Granted</button>
+            </div>
+
+            <!-- Microphone -->
+            <div class="permission-card">
+                <div class="permission-header">
+                    <div class="permission-info">
+                        <h3 class="permission-name">Microphone</h3>
+                        <p class="permission-desc">Voice-activated emergency phrases</p>
+                    </div>
+                    <span class="status-icon denied">✗</span>
+                </div>
+                <button class="btn-permission grant">Grant</button>
+            </div>
+
+            <!-- Camera -->
+            <div class="permission-card">
+                <div class="permission-header">
+                    <div class="permission-info">
+                        <h3 class="permission-name">Camera</h3>
+                        <p class="permission-desc">Evidence capture during incidents</p>
+                    </div>
+                    <span class="status-icon denied">✗</span>
+                </div>
+                <button class="btn-permission grant">Grant</button>
+            </div>
+
+            <!-- Health / HealthKit -->
+            <div class="permission-card">
+                <div class="permission-header">
+                    <div class="permission-info">
+                        <h3 class="permission-name">Health / HealthKit</h3>
+                        <p class="permission-desc">Wearable sensor data</p>
+                    </div>
+                    <span class="status-icon granted">✓</span>
+                </div>
+                <button class="btn-permission" disabled>Granted</button>
+            </div>
+
+            <!-- Bluetooth -->
+            <div class="permission-card">
+                <div class="permission-header">
+                    <div class="permission-info">
+                        <h3 class="permission-name">Bluetooth</h3>
+                        <p class="permission-desc">Device-to-device mesh communication</p>
+                    </div>
+                    <span class="status-icon denied">✗</span>
+                </div>
+                <button class="btn-permission grant">Grant</button>
+            </div>
+
+            <!-- Motion & Fitness -->
+            <div class="permission-card">
+                <div class="permission-header">
+                    <div class="permission-info">
+                        <h3 class="permission-name">Motion & Fitness</h3>
+                        <p class="permission-desc">Fall detection and movement</p>
+                    </div>
+                    <span class="status-icon granted">✓</span>
+                </div>
+                <button class="btn-permission" disabled>Granted</button>
+            </div>
+
+            <!-- Contacts -->
+            <div class="permission-card">
+                <div class="permission-header">
+                    <div class="permission-info">
+                        <h3 class="permission-name">Contacts</h3>
+                        <p class="permission-desc">Import from address book</p>
+                    </div>
+                    <span class="status-icon denied">✗</span>
+                </div>
+                <button class="btn-permission grant">Grant</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+}
+
+<style scoped>
+    .permissions-screen {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        background: #f8f9fa;
+    }
+
+    .permissions-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-bottom: 1px solid #eee;
+        background: #FFFFFF;
+    }
+
+    .back-btn {
+        background: none;
+        border: none;
+        font-size: 28px;
+        color: #1B2A4A;
+        cursor: pointer;
+        padding: 8px;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .header-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1B2A4A;
+    }
+
+    .permissions-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .warning-banner {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        background: #fff3cd;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 12px;
+        border-left: 4px solid #ffc107;
+    }
+
+    .warning-icon {
+        font-size: 18px;
+        color: #856404;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+
+    .warning-text {
+        font-size: 13px;
+        color: #856404;
+        line-height: 1.4;
+    }
+
+    .permissions-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .permission-card {
+        background: #FFFFFF;
+        border-radius: 8px;
+        padding: 12px;
+        border: 1px solid #eee;
+    }
+
+    .permission-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .permission-info {
+        flex: 1;
+    }
+
+    .permission-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1B2A4A;
+        margin: 0 0 4px;
+    }
+
+    .permission-desc {
+        font-size: 12px;
+        color: #666;
+        margin: 0;
+        line-height: 1.4;
+    }
+
+    .permission-status-label {
+        display: inline-block;
+        font-size: 11px;
+        color: #666;
+        margin-top: 6px;
+        font-weight: 500;
+    }
+
+    .status-icon {
+        font-size: 20px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        flex-shrink: 0;
+    }
+
+    .status-icon.granted {
+        color: #28A745;
+    }
+
+    .status-icon.denied {
+        color: #999;
+    }
+
+    .btn-permission {
+        width: 100%;
+        padding: 10px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        border: 1px solid #ddd;
+        background: #f8f9fa;
+        color: #1B2A4A;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        min-height: 36px;
+    }
+
+    .btn-permission:disabled {
+        background: #f0f0f0;
+        color: #999;
+        cursor: not-allowed;
+    }
+
+    .btn-permission.grant {
+        background: transparent;
+        border-color: #1B2A4A;
+        color: #1B2A4A;
+    }
+
+    .btn-permission.grant:active {
+        background: rgba(27, 42, 74, 0.05);
+    }
+
+    /* Scrollbar */
+    .permissions-content::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .permissions-content::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .permissions-content::-webkit-scrollbar-thumb {
+        background: rgba(27, 42, 74, 0.2);
+        border-radius: 3px;
+    }
+</style>

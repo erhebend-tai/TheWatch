@@ -1,0 +1,20 @@
+<!--
+  TheWatch.Adapters.Oracle — Live Oracle adapter implementations (Autonomous DB, OCI).
+  Used in Production with "Oracle": "Live" in AdapterRegistry.
+
+  Example — queries Oracle Autonomous Database:
+    // Uses Oracle Managed Data Access for .NET 10 compatible connections.
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\TheWatch.Shared\TheWatch.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="23.7.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+  </ItemGroup>
+
+</Project>

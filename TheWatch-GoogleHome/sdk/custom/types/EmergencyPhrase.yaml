@@ -1,0 +1,47 @@
+# ============================================================================
+# WRITE-AHEAD LOG (WAL)
+# ============================================================================
+# File:        EmergencyPhrase.yaml
+# Module:      TheWatch Google Home - EmergencyPhrase Type
+# Created:     2026-03-24
+# Author:      TheWatch Platform Team
+# ----------------------------------------------------------------------------
+# PURPOSE:
+#   Custom type representing a user's emergency/duress phrase. This is a
+#   free-text type that accepts any user-spoken phrase as the emergency
+#   trigger word/phrase. Stored server-side and used by the speech-to-text
+#   monitoring system on mobile devices.
+#
+# EXAMPLE:
+#   User: "Set my emergency phrase to red alert"
+#   -> Captures "red alert" as the EmergencyPhrase value
+#
+# CHANGES:
+#   2026-03-24  Initial creation
+# ============================================================================
+
+synonym:
+  matchType: EXACT_MATCH
+  entities:
+    red_alert:
+      synonyms:
+        - red alert
+        - code red
+    help_me:
+      synonyms:
+        - help me now
+        - I need help
+    mayday:
+      synonyms:
+        - mayday
+        - mayday mayday
+    safe_word:
+      synonyms:
+        - pineapple
+        - banana split
+    custom:
+      synonyms:
+        - custom phrase
+  # NOTE: In production, this type is primarily used as freeText
+  # The synonyms above serve as examples/suggestions
+  # The actual phrase is captured via actions.type.FreeText parameter

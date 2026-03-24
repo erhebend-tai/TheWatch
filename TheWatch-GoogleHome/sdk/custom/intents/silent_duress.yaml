@@ -1,0 +1,43 @@
+# ============================================================================
+# WRITE-AHEAD LOG (WAL)
+# ============================================================================
+# File:        silent_duress.yaml
+# Module:      TheWatch Google Home - Silent Duress Intent
+# Created:     2026-03-24
+# Author:      TheWatch Platform Team
+# ----------------------------------------------------------------------------
+# PURPOSE:
+#   Intent for sending a silent duress signal. This is a covert SOS that
+#   triggers emergency response WITHOUT audible confirmation on the device,
+#   designed for situations where the user is under threat and cannot
+#   openly ask for help. The device responds with a mundane confirmation.
+#
+# SECURITY NOTE:
+#   The training phrases are designed to sound innocuous to bystanders.
+#   The webhook responds with minimal, non-alarming audio.
+#
+# TRAINING PHRASES: 16+
+# CHANGES:
+#   2026-03-24  Initial creation
+# ============================================================================
+
+parameters: []
+
+trainingPhrases:
+  - silent alert
+  - send a silent alert
+  - quiet mode
+  - activate quiet mode
+  - stealth alert
+  - discreet help
+  - code red
+  - whisper mode
+  - send a quiet signal
+  - silent SOS
+  - covert alert
+  - I need quiet help
+  - turn on the porch light
+  - check the weather for tomorrow
+  - set a reminder for groceries
+  - what time is sunset
+  - read me today's news

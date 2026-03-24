@@ -1,0 +1,60 @@
+<!--
+  TheWatch.Data — Multi-provider data access layer for TheWatch-Aspire.
+  Supports: SQL Server, PostgreSQL (via EF Core), Azure Cosmos DB, Google Firestore, Firebase.
+
+  Write-Ahead Log (WAL) Strategy:
+    - SQL Server & PostgreSQL rely on their native WAL implementations.
+    - Cosmos DB uses its built-in change feed for ordered, append-only mutation tracking.
+    - Firestore provides real-time snapshot listeners.
+    - Application-level WAL via IUnitOfWork.BeginTransactionAsync pattern.
+
+  Example — registering via Aspire integration:
+    builder.AddSqlServerDbContext<TheWatchDbContext>("thewatch-sqlserver");
+    builder.Services.AddTheWatchDataLayer(builder.Configuration);
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>TheWatch.Data</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Google Cloud / Firebase -->
+    <PackageReference Include="Google.Cloud.Firestore" Version="3.10.0" />
+    <PackageReference Include="FirebaseAdmin" Version="3.1.0" />
+
+    <!-- Azure Cosmos DB -->
+    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.46.0" />
+
+    <!-- Entity Framework Core (SQL Server + PostgreSQL) -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+
+    <!-- AI / Embedding SDKs -->
+    <!-- Azure OpenAI — text-embedding-3-large for the Azure stack -->
+    <PackageReference Include="Azure.AI.OpenAI" Version="2.1.0" />
+    <!-- Google AI — Gemini text-embedding-004 for the Google stack -->
+    <PackageReference Include="Google.Cloud.AIPlatform.V1" Version="3.8.0" />
+    <!-- Qdrant — vector database client for the Claude/VoyageAI stack -->
+    <PackageReference Include="Qdrant.Client" Version="1.13.0" />
+    <!-- Anthropic — Claude API client (chat, not embeddings) -->
+    <PackageReference Include="Anthropic.SDK" Version="3.6.0" />
+
+    <!-- Microsoft Extensions -->
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TheWatch.Shared\TheWatch.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

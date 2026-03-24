@@ -1,0 +1,128 @@
+{
+  "manifest": {
+    "publishingInformation": {
+      "locales": {
+        "en-US": {
+          "summary": "TheWatch Safety - Voice-activated personal safety, SOS alerts, check-ins, and emergency response coordination.",
+          "examplePhrases": [
+            "Alexa, open The Watch",
+            "Alexa, tell The Watch I need help",
+            "Alexa, ask The Watch to check in"
+          ],
+          "keywords": [
+            "safety",
+            "security",
+            "emergency",
+            "SOS",
+            "check-in",
+            "responder",
+            "volunteer",
+            "personal safety",
+            "alert",
+            "911"
+          ],
+          "name": "The Watch Safety",
+          "description": "The Watch Safety is your voice-activated personal safety companion. Trigger emergency SOS alerts, check in with your safety network, monitor your status, manage emergency contacts, and coordinate with nearby volunteer responders -- all through natural voice commands on your Alexa device. The Watch works alongside the mobile app to provide 24/7 safety coverage. Features include: emergency SOS alerts that notify your contacts and nearby responders, scheduled and on-demand check-ins, status reports, emergency phrase configuration, volunteer responder coordination, silent duress signaling, and multi-language support. In an emergency, simply say 'Alexa, tell The Watch I need help' and your safety network is immediately activated."
+        },
+        "en-GB": {
+          "summary": "TheWatch Safety - Voice-activated personal safety, SOS alerts, check-ins, and emergency response coordination.",
+          "examplePhrases": [
+            "Alexa, open The Watch",
+            "Alexa, tell The Watch I need help",
+            "Alexa, ask The Watch to check in"
+          ],
+          "keywords": [
+            "safety",
+            "security",
+            "emergency",
+            "SOS",
+            "check-in",
+            "responder",
+            "volunteer",
+            "personal safety",
+            "alert",
+            "999"
+          ],
+          "name": "The Watch Safety",
+          "description": "The Watch Safety is your voice-activated personal safety companion. Trigger emergency SOS alerts, check in with your safety network, monitor your status, manage emergency contacts, and coordinate with nearby volunteer responders -- all through natural voice commands on your Alexa device."
+        },
+        "es-US": {
+          "summary": "TheWatch Safety - Seguridad personal activada por voz, alertas SOS, registros y coordinacion de respuesta de emergencia.",
+          "examplePhrases": [
+            "Alexa, abre The Watch",
+            "Alexa, dile a The Watch que necesito ayuda",
+            "Alexa, pide a The Watch que me registre"
+          ],
+          "keywords": [
+            "seguridad",
+            "emergencia",
+            "SOS",
+            "registro",
+            "voluntario",
+            "alerta",
+            "911"
+          ],
+          "name": "The Watch Safety",
+          "description": "The Watch Safety es tu companero de seguridad personal activado por voz. Activa alertas SOS de emergencia, registrate con tu red de seguridad, monitorea tu estado, gestiona contactos de emergencia y coordina con voluntarios cercanos, todo a traves de comandos de voz naturales en tu dispositivo Alexa."
+        }
+      },
+      "isAvailableWorldwide": false,
+      "testingInstructions": "1. Link your Watch account via the Alexa app (Account Linking). 2. Say 'Alexa, open The Watch' to launch. 3. Test SOS: say 'I need help' then 'yes' to confirm. 4. Test check-in: say 'I'm okay'. 5. Test status: say 'what's my status'. 6. Test cancel: say 'cancel alert'. 7. Test silent duress: say 'update my settings'.",
+      "category": "SAFETY",
+      "distributionCountries": [
+        "US",
+        "GB",
+        "CA",
+        "AU",
+        "MX",
+        "ES"
+      ]
+    },
+    "apis": {
+      "custom": {
+        "endpoint": {
+          "uri": "arn:aws:lambda:us-east-1:XXXXXXXXXXXX:function:thewatch-alexa-skill",
+          "sslCertificateType": "Trusted"
+        },
+        "interfaces": []
+      }
+    },
+    "manifestVersion": "1.0",
+    "privacyAndCompliance": {
+      "allowsPurchases": false,
+      "locales": {
+        "en-US": {
+          "privacyPolicyUrl": "https://thewatch.app/privacy",
+          "termsOfUseUrl": "https://thewatch.app/terms"
+        },
+        "en-GB": {
+          "privacyPolicyUrl": "https://thewatch.app/privacy",
+          "termsOfUseUrl": "https://thewatch.app/terms"
+        },
+        "es-US": {
+          "privacyPolicyUrl": "https://thewatch.app/privacy",
+          "termsOfUseUrl": "https://thewatch.app/terms"
+        }
+      },
+      "isExportCompliant": true,
+      "containsAds": false,
+      "isChildDirected": false,
+      "usesPersonalInfo": true,
+      "shoppingKit": {
+        "isShoppingActionsEnabled": false,
+        "isAmazonAssociatesOnAlexaEnabled": false
+      }
+    },
+    "permissions": [
+      {
+        "name": "alexa::profile:given_name:read"
+      },
+      {
+        "name": "alexa::profile:email:read"
+      },
+      {
+        "name": "alexa::devices:all:geolocation:read"
+      }
+    ]
+  }
+}

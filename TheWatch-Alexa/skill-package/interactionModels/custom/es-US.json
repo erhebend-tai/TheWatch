@@ -1,0 +1,305 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "the watch",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.YesIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NoIntent",
+          "samples": []
+        },
+        {
+          "name": "TriggerSOSIntent",
+          "slots": [],
+          "samples": [
+            "necesito ayuda",
+            "ayudame",
+            "emergencia",
+            "S O S",
+            "envia ayuda",
+            "estoy en peligro",
+            "no estoy seguro",
+            "no estoy segura",
+            "activar alerta",
+            "activar emergencia",
+            "enviar alerta",
+            "enviar alerta de emergencia",
+            "ayudame por favor",
+            "necesito ayuda de emergencia",
+            "alguien ayudeme",
+            "pedir ayuda",
+            "panico",
+            "estoy en problemas",
+            "enviar S O S",
+            "auxilio",
+            "socorro"
+          ]
+        },
+        {
+          "name": "TriggerSOSConfirmIntent",
+          "slots": [],
+          "samples": [
+            "si necesito ayuda",
+            "confirmar emergencia",
+            "si envia ayuda",
+            "confirmar alerta",
+            "si activar",
+            "confirmar S O S",
+            "si activar alerta",
+            "confirmo",
+            "afirmativo",
+            "si por favor envia ayuda"
+          ]
+        },
+        {
+          "name": "CheckInIntent",
+          "slots": [],
+          "samples": [
+            "estoy bien",
+            "estoy a salvo",
+            "registrarme",
+            "todo bien",
+            "estoy perfecto",
+            "estoy perfecta",
+            "todo esta bien",
+            "reportar seguro",
+            "reportar segura",
+            "marcarme a salvo",
+            "confirmar que estoy bien",
+            "no estoy en peligro",
+            "hacer check in",
+            "registro de seguridad",
+            "estoy ok"
+          ]
+        },
+        {
+          "name": "StatusIntent",
+          "slots": [],
+          "samples": [
+            "cual es mi estado",
+            "reporte de seguridad",
+            "mi estado",
+            "alguna alerta",
+            "tengo alertas",
+            "dame mi estado",
+            "estado de seguridad",
+            "que esta pasando",
+            "estoy seguro",
+            "verificar mis alertas",
+            "reporte de estado",
+            "como estoy",
+            "hay alguna alerta",
+            "mostrar mi estado",
+            "que sucede"
+          ]
+        },
+        {
+          "name": "CancelSOSIntent",
+          "slots": [],
+          "samples": [
+            "cancelar alerta",
+            "cancelar emergencia",
+            "cancelar mi alerta",
+            "falsa alarma",
+            "fue una falsa alarma",
+            "cancelar el S O S",
+            "detener la alerta",
+            "desactivar alerta",
+            "estoy bien ahora cancelar",
+            "no importa cancelar la alerta",
+            "anular la alerta",
+            "retirarse",
+            "cancelar mi alerta de emergencia",
+            "ignorar la alerta",
+            "abortar alerta"
+          ]
+        },
+        {
+          "name": "SetEmergencyPhraseIntent",
+          "slots": [
+            {
+              "name": "emergencyPhrase",
+              "type": "AMAZON.SearchQuery",
+              "samples": [
+                "ponla como {emergencyPhrase}",
+                "{emergencyPhrase}",
+                "que sea {emergencyPhrase}",
+                "usar {emergencyPhrase}",
+                "cambiarla a {emergencyPhrase}"
+              ]
+            }
+          ],
+          "samples": [
+            "establecer mi frase de emergencia",
+            "establecer mi frase de emergencia a {emergencyPhrase}",
+            "cambiar mi frase de emergencia",
+            "cambiar mi frase de emergencia a {emergencyPhrase}",
+            "actualizar mi frase de emergencia",
+            "actualizar mi frase de emergencia a {emergencyPhrase}",
+            "configurar mi palabra de seguridad",
+            "configurar mi palabra de seguridad a {emergencyPhrase}",
+            "cambiar mi palabra de seguridad a {emergencyPhrase}",
+            "establecer mi frase de panico",
+            "establecer mi frase de panico a {emergencyPhrase}",
+            "quiero que mi frase de emergencia sea {emergencyPhrase}",
+            "mi nueva frase de emergencia es {emergencyPhrase}"
+          ]
+        },
+        {
+          "name": "GetNearbyRespondersIntent",
+          "slots": [],
+          "samples": [
+            "quien esta cerca",
+            "voluntarios cercanos",
+            "quien hay alrededor",
+            "voluntarios cerca de mi",
+            "hay voluntarios cerca",
+            "cuantos voluntarios hay cerca",
+            "quien puede ayudarme",
+            "responders cercanos",
+            "hay alguien cerca",
+            "mostrar ayuda cercana",
+            "quien esta disponible para ayudar",
+            "buscar voluntarios cercanos",
+            "hay personas cerca"
+          ]
+        },
+        {
+          "name": "VolunteerStatusIntent",
+          "slots": [],
+          "samples": [
+            "mi estado de voluntario",
+            "estoy de guardia",
+            "estado de voluntario",
+            "estoy como voluntario",
+            "verificar mi estado de voluntario",
+            "estado de responder",
+            "soy un responder",
+            "cual es mi horario de voluntario",
+            "mi estado de responder",
+            "cuantos turnos tengo",
+            "estoy activo como voluntario"
+          ]
+        },
+        {
+          "name": "EmergencyContactsIntent",
+          "slots": [],
+          "samples": [
+            "mis contactos",
+            "mis contactos de emergencia",
+            "quienes son mis contactos de emergencia",
+            "listar mis contactos",
+            "mostrar mis contactos",
+            "contactos de emergencia",
+            "quien sera notificado",
+            "a quien se le avisa",
+            "dime mis contactos",
+            "leer mis contactos de emergencia",
+            "que contactos tengo",
+            "quien esta en mi lista de contactos"
+          ]
+        },
+        {
+          "name": "SilentDuressIntent",
+          "slots": [],
+          "samples": [
+            "actualizar mis configuraciones",
+            "cambiar mis preferencias",
+            "ajustar mis configuraciones de notificacion",
+            "modificar mis configuraciones de perfil",
+            "actualizar mis preferencias de notificacion",
+            "cambiar mis configuraciones de cuenta",
+            "restablecer mis preferencias",
+            "configurar mis ajustes",
+            "editar mis configuraciones",
+            "actualizar preferencias"
+          ]
+        }
+      ],
+      "types": []
+    },
+    "dialog": {
+      "intents": [
+        {
+          "name": "SetEmergencyPhraseIntent",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": [
+            {
+              "name": "emergencyPhrase",
+              "type": "AMAZON.SearchQuery",
+              "confirmationRequired": true,
+              "elicitationRequired": true,
+              "prompts": {
+                "confirmation": "Confirm.Slot.emergencyPhrase",
+                "elicitation": "Elicit.Slot.emergencyPhrase"
+              }
+            }
+          ]
+        },
+        {
+          "name": "TriggerSOSIntent",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": []
+        }
+      ],
+      "delegationStrategy": "SKILL_RESPONSE"
+    },
+    "prompts": [
+      {
+        "id": "Elicit.Slot.emergencyPhrase",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Cual te gustaria que fuera tu frase de emergencia? Di cualquier frase u oracion que puedas recordar."
+          },
+          {
+            "type": "PlainText",
+            "value": "Por favor dime tu nueva frase de emergencia."
+          },
+          {
+            "type": "PlainText",
+            "value": "Que frase deberia activar tu alerta de emergencia?"
+          }
+        ]
+      },
+      {
+        "id": "Confirm.Slot.emergencyPhrase",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Escuche tu frase de emergencia. Por seguridad no la repetire. Es correcto?"
+          },
+          {
+            "type": "PlainText",
+            "value": "Entendido. Quieres guardar esto como tu frase de emergencia?"
+          }
+        ]
+      }
+    ]
+  }
+}

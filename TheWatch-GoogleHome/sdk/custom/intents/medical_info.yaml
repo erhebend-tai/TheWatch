@@ -1,0 +1,41 @@
+# ============================================================================
+# WRITE-AHEAD LOG (WAL)
+# ============================================================================
+# File:        medical_info.yaml
+# Module:      TheWatch Google Home - Medical Info Intent
+# Created:     2026-03-24
+# Author:      TheWatch Platform Team
+# ----------------------------------------------------------------------------
+# PURPOSE:
+#   Intent for retrieving the user's medical profile including conditions,
+#   allergies, and medications. Critical during emergencies for first
+#   responders and nearby volunteers.
+#
+# TRAINING PHRASES: 18+
+# CHANGES:
+#   2026-03-24  Initial creation
+# ============================================================================
+
+parameters: []
+
+trainingPhrases:
+  - my medical info
+  - my medical information
+  - show my medical profile
+  - what are my medical conditions
+  - medical profile
+  - get my medical info
+  - read my medical profile
+  - what are my allergies
+  - list my medications
+  - what medications am I on
+  - my health information
+  - show my health profile
+  - my medical details
+  - tell me my medical info
+  - what's in my medical profile
+  - display my medical information
+  - medical conditions and allergies
+  - read my allergies and medications
+  - what should responders know about me
+  - my health details

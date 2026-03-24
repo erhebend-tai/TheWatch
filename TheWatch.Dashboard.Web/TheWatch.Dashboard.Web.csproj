@@ -1,0 +1,27 @@
+﻿<!--
+  TheWatch.Dashboard.Web — Blazor/Razor front-end for the TheWatch command center.
+  Connects to Dashboard.Api via SignalR for real-time updates.
+
+  Example — connecting to the API hub:
+    var connection = new HubConnectionBuilder()
+        .WithUrl("https+http://dashboard-api/hubs/dashboard")
+        .Build();
+
+  WAL: Uses Aspire service discovery — the API URL is resolved via "dashboard-api" resource name.
+-->
+<Project Sdk="Microsoft.NET.Sdk.Web"><PropertyGroup>  <UserSecretsId>fe7c3d8f-c706-43bd-b779-73b61b5d9766</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.0" />
+    <PackageReference Include="Aspire.StackExchange.Redis.OutputCaching" Version="9.2.0" />
+    <PackageReference Include="MudBlazor" Version="8.6.0" />
+    <PackageReference Include="Serilog.AspNetCore" Version="8.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TheWatch.ServiceDefaults\TheWatch.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\TheWatch.Shared\TheWatch.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

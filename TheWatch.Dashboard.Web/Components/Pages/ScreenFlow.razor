@@ -1,0 +1,282 @@
+@page "/screens/flow"
+@rendermode InteractiveServer
+@inject NavigationManager NavigationManager
+
+<div class="screen-flow-container">
+    <div class="flow-header">
+        <h1>Navigation Flow</h1>
+        <p>TheWatch app screen navigation map</p>
+    </div>
+
+    <div class="flow-legend">
+        <div class="legend-item">
+            <div class="legend-line auth"></div>
+            <span>Auth Flow</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-line emergency"></div>
+            <span>Emergency Flow</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-line nav"></div>
+            <span>Navigation</span>
+        </div>
+    </div>
+
+    <div class="flow-diagram">
+        <svg viewBox="0 0 1400 500" preserveAspectRatio="xMidYMid meet">
+            <!-- Gradient definitions -->
+            <defs>
+                <linearGradient id="authGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#1b2a4a;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#2a3f5f;stop-opacity:1" />
+                </linearGradient>
+                <linearGradient id="mainGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#1b2a4a;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#2a3f5f;stop-opacity:1" />
+                </linearGradient>
+                <linearGradient id="userGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#1b2a4a;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#2a3f5f;stop-opacity:1" />
+                </linearGradient>
+            </defs>
+
+            <!-- Auth Flow Arrows -->
+            <!-- Login to Sign Up -->
+            <path d="M 160 200 L 260 150" stroke="#0066cc" stroke-width="2" fill="none" marker-end="url(#arrowblue)" stroke-dasharray="0" />
+
+            <!-- Sign Up to EULA -->
+            <path d="M 360 100 L 460 100" stroke="#0066cc" stroke-width="2" fill="none" marker-end="url(#arrowblue)" stroke-dasharray="0" />
+
+            <!-- Login to Forgot Password -->
+            <path d="M 160 240 L 260 280" stroke="#0066cc" stroke-width="2" fill="none" marker-end="url(#arrowblue)" stroke-dasharray="0" />
+
+            <!-- Forgot Password to Reset Password -->
+            <path d="M 360 300 L 460 300" stroke="#0066cc" stroke-width="2" fill="none" marker-end="url(#arrowblue)" stroke-dasharray="0" />
+
+            <!-- Reset Password back to Login -->
+            <path d="M 500 330 Q 330 400 200 260" stroke="#0066cc" stroke-width="2" fill="none" marker-end="url(#arrowblue)" stroke-dasharray="0" />
+
+            <!-- EULA to Home -->
+            <path d="M 560 100 L 660 200" stroke="#0066cc" stroke-width="2" fill="none" marker-end="url(#arrowblue)" stroke-dasharray="0" />
+
+            <!-- Login to Home (Emergency bypass) -->
+            <path d="M 200 180 L 660 180" stroke="#dc3545" stroke-width="2" fill="none" marker-end="url(#arrowred)" stroke-dasharray="5,5" />
+
+            <!-- Login to Home (Normal auth) -->
+            <path d="M 200 220 L 660 220" stroke="#0066cc" stroke-width="2" fill="none" marker-end="url(#arrowblue)" stroke-dasharray="0" />
+
+            <!-- Home to Nav Drawer -->
+            <path d="M 760 200 L 860 200" stroke="#999999" stroke-width="2" fill="none" marker-end="url(#arrowgray)" stroke-dasharray="0" />
+
+            <!-- Nav Drawer to User Screens -->
+            <!-- Nav to Profile -->
+            <path d="M 920 160 L 960 70" stroke="#999999" stroke-width="2" fill="none" marker-end="url(#arrowgray)" stroke-dasharray="0" />
+
+            <!-- Nav to Permissions -->
+            <path d="M 950 160 L 1030 70" stroke="#999999" stroke-width="2" fill="none" marker-end="url(#arrowgray)" stroke-dasharray="0" />
+
+            <!-- Nav to History -->
+            <path d="M 950 220 L 1030 150" stroke="#999999" stroke-width="2" fill="none" marker-end="url(#arrowgray)" stroke-dasharray="0" />
+
+            <!-- Nav to Volunteering -->
+            <path d="M 950 240 L 1030 250" stroke="#999999" stroke-width="2" fill="none" marker-end="url(#arrowgray)" stroke-dasharray="0" />
+
+            <!-- Nav to Contacts -->
+            <path d="M 920 240 L 880 330" stroke="#999999" stroke-width="2" fill="none" marker-end="url(#arrowgray)" stroke-dasharray="0" />
+
+            <!-- Nav to Settings -->
+            <path d="M 950 240 L 1030 330" stroke="#999999" stroke-width="2" fill="none" marker-end="url(#arrowgray)" stroke-dasharray="0" />
+
+            <!-- Nav to Evacuation -->
+            <path d="M 1000 220 L 1150 200" stroke="#999999" stroke-width="2" fill="none" marker-end="url(#arrowgray)" stroke-dasharray="0" />
+
+            <!-- Arrow marker definitions -->
+            <marker id="arrowblue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L0,6 L9,3 z" fill="#0066cc" />
+            </marker>
+            <marker id="arrowred" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L0,6 L9,3 z" fill="#dc3545" />
+            </marker>
+            <marker id="arrowgray" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L0,6 L9,3 z" fill="#999999" />
+            </marker>
+
+            <!-- Screen Boxes -->
+            <!-- Auth Section (Left) -->
+            <g class="screen-box" @onclick='() => NavigateToScreen("login")' style="cursor: pointer;">
+                <rect x="80" y="160" width="160" height="80" rx="8" fill="url(#authGrad)" stroke="#ffffff" stroke-width="2" />
+                <text x="160" y="207" text-anchor="middle" fill="white" font-size="14" font-weight="600">Login</text>
+            </g>
+
+            <g class="screen-box" @onclick='() => NavigateToScreen("signup")' style="cursor: pointer;">
+                <rect x="280" y="60" width="160" height="80" rx="8" fill="url(#authGrad)" stroke="#ffffff" stroke-width="2" />
+                <text x="360" y="107" text-anchor="middle" fill="white" font-size="14" font-weight="600">Sign Up</text>
+            </g>
+
+            <g class="screen-box" @onclick='() => NavigateToScreen("forgot-password")' style="cursor: pointer;">
+                <rect x="280" y="240" width="160" height="80" rx="8" fill="url(#authGrad)" stroke="#ffffff" stroke-width="2" />
+                <text x="360" y="282" text-anchor="middle" fill="white" font-size="14" font-weight="600">Forgot</text>
+                <text x="360" y="302" text-anchor="middle" fill="white" font-size="14" font-weight="600">Password</text>
+            </g>
+
+            <g class="screen-box" @onclick='() => NavigateToScreen("reset-password")' style="cursor: pointer;">
+                <rect x="480" y="260" width="160" height="80" rx="8" fill="url(#authGrad)" stroke="#ffffff" stroke-width="2" />
+                <text x="560" y="302" text-anchor="middle" fill="white" font-size="14" font-weight="600">Reset</text>
+                <text x="560" y="322" text-anchor="middle" fill="white" font-size="14" font-weight="600">Password</text>
+            </g>
+
+            <g class="screen-box" @onclick='() => NavigateToScreen("eula")' style="cursor: pointer;">
+                <rect x="480" y="60" width="160" height="80" rx="8" fill="url(#authGrad)" stroke="#ffffff" stroke-width="2" />
+                <text x="560" y="107" text-anchor="middle" fill="white" font-size="14" font-weight="600">EULA</text>
+            </g>
+
+            <!-- Main Section (Center) -->
+            <g class="screen-box" @onclick='() => NavigateToScreen("home-map")' style="cursor: pointer;">
+                <rect x="680" y="160" width="160" height="80" rx="8" fill="url(#mainGrad)" stroke="#ffffff" stroke-width="2" />
+                <text x="760" y="207" text-anchor="middle" fill="white" font-size="14" font-weight="600">Home (Map)</text>
+            </g>
+
+            <g class="screen-box" @onclick='() => NavigateToScreen("nav-drawer")' style="cursor: pointer;">
+                <rect x="880" y="160" width="160" height="80" rx="8" fill="url(#mainGrad)" stroke="#ffffff" stroke-width="2" />
+                <text x="960" y="207" text-anchor="middle" fill="white" font-size="14" font-weight="600">Nav Drawer</text>
+            </g>
+
+            <!-- User Section (Right) -->
+            <g class="screen-box" @onclick='() => NavigateToScreen("profile")' style="cursor: pointer;">
+                <rect x="960" y="30" width="140" height="70" rx="8" fill="url(#userGrad)" stroke="#ffffff" stroke-width="2" />
+                <text x="1030" y="71" text-anchor="middle" fill="white" font-size="13" font-weight="600">Profile</text>
+            </g>
+
+            <g class="screen-box" @onclick='() => NavigateToScreen("permissions")' style="cursor: pointer;">
+                <rect x="1070" y="30" width="140" height="70" rx="8" fill="url(#userGrad)" stroke="#ffffff" stroke-width="2" />
+                <text x="1140" y="71" text-anchor="middle" fill="white" font-size="13" font-weight="600">Permissions</text>
+            </g>
+
+            <g class="screen-box" @onclick='() => NavigateToScreen("history")' style="cursor: pointer;">
+                <rect x="1070" y="120" width="140" height="70" rx="8" fill="url(#userGrad)" stroke="#ffffff" stroke-width="2" />
+                <text x="1140" y="161" text-anchor="middle" fill="white" font-size="13" font-weight="600">History</text>
+            </g>
+
+            <g class="screen-box" @onclick='() => NavigateToScreen("volunteering")' style="cursor: pointer;">
+                <rect x="1070" y="210" width="140" height="70" rx="8" fill="url(#userGrad)" stroke="#ffffff" stroke-width="2" />
+                <text x="1140" y="247" text-anchor="middle" fill="white" font-size="12" font-weight="600">Volunteering</text>
+            </g>
+
+            <g class="screen-box" @onclick='() => NavigateToScreen("contacts")' style="cursor: pointer;">
+                <rect x="860" y="300" width="140" height="70" rx="8" fill="url(#userGrad)" stroke="#ffffff" stroke-width="2" />
+                <text x="930" y="341" text-anchor="middle" fill="white" font-size="13" font-weight="600">Contacts</text>
+            </g>
+
+            <g class="screen-box" @onclick='() => NavigateToScreen("settings")' style="cursor: pointer;">
+                <rect x="1070" y="300" width="140" height="70" rx="8" fill="url(#userGrad)" stroke="#ffffff" stroke-width="2" />
+                <text x="1140" y="341" text-anchor="middle" fill="white" font-size="13" font-weight="600">Settings</text>
+            </g>
+
+            <g class="screen-box" @onclick='() => NavigateToScreen("evacuation")' style="cursor: pointer;">
+                <rect x="1200" y="160" width="140" height="80" rx="8" fill="url(#userGrad)" stroke="#ffffff" stroke-width="2" />
+                <text x="1270" y="207" text-anchor="middle" fill="white" font-size="13" font-weight="600">Evacuation</text>
+            </g>
+        </svg>
+    </div>
+</div>
+
+@code {
+    private void NavigateToScreen(string screenId)
+    {
+        NavigationManager.NavigateTo($"/screens?screen={screenId}");
+    }
+}
+
+<style>
+    .screen-flow-container {
+        margin-left: 0;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #f5f7fa 0%, #e9eef5 100%);
+        padding: 40px;
+        overflow-x: auto;
+    }
+
+    .flow-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .flow-header h1 {
+        margin: 0 0 8px 0;
+        font-size: 32px;
+        color: #1b2a4a;
+        font-weight: 800;
+    }
+
+    .flow-header p {
+        margin: 0;
+        font-size: 16px;
+        color: #666;
+    }
+
+    .flow-legend {
+        display: flex;
+        justify-content: center;
+        gap: 32px;
+        margin-bottom: 40px;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: #333;
+        font-weight: 500;
+    }
+
+    .legend-line {
+        width: 24px;
+        height: 2px;
+    }
+
+    .legend-line.auth {
+        background: #0066cc;
+    }
+
+    .legend-line.emergency {
+        background: #dc3545;
+        background-image: linear-gradient(90deg, #dc3545 50%, transparent 50%);
+        background-size: 4px 2px;
+    }
+
+    .legend-line.nav {
+        background: #999999;
+    }
+
+    .flow-diagram {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        padding: 40px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 600px;
+    }
+
+    .flow-diagram svg {
+        width: 100%;
+        max-width: 1400px;
+        height: auto;
+    }
+
+    .screen-box {
+        transition: all 0.2s ease;
+    }
+
+    .screen-box:hover rect {
+        filter: brightness(1.1);
+        stroke-width: 3;
+    }
+
+    .screen-box:hover text {
+        font-weight: 700;
+    }
+</style>

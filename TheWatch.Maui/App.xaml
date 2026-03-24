@@ -1,0 +1,45 @@
+<?xml version = "1.0" encoding = "utf-8" ?>
+<Application
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="TheWatch.Maui.App">
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <Color x:Key="PageBackgroundColor">#FFFFFF</Color>
+            <Color x:Key="PrimaryColor">#1B2A4A</Color>
+            <Color x:Key="AccentColor">#DC3545</Color>
+            <Color x:Key="AccentGreen">#28A745</Color>
+            <Color x:Key="TextColor">#1B2A4A</Color>
+            <Color x:Key="LightTextColor">#666666</Color>
+            <Color x:Key="BorderColor">#E0E0E0</Color>
+
+            <Style TargetType="Button">
+                <Setter Property="TextColor" Value="#FFFFFF" />
+                <Setter Property="BackgroundColor" Value="#1B2A4A" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="Padding" Value="12,8" />
+                <Setter Property="CornerRadius" Value="4" />
+            </Style>
+
+            <Style TargetType="Label">
+                <Setter Property="TextColor" Value="#1B2A4A" />
+                <Setter Property="FontSize" Value="14" />
+            </Style>
+
+            <Style TargetType="Entry">
+                <Setter Property="TextColor" Value="#1B2A4A" />
+                <Setter Property="PlaceholderColor" Value="#CCCCCC" />
+                <Setter Property="BackgroundColor" Value="#F5F5F5" />
+                <Setter Property="FontSize" Value="14" />
+            </Style>
+
+            <Style TargetType="Picker">
+                <Setter Property="TextColor" Value="#1B2A4A" />
+                <Setter Property="BackgroundColor" Value="#F5F5F5" />
+                <Setter Property="FontSize" Value="14" />
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+
+</Application>

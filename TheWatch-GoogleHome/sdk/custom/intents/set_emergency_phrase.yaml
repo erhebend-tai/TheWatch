@@ -1,0 +1,46 @@
+# ============================================================================
+# WRITE-AHEAD LOG (WAL)
+# ============================================================================
+# File:        set_emergency_phrase.yaml
+# Module:      TheWatch Google Home - Set Emergency Phrase Intent
+# Created:     2026-03-24
+# Author:      TheWatch Platform Team
+# ----------------------------------------------------------------------------
+# PURPOSE:
+#   Intent for setting or updating the user's secret emergency phrase.
+#   When this phrase is detected via speech-to-text, an SOS is triggered
+#   automatically without explicit "trigger SOS" command.
+#
+# TRAINING PHRASES: 18+
+# PARAMETERS:
+#   - emergency_phrase: The phrase the user wants to set (free-form text)
+# CHANGES:
+#   2026-03-24  Initial creation
+# ============================================================================
+
+parameters:
+  - name: emergency_phrase
+    type:
+      name: actions.type.FreeText
+
+trainingPhrases:
+  - set my emergency phrase
+  - set my emergency phrase to $emergency_phrase
+  - change my emergency phrase
+  - change my emergency phrase to $emergency_phrase
+  - update my emergency phrase
+  - update my emergency phrase to $emergency_phrase
+  - my emergency phrase should be $emergency_phrase
+  - set my safety phrase
+  - set my safety phrase to $emergency_phrase
+  - change my safe word
+  - set my safe word to $emergency_phrase
+  - I want my emergency phrase to be $emergency_phrase
+  - make my emergency phrase $emergency_phrase
+  - set panic phrase
+  - set panic phrase to $emergency_phrase
+  - configure my emergency phrase
+  - what is my emergency phrase
+  - update my panic word
+  - change my panic word to $emergency_phrase
+  - set my distress phrase to $emergency_phrase

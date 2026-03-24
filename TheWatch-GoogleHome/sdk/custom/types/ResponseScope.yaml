@@ -1,0 +1,64 @@
+# ============================================================================
+# WRITE-AHEAD LOG (WAL)
+# ============================================================================
+# File:        ResponseScope.yaml
+# Module:      TheWatch Google Home - ResponseScope Type
+# Created:     2026-03-24
+# Author:      TheWatch Platform Team
+# ----------------------------------------------------------------------------
+# PURPOSE:
+#   Custom type defining the scope of an emergency response. Determines
+#   who gets notified and what level of response is activated.
+#
+# VALUES:
+#   - PERSONAL:    Only the user's emergency contacts
+#   - COMMUNITY:   Emergency contacts + nearby volunteers
+#   - FULL:        Emergency contacts + volunteers + first responders (911)
+#   - SILENT:      Duress mode - alerts sent without audible confirmation
+#
+# EXAMPLE:
+#   User: "Trigger a community alert"
+#   -> ResponseScope resolves to COMMUNITY
+#
+# CHANGES:
+#   2026-03-24  Initial creation
+# ============================================================================
+
+synonym:
+  matchType: EXACT_MATCH
+  entities:
+    PERSONAL:
+      synonyms:
+        - personal
+        - just my contacts
+        - only my contacts
+        - contact my people
+        - private alert
+        - personal alert
+    COMMUNITY:
+      synonyms:
+        - community
+        - community alert
+        - nearby volunteers
+        - local help
+        - neighborhood alert
+        - community response
+    FULL:
+      synonyms:
+        - full
+        - full response
+        - call 911
+        - call the police
+        - call emergency services
+        - full emergency
+        - maximum response
+        - all hands
+    SILENT:
+      synonyms:
+        - silent
+        - quiet
+        - discreet
+        - covert
+        - stealth
+        - silent mode
+        - whisper

@@ -1,0 +1,67 @@
+@inherits LayoutComponentBase
+
+<MudThemeProvider Theme="_theme" IsDarkMode="true" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <article class="content">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code {
+    private readonly MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#1B2A4A",
+            Secondary = "#DC3545",
+            AppbarBackground = "#1B2A4A",
+            Background = "#F5F5F5",
+            Surface = "#FFFFFF"
+        },
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#5C8AFF",
+            Secondary = "#DC3545",
+            AppbarBackground = "#1B2A4A",
+            Background = "#0D1117",
+            Surface = "#161B22",
+            DrawerBackground = "#1B2A4A",
+            TextPrimary = "#E6EDF3",
+            TextSecondary = "#8B949E"
+        },
+        Typography = new Typography
+        {
+            Default = new DefaultTypography { FontFamily = new[] { "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif" } }
+        }
+    };
+}
+
+<style>
+    .page {
+        display: flex;
+        min-height: 100vh;
+    }
+
+    .sidebar {
+        flex-shrink: 0;
+    }
+
+    main {
+        flex: 1;
+        margin-left: 240px;
+    }
+
+    .content {
+        padding: 0;
+    }
+</style>

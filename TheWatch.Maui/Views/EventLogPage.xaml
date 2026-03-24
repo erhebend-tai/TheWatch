@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TheWatch.Maui.Views.EventLogPage"
+             Title="Event Log"
+             BackgroundColor="#FFFFFF">
+
+    <Grid RowDefinitions="Auto,*,Auto" Padding="0">
+
+        <!-- Header -->
+        <VerticalStackLayout Grid.Row="0" Padding="20,16" Spacing="16" BackgroundColor="#1B2A4A">
+            <VerticalStackLayout Spacing="8">
+                <Label Text="Event History" FontSize="18" FontAttributes="Bold" TextColor="#FFFFFF" />
+                <Label
+                    Text="{Binding ConnectionStatus, StringFormat='Status: {0}'}"
+                    FontSize="12"
+                    TextColor="#CCCCCC" />
+            </VerticalStackLayout>
+
+            <HorizontalStackLayout Spacing="8">
+                <Frame
+                    BorderColor="#28A745"
+                    CornerRadius="4"
+                    Padding="8,4"
+                    HasShadow="False"
+                    HorizontalOptions="FillAndExpand">
+                    <Label
+                        Text="{Binding TotalEventsReceived, StringFormat='Received: {0}'}"
+                        FontSize="11"
+                        TextColor="#FFFFFF"
+                        LineBreakMode="TailTruncation" />
+                </Frame>
+
+                <Frame
+                    BorderColor="#DC3545"
+                    CornerRadius="4"
+                    Padding="8,4"
+                    HasShadow="False"
+                    HorizontalOptions="FillAndExpand">
+                    <Label
+                        Text="{Binding TotalEventsPublished, StringFormat='Published: {0}'}"
+                        FontSize="11"
+                        TextColor="#FFFFFF"
+                        LineBreakMode="TailTruncation" />
+                </Frame>
+            </HorizontalStackLayout>
+        </VerticalStackLayout>
+
+        <!-- Events List -->
+        <CollectionView Grid.Row="1" ItemsSource="{Binding RecentEvents}" SelectionMode="Single">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Frame
+                        BorderColor="#E0E0E0"
+                        CornerRadius="8"
+                        Padding="16"
+                        Margin="16,8"
+                        HasShadow="False">
+                        <VerticalStackLayout Spacing="8">
+
+                            <!-- Event Header Row -->
+                            <HorizontalStackLayout Spacing="12">
+                                <VerticalStackLayout HorizontalOptions="FillAndExpand" Spacing="4">
+                                    <Label
+                                        Text="{Binding EventType}"
+                                        FontSize="14"
+                                        FontAttributes="Bold"
+                                        TextColor="#1B2A4A" />
+                                    <Label
+                                        Text="{Binding Source}"
+                                        FontSize="11"
+                                        TextColor="#666666" />
+                                </VerticalStackLayout>
+
+                                <Frame
+                                    BorderColor="#DC3545"
+                                    CornerRadius="4"
+                                    Padding="6,2"
+                                    HasShadow="False">
+                                    <Label
+                                        Text="ALERT"
+                                        FontSize="10"
+                                        FontAttributes="Bold"
+                                        TextColor="#FFFFFF" />
+                                </Frame>
+                            </HorizontalStackLayout>
+
+                            <!-- Event Details -->
+                            <Label
+                                Text="{Binding Timestamp, StringFormat='Published: {0:g}'}"
+                                FontSize="10"
+                                TextColor="#999999" />
+
+                            <!-- Event Payload Preview (if available) -->
+                            <Label
+                                Text="{Binding Payload}"
+                                FontSize="11"
+                                TextColor="#1B2A4A"
+                                LineBreakMode="TailTruncation"
+                                MaxLines="2" />
+
+                        </VerticalStackLayout>
+                    </Frame>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+
+            <!-- Empty State -->
+            <CollectionView.EmptyView>
+                <VerticalStackLayout Padding="20" Spacing="12" VerticalOptions="CenterAndExpand">
+                    <Label
+                        Text="No events yet"
+                        FontSize="16"
+                        FontAttributes="Bold"
+                        TextColor="#999999"
+                        HorizontalTextAlignment="Center" />
+                    <Label
+                        Text="Events will appear here as you publish simulations"
+                        FontSize="12"
+                        TextColor="#CCCCCC"
+                        HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+        </CollectionView>
+
+        <!-- Footer Actions -->
+        <VerticalStackLayout Grid.Row="2" Padding="20" Spacing="12">
+            <Button
+                Text="Clear Event History"
+                Command="{Binding ClearEventsAsync}"
+                BackgroundColor="#6C757D"
+                TextColor="#FFFFFF"
+                FontSize="14"
+                Padding="12,8"
+                CornerRadius="4" />
+        </VerticalStackLayout>
+
+    </Grid>
+
+</ContentPage>

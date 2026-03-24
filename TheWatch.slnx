@@ -1,9 +1,33 @@
 <Solution>
-  <Project Path="TheWatch.ApiService/TheWatch.ApiService.csproj" />
-  <Project Path="TheWatch.AppHost/TheWatch.AppHost.csproj" />
-  <Project Path="TheWatch.Functions/TheWatch.Functions.csproj" />
-  <Project Path="TheWatch.ServiceDefaults/TheWatch.ServiceDefaults.csproj" />
-  <Project Path="TheWatch.Tests/TheWatch.Tests.csproj" />
-  <Project Path="TheWatch.Web/TheWatch.Web.csproj" />
-  <Project Path="TheWatch.WorkerServices/TheWatch.WorkerServices.csproj" />
+  <Folder Name="/Adapters/">
+    <Project Path="TheWatch.Adapters.AWS/TheWatch.Adapters.AWS.csproj" />
+    <Project Path="TheWatch.Adapters.Azure/TheWatch.Adapters.Azure.csproj" />
+    <Project Path="TheWatch.Adapters.Cloudflare/TheWatch.Adapters.Cloudflare.csproj" />
+    <Project Path="TheWatch.Adapters.GitHub/TheWatch.Adapters.GitHub.csproj" />
+    <Project Path="TheWatch.Adapters.Google/TheWatch.Adapters.Google.csproj" />
+    <Project Path="TheWatch.Adapters.Mock/TheWatch.Adapters.Mock.csproj" />
+    <Project Path="TheWatch.Adapters.Oracle/TheWatch.Adapters.Oracle.csproj" />
+  </Folder>
+  <Folder Name="/Mobile/">
+    <Project Path="TheWatch.Maui/TheWatch.Maui.csproj" />
+  </Folder>
+  <Folder Name="/Server/">
+    <Project Path="TheWatch.ApiService/TheWatch.ApiService.csproj" />
+    <Project Path="TheWatch.AppHost/TheWatch.AppHost.csproj" />
+    <Project Path="TheWatch.BuildServer/TheWatch.BuildServer.csproj" />
+    <Project Path="TheWatch.Cli/TheWatch.Cli.csproj" />
+    <Project Path="TheWatch.Dashboard.Api/TheWatch.Dashboard.Api.csproj" />
+    <Project Path="TheWatch.Dashboard.Web/TheWatch.Dashboard.Web.csproj" />
+    <Project Path="TheWatch.Data/TheWatch.Data.csproj" />
+    <Project Path="TheWatch.DocGen/TheWatch.DocGen.csproj" />
+    <Project Path="TheWatch.Functions/TheWatch.Functions.csproj" />
+    <Project Path="TheWatch.ServiceDefaults/TheWatch.ServiceDefaults.csproj" />
+    <Project Path="TheWatch.Shared/TheWatch.Shared.csproj" />
+    <Project Path="TheWatch.Web/TheWatch.Web.csproj" />
+    <Project Path="TheWatch.WorkerServices/TheWatch.WorkerServices.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="TheWatch.Shared.Tests/TheWatch.Shared.Tests.csproj" />
+    <Project Path="TheWatch.Tests/TheWatch.Tests.csproj" />
+  </Folder>
 </Solution>

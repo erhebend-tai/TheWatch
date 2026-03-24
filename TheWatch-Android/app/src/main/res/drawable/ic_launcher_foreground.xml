@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    TheWatch Launcher Icon Foreground - Shield Vector Drawable
+    ===========================================================
+    A shield icon representing safety and security, centered within
+    the 108dp adaptive icon canvas. The visible area is the inner 72dp
+    (18dp padding on each side for parallax/masking).
+
+    Design notes:
+      - Shield shape symbolizes protection and emergency response
+      - Inner cross/plus symbolizes first-responder / medical assistance
+      - Designed at 108x108dp canvas per adaptive icon spec
+      - Viewable safe zone: 72x72dp centered
+
+    NOTE: For production release, replace this vector with the final
+    brand-approved icon from your design team. This placeholder is
+    functional and renders correctly across all adaptive icon shapes.
+
+    Reference: https://developer.android.com/develop/ui/views/launch/icon_design_adaptive
+    Canvas: 108dp x 108dp, safe zone: 72dp x 72dp (centered)
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108"
+    android:tint="#FFFFFF">
+
+    <!-- Shield body - centered in the 108dp canvas -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,22
+            L30,32
+            L30,50
+            C30,66.67 39.33,82 54,86
+            C68.67,82 78,66.67 78,50
+            L78,32
+            Z" />
+
+    <!-- Inner cross/plus mark (cut out via darker color to show background) -->
+    <path
+        android:fillColor="#1B5E20"
+        android:pathData="M51,42 L51,52 L43,52 L43,58 L51,58 L51,68 L57,68 L57,58 L65,58 L65,52 L57,52 L57,42 Z" />
+
+</vector>

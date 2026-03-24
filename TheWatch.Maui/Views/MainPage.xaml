@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TheWatch.Maui.Views.MainPage"
+             Title="Dashboard"
+             BackgroundColor="#FFFFFF">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="20">
+
+            <!-- Connection Status Card -->
+            <Frame BorderColor="#1B2A4A" CornerRadius="8" Padding="16" HasShadow="True">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Dashboard Connection" FontSize="18" FontAttributes="Bold" TextColor="#1B2A4A" />
+
+                    <VerticalStackLayout Spacing="8">
+                        <HorizontalStackLayout Spacing="8">
+                            <Label Text="Status:" FontSize="14" FontAttributes="Bold" TextColor="#1B2A4A" />
+                            <Label Text="{Binding ConnectionStatus}" FontSize="14" TextColor="#666666" />
+                        </HorizontalStackLayout>
+
+                        <VerticalStackLayout IsVisible="{Binding IsConnected, Converter={StaticResource InvertedBoolConverter}}" Spacing="8">
+                            <Button
+                                Text="Connect"
+                                Command="{Binding ConnectCommand}"
+                                BackgroundColor="#1B2A4A"
+                                TextColor="#FFFFFF"
+                                FontSize="14"
+                                Padding="12,8"
+                                CornerRadius="4"
+                                IsEnabled="{Binding IsLoading, Converter={StaticResource InvertedBoolConverter}}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout IsVisible="{Binding IsConnected}" Spacing="8">
+                            <Button
+                                Text="Disconnect"
+                                Command="{Binding DisconnectCommand}"
+                                BackgroundColor="#DC3545"
+                                TextColor="#FFFFFF"
+                                FontSize="14"
+                                Padding="12,8"
+                                CornerRadius="4"
+                                IsEnabled="{Binding IsLoading, Converter={StaticResource InvertedBoolConverter}}" />
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Statistics Card -->
+            <Frame BorderColor="#1B2A4A" CornerRadius="8" Padding="16" HasShadow="True">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Statistics" FontSize="18" FontAttributes="Bold" TextColor="#1B2A4A" />
+
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="auto,auto" ColumnSpacing="16" RowSpacing="12">
+                        <!-- Events Published -->
+                        <VerticalStackLayout Grid.Column="0" Grid.Row="0" Spacing="4">
+                            <Label Text="Published" FontSize="12" FontAttributes="Bold" TextColor="#666666" />
+                            <Label Text="{Binding TotalEventsPublished}" FontSize="24" FontAttributes="Bold" TextColor="#1B2A4A" />
+                        </VerticalStackLayout>
+
+                        <!-- Events Received -->
+                        <VerticalStackLayout Grid.Column="1" Grid.Row="0" Spacing="4">
+                            <Label Text="Received" FontSize="12" FontAttributes="Bold" TextColor="#666666" />
+                            <Label Text="{Binding TotalEventsReceived}" FontSize="24" FontAttributes="Bold" TextColor="#1B2A4A" />
+                        </VerticalStackLayout>
+
+                        <!-- Last Event Time -->
+                        <VerticalStackLayout Grid.Column="0" Grid.Row="1" Spacing="4">
+                            <Label Text="Last Event" FontSize="12" FontAttributes="Bold" TextColor="#666666" />
+                            <Label Text="{Binding LastEventTime}" FontSize="14" TextColor="#1B2A4A" />
+                        </VerticalStackLayout>
+
+                        <!-- Clear Button -->
+                        <Button
+                            Grid.Column="1"
+                            Grid.Row="1"
+                            Text="Clear"
+                            Command="{Binding ClearEventsCommand}"
+                            BackgroundColor="#28A745"
+                            TextColor="#FFFFFF"
+                            FontSize="12"
+                            Padding="8,4"
+                            CornerRadius="4" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Recent Events Card -->
+            <Frame BorderColor="#1B2A4A" CornerRadius="8" Padding="16" HasShadow="True">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Recent Events" FontSize="18" FontAttributes="Bold" TextColor="#1B2A4A" />
+
+                    <CollectionView
+                        ItemsSource="{Binding RecentEvents}"
+                        SelectionMode="Single"
+                        HeightRequest="200">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Frame BorderColor="#E0E0E0" CornerRadius="4" Padding="12" Margin="0,4">
+                                    <VerticalStackLayout Spacing="4">
+                                        <HorizontalStackLayout Spacing="8">
+                                            <Label
+                                                Text="{Binding EventType}"
+                                                FontSize="12"
+                                                FontAttributes="Bold"
+                                                TextColor="#DC3545" />
+                                            <Label
+                                                Text="{Binding Source}"
+                                                FontSize="11"
+                                                TextColor="#666666" />
+                                        </HorizontalStackLayout>
+                                        <Label
+                                            Text="{Binding CreatedAt, StringFormat='{0:HH:mm:ss}'}"
+                                            FontSize="11"
+                                            TextColor="#999999" />
+                                    </VerticalStackLayout>
+                                </Frame>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+                    <Label
+                        Text="No events yet"
+                        FontSize="12"
+                        TextColor="#999999"
+                        HorizontalTextAlignment="Center"
+                        IsVisible="{Binding RecentEvents.Count, Converter={StaticResource IntToBoolConverter}, ConverterParameter=0}" />
+                </VerticalStackLayout>
+            </Frame>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

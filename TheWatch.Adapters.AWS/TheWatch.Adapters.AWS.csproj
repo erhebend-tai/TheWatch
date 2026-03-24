@@ -1,0 +1,24 @@
+<!--
+  TheWatch.Adapters.AWS — Live AWS adapter implementations (Lambda, Alexa Skills).
+  Used in Production with "AWS": "Live" in AdapterRegistry.
+
+  Example — checks Lambda health:
+    IAwsPort aws = serviceProvider.GetRequiredService<IAwsPort>();
+    var health = await aws.GetLambdaHealthAsync();
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\TheWatch.Shared\TheWatch.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.Core" Version="3.7.500.0" />
+    <PackageReference Include="AWSSDK.Lambda" Version="3.7.500.0" />
+    <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.500.0" />
+    <PackageReference Include="AWSSDK.S3" Version="3.7.500.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+  </ItemGroup>
+
+</Project>

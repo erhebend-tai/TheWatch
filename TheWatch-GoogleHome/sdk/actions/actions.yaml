@@ -1,0 +1,44 @@
+# ============================================================================
+# WRITE-AHEAD LOG (WAL)
+# ============================================================================
+# File:        actions.yaml
+# Module:      TheWatch Google Home Integration - Actions SDK Configuration
+# Created:     2026-03-24
+# Author:      TheWatch Platform Team
+# ----------------------------------------------------------------------------
+# PURPOSE:
+#   Root Actions SDK configuration file. Defines the project-level settings
+#   including the custom action entry point, webhook fulfillment URL, and
+#   locale configuration.
+#
+# EXAMPLE:
+#   gactions push --project thewatch-safety
+#   gactions deploy preview --project thewatch-safety
+#
+# CHANGES:
+#   2026-03-24  Initial creation
+# ============================================================================
+
+custom:
+  intents:
+    - intents/trigger_sos.yaml
+    - intents/check_in.yaml
+    - intents/get_status.yaml
+    - intents/cancel_sos.yaml
+    - intents/set_emergency_phrase.yaml
+    - intents/nearby_responders.yaml
+    - intents/volunteer_status.yaml
+    - intents/emergency_contacts.yaml
+    - intents/silent_duress.yaml
+    - intents/evacuation_info.yaml
+    - intents/shelter_info.yaml
+    - intents/medical_info.yaml
+  types:
+    - types/EmergencyPhrase.yaml
+    - types/ResponseScope.yaml
+  scenes:
+    - scenes/MainScene.yaml
+    - scenes/SOSConfirmation.yaml
+    - scenes/AccountLinking.yaml
+  global:
+    - global/actions.intent.MAIN.yaml

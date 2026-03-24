@@ -1,0 +1,47 @@
+# ============================================================================
+# WRITE-AHEAD LOG (WAL)
+# ============================================================================
+# File:        check_in.yaml
+# Module:      TheWatch Google Home - Check In Intent
+# Created:     2026-03-24
+# Author:      TheWatch Platform Team
+# ----------------------------------------------------------------------------
+# PURPOSE:
+#   Intent definition for recording a safety check-in. Used when the user
+#   wants to confirm they are safe, respond to a scheduled check-in, or
+#   proactively report their status.
+#
+# TRAINING PHRASES: 20+
+# CHANGES:
+#   2026-03-24  Initial creation
+# ============================================================================
+
+parameters: []
+
+trainingPhrases:
+  - check in
+  - check in now
+  - I want to check in
+  - record my check in
+  - I'm safe
+  - I am safe
+  - I'm okay
+  - I am okay
+  - I'm fine
+  - I am fine
+  - mark me as safe
+  - confirm I'm safe
+  - safety check in
+  - do my check in
+  - respond to check in
+  - complete my check in
+  - I'm checking in
+  - all good here
+  - everything is fine
+  - I'm alright
+  - report that I'm safe
+  - let my contacts know I'm okay
+  - notify them I'm safe
+  - confirm safety
+  - I'm still here
+  - wellness check response

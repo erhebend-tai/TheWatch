@@ -1,0 +1,61 @@
+# ============================================================================
+# WRITE-AHEAD LOG (WAL)
+# ============================================================================
+# File:        SOSConfirmation.yaml
+# Module:      TheWatch Google Home - SOS Confirmation Scene
+# Created:     2026-03-24
+# Author:      TheWatch Platform Team
+# ----------------------------------------------------------------------------
+# PURPOSE:
+#   Safety confirmation scene before triggering an actual SOS alert.
+#   Prevents accidental triggers by requiring explicit "Yes" confirmation.
+#   Uses a confirmation slot with YES/NO resolution.
+#
+# FLOW:
+#   1. System asks: "Are you sure you want to trigger an SOS alert?"
+#   2. User says "Yes" -> webhook fires trigger_sos
+#   3. User says "No"  -> returns to MainScene
+#   4. Timeout (10s)   -> auto-triggers SOS (safety-first design)
+#
+# DESIGN DECISION:
+#   On timeout, we AUTO-TRIGGER the SOS. Rationale: if the user asked for
+#   SOS and then went silent, they may be incapacitated. Better to send
+#   help that isn't needed than to not send help that is.
+#
+# CHANGES:
+#   2026-03-24  Initial creation
+# ============================================================================
+
+onEnter:
+  staticPrompt:
+    candidates:
+      - promptText:
+          text: "Are you sure you want to trigger an SOS alert? This will notify your emergency contacts and nearby responders. Say yes to confirm or no to cancel."
+          speech: "<speak><emphasis level=\"moderate\">Are you sure you want to trigger an SOS alert?</emphasis> <break time=\"300ms\"/> This will notify your emergency contacts and nearby responders. <break time=\"200ms\"/> Say <emphasis>yes</emphasis> to confirm, or <emphasis>no</emphasis> to cancel.</speak>"
+
+slots:
+  - name: confirmation
+    type:
+      name: actions.type.Confirmation
+    required: true
+    promptSettings:
+      initialPrompt:
+        staticPrompt:
+          candidates:
+            - promptText:
+                text: "Please confirm: should I trigger the SOS alert? Yes or no."
+
+conditionalEvents:
+  - condition: scene.slots.status == "FINAL" && scene.slots.confirmation.value == true
+    handler:
+      webhookHandler: sos_confirmed_yes
+    transitionTo: MainScene
+  - condition: scene.slots.status == "FINAL" && scene.slots.confirmation.value == false
+    handler:
+      webhookHandler: sos_confirmed_no
+    transitionTo: MainScene
+  # Auto-trigger on slot collection timeout (safety-first)
+  - condition: scene.slots.status == "COLLECTING" && session.params.slotFillingAttempts > 2
+    handler:
+      webhookHandler: trigger_sos
+    transitionTo: MainScene

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Full Backup Rules for Android 11 and below (API < 31)
+    ======================================================
+    TheWatch Safety & Security Application
+
+    SECURITY RATIONALE:
+    Complements data_extraction_rules.xml for pre-Android 12 devices.
+    All sensitive data is excluded from Auto Backup to Google Drive.
+
+    Excluded categories:
+      - Room databases (incident reports, location history, emergency contacts)
+      - SharedPreferences (auth tokens, 2FA secrets, user profile, SOS phrases)
+      - DataStore files (encrypted preferences, volunteer availability)
+      - Internal files (cached media, audio recordings, evidence photos)
+      - External files (exported reports, shared media)
+
+    NOTE: On Android 12+ (API 31+), data_extraction_rules.xml takes precedence.
+    This file governs behavior on Android 6.0-11 (API 23-30).
+
+    Reference: https://developer.android.com/guide/topics/data/autobackup#IncludingFiles
+    See also: ISO/IEC 27002:2022 Section 8.10 (Information deletion)
+
+    Example usage in AndroidManifest.xml:
+      android:fullBackupContent="@xml/backup_rules"
+-->
+<full-backup-content>
+
+    <!--
+        Exclude ALL data from cloud backup.
+        This is a security application - no user data should leave the device
+        via automatic backup mechanisms. Users must explicitly export data
+        through the app's own encrypted export functionality.
+    -->
+
+    <!-- Exclude all databases (Room: incidents, contacts, locations, evidence) -->
+    <exclude domain="database" path="." />
+
+    <!-- Exclude all shared preferences (auth tokens, 2FA, SOS config, user profile) -->
+    <exclude domain="sharedpref" path="." />
+
+    <!-- Exclude all internal files (cached media, audio recordings, ML models) -->
+    <exclude domain="file" path="." />
+
+    <!-- Exclude root internal storage -->
+    <exclude domain="root" path="." />
+
+    <!-- Exclude external files (exported reports, shared evidence) -->
+    <exclude domain="external" path="." />
+
+</full-backup-content>

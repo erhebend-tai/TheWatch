@@ -1,0 +1,294 @@
+
+<div class="contacts-screen">
+    <div class="contacts-header">
+        <button class="back-btn" title="Go back">‹</button>
+        <span class="header-title">Emergency Contacts</span>
+        <button class="add-btn" title="Add contact">+</button>
+    </div>
+
+    <div class="contacts-content">
+        <!-- Contact 1: Sarah Rivera -->
+        <div class="contact-card">
+            <div class="contact-main">
+                <div class="contact-avatar">
+                    <span class="initials">SR</span>
+                </div>
+                <div class="contact-info">
+                    <h3 class="contact-name">Sarah Rivera</h3>
+                    <p class="contact-relationship">Family</p>
+                    <span class="priority-badge priority-1">Priority 1</span>
+                </div>
+            </div>
+            <div class="contact-actions">
+                <span class="badge family-badge">Family</span>
+                <div class="contact-icons">
+                    <button class="icon-btn" title="Call">☎</button>
+                    <button class="icon-btn" title="Email">✉</button>
+                </div>
+                <button class="menu-btn" title="More options">⋮</button>
+            </div>
+        </div>
+
+        <!-- Contact 2: Dr. James Chen -->
+        <div class="contact-card">
+            <div class="contact-main">
+                <div class="contact-avatar" style="background: linear-gradient(135deg, #2196F3, #1976D2);">
+                    <span class="initials">JC</span>
+                </div>
+                <div class="contact-info">
+                    <h3 class="contact-name">Dr. James Chen</h3>
+                    <p class="contact-relationship">Medical Provider</p>
+                    <span class="priority-badge priority-2">Priority 2</span>
+                </div>
+            </div>
+            <div class="contact-actions">
+                <span class="badge medical-badge">Medical</span>
+                <div class="contact-icons">
+                    <button class="icon-btn" title="Call">☎</button>
+                </div>
+                <button class="menu-btn" title="More options">⋮</button>
+            </div>
+        </div>
+
+        <!-- Contact 3: Marcus Johnson -->
+        <div class="contact-card">
+            <div class="contact-main">
+                <div class="contact-avatar" style="background: linear-gradient(135deg, #9C27B0, #7B1FA2);">
+                    <span class="initials">MJ</span>
+                </div>
+                <div class="contact-info">
+                    <h3 class="contact-name">Marcus Johnson</h3>
+                    <p class="contact-relationship">Friend</p>
+                    <span class="priority-badge priority-3">Priority 3</span>
+                </div>
+            </div>
+            <div class="contact-actions">
+                <span class="badge friend-badge">Friend</span>
+                <div class="contact-icons">
+                    <button class="icon-btn" title="Call">☎</button>
+                    <button class="icon-btn" title="Email">✉</button>
+                </div>
+                <button class="menu-btn" title="More options">⋮</button>
+            </div>
+        </div>
+
+        <div style="height: 20px;"></div>
+    </div>
+</div>
+
+@code {
+}
+
+<style scoped>
+    .contacts-screen {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        background: #f8f9fa;
+    }
+
+    .contacts-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-bottom: 1px solid #eee;
+        background: #FFFFFF;
+    }
+
+    .back-btn, .add-btn {
+        background: none;
+        border: none;
+        font-size: 28px;
+        color: #1B2A4A;
+        cursor: pointer;
+        padding: 8px;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .add-btn {
+        font-size: 24px;
+        font-weight: 700;
+    }
+
+    .header-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1B2A4A;
+    }
+
+    .contacts-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .contact-card {
+        background: #FFFFFF;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border: 1px solid #eee;
+    }
+
+    .contact-main {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .contact-avatar {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #DC3545, #c82333);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .initials {
+        font-size: 18px;
+        font-weight: 700;
+        color: #FFFFFF;
+    }
+
+    .contact-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+
+    .contact-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1B2A4A;
+        margin: 0;
+        word-break: break-word;
+    }
+
+    .contact-relationship {
+        font-size: 12px;
+        color: #999;
+        margin: 0;
+    }
+
+    .priority-badge {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 3px 6px;
+        border-radius: 3px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        width: fit-content;
+    }
+
+    .priority-1 {
+        background: rgba(220, 53, 69, 0.1);
+        color: #DC3545;
+    }
+
+    .priority-2 {
+        background: rgba(255, 193, 7, 0.1);
+        color: #FFC107;
+    }
+
+    .priority-3 {
+        background: rgba(102, 102, 102, 0.1);
+        color: #666;
+    }
+
+    .contact-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .badge {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 4px 8px;
+        border-radius: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+    }
+
+    .family-badge {
+        background: rgba(33, 150, 243, 0.1);
+        color: #2196F3;
+    }
+
+    .medical-badge {
+        background: rgba(40, 167, 69, 0.1);
+        color: #28A745;
+    }
+
+    .friend-badge {
+        background: rgba(156, 39, 176, 0.1);
+        color: #9C27B0;
+    }
+
+    .contact-icons {
+        display: flex;
+        gap: 4px;
+    }
+
+    .icon-btn {
+        background: #f0f0f0;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        padding: 6px;
+        width: 32px;
+        height: 32px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+
+    .icon-btn:active {
+        background: #e0e0e0;
+    }
+
+    .menu-btn {
+        background: none;
+        border: none;
+        font-size: 18px;
+        color: #999;
+        cursor: pointer;
+        padding: 4px 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Scrollbar */
+    .contacts-content::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .contacts-content::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .contacts-content::-webkit-scrollbar-thumb {
+        background: rgba(27, 42, 74, 0.2);
+        border-radius: 3px;
+    }
+</style>

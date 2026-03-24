@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Location Permissions - Life-Safety Requirements -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>TheWatch needs your location to dispatch emergency responders and show nearby help.</string>
+
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>TheWatch needs continuous location access to monitor your safety and dispatch responders even when the app is in the background.</string>
+
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>TheWatch needs continuous location access to monitor your safety and dispatch responders even when the app is in the background.</string>
+
+	<!-- Authentication -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>TheWatch uses Face ID for quick, secure authentication.</string>
+
+	<!-- Contacts -->
+	<key>NSContactsUsageDescription</key>
+	<string>TheWatch accesses your contacts to set up emergency contacts quickly.</string>
+
+	<!-- Health Data -->
+	<key>NSHealthShareUsageDescription</key>
+	<string>TheWatch monitors health data to detect falls and medical emergencies.</string>
+
+	<!-- Audio/Communications -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>TheWatch uses the microphone for emergency phrase detection and voice communication.</string>
+
+	<!-- Speech Recognition - On-Device Only -->
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>TheWatch uses on-device speech recognition to detect emergency phrases. Audio never leaves your device.</string>
+
+	<!-- Imagery -->
+	<key>NSCameraUsageDescription</key>
+	<string>TheWatch uses the camera to capture evidence during emergencies.</string>
+
+	<!-- Background Modes - Life-Safety Services -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>audio</string>
+		<string>fetch</string>
+		<string>remote-notification</string>
+		<string>processing</string>
+	</array>
+
+	<!-- Background Task Scheduler -->
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.thewatch.location-sync</string>
+		<string>com.thewatch.offline-flush</string>
+	</array>
+</dict>
+</plist>

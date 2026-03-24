@@ -1,0 +1,248 @@
+@page "/agents"
+@using TheWatch.Shared.Dtos
+@using TheWatch.Shared.Enums
+
+<PageTitle>AI Agents - TheWatch</PageTitle>
+
+<div class="agents-container">
+
+    <div class="page-header">
+        <h1>AI Agents</h1>
+        <p class="subtitle">Multi-agent coordination and activity monitoring</p>
+    </div>
+
+    <div class="agents-grid">
+
+        <div class="agent-card active">
+            <div class="agent-header">
+                <h3>Project Manager Agent</h3>
+                <span class="agent-badge active">ACTIVE</span>
+            </div>
+            <div class="agent-body">
+                <div class="agent-detail">
+                    <span class="detail-label">Role:</span>
+                    <span class="detail-value">Milestone & Timeline Tracking</span>
+                </div>
+                <div class="agent-detail">
+                    <span class="detail-label">Status:</span>
+                    <span class="detail-value connected">● Connected</span>
+                </div>
+                <div class="agent-detail">
+                    <span class="detail-label">Last Activity:</span>
+                    <span class="detail-value">5 min ago</span>
+                </div>
+                <div class="agent-stats">
+                    <div class="stat">
+                        <div class="stat-value">42</div>
+                        <div class="stat-label">Tasks Managed</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">8</div>
+                        <div class="stat-label">Milestones</div>
+                    </div>
+                </div>
+                <div class="agent-description">
+                    Monitors milestone progress, coordinates team activities, and ensures timely delivery across all platforms.
+                </div>
+            </div>
+            <div class="agent-footer">
+                <button class="btn-small">View Activity</button>
+            </div>
+        </div>
+
+        <div class="agent-card active">
+            <div class="agent-header">
+                <h3>Research Analyst</h3>
+                <span class="agent-badge active">ACTIVE</span>
+            </div>
+            <div class="agent-body">
+                <div class="agent-detail">
+                    <span class="detail-label">Role:</span>
+                    <span class="detail-value">Data Analysis & Insights</span>
+                </div>
+                <div class="agent-detail">
+                    <span class="detail-label">Status:</span>
+                    <span class="detail-value connected">● Connected</span>
+                </div>
+                <div class="agent-detail">
+                    <span class="detail-label">Last Activity:</span>
+                    <span class="detail-value">2 min ago</span>
+                </div>
+                <div class="agent-stats">
+                    <div class="stat">
+                        <div class="stat-value">156</div>
+                        <div class="stat-label">Reports</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">89%</div>
+                        <div class="stat-label">Accuracy</div>
+                    </div>
+                </div>
+                <div class="agent-description">
+                    Analyzes performance metrics, generates insights, and identifies optimization opportunities across the system.
+                </div>
+            </div>
+            <div class="agent-footer">
+                <button class="btn-small">View Activity</button>
+            </div>
+        </div>
+
+        <div class="agent-card active">
+            <div class="agent-header">
+                <h3>Code Quality Monitor</h3>
+                <span class="agent-badge active">ACTIVE</span>
+            </div>
+            <div class="agent-body">
+                <div class="agent-detail">
+                    <span class="detail-label">Role:</span>
+                    <span class="detail-value">Build & Quality Assurance</span>
+                </div>
+                <div class="agent-detail">
+                    <span class="detail-label">Status:</span>
+                    <span class="detail-value connected">● Connected</span>
+                </div>
+                <div class="agent-detail">
+                    <span class="detail-label">Last Activity:</span>
+                    <span class="detail-value">8 min ago</span>
+                </div>
+                <div class="agent-stats">
+                    <div class="stat">
+                        <div class="stat-value">47</div>
+                        <div class="stat-label">Builds</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">94%</div>
+                        <div class="stat-label">Success Rate</div>
+                    </div>
+                </div>
+                <div class="agent-description">
+                    Monitors build pipelines, ensures code quality standards, and reports on platform compilations and test results.
+                </div>
+            </div>
+            <div class="agent-footer">
+                <button class="btn-small">View Activity</button>
+            </div>
+        </div>
+
+        <div class="agent-card active">
+            <div class="agent-header">
+                <h3>API Performance Monitor</h3>
+                <span class="agent-badge active">ACTIVE</span>
+            </div>
+            <div class="agent-body">
+                <div class="agent-detail">
+                    <span class="detail-label">Role:</span>
+                    <span class="detail-value">System Health & Performance</span>
+                </div>
+                <div class="agent-detail">
+                    <span class="detail-label">Status:</span>
+                    <span class="detail-value connected">● Connected</span>
+                </div>
+                <div class="agent-detail">
+                    <span class="detail-label">Last Activity:</span>
+                    <span class="detail-value">1 min ago</span>
+                </div>
+                <div class="agent-stats">
+                    <div class="stat">
+                        <div class="stat-value">99.8%</div>
+                        <div class="stat-label">Uptime</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">45ms</div>
+                        <div class="stat-label">Avg Latency</div>
+                    </div>
+                </div>
+                <div class="agent-description">
+                    Tracks API health metrics, monitors system performance, and alerts on anomalies and threshold violations.
+                </div>
+            </div>
+            <div class="agent-footer">
+                <button class="btn-small">View Activity</button>
+            </div>
+        </div>
+
+        <div class="agent-card idle">
+            <div class="agent-header">
+                <h3>Documentation Bot</h3>
+                <span class="agent-badge idle">IDLE</span>
+            </div>
+            <div class="agent-body">
+                <div class="agent-detail">
+                    <span class="detail-label">Role:</span>
+                    <span class="detail-value">Documentation & Knowledge</span>
+                </div>
+                <div class="agent-detail">
+                    <span class="detail-label">Status:</span>
+                    <span class="detail-value idle">○ Awaiting Tasks</span>
+                </div>
+                <div class="agent-detail">
+                    <span class="detail-label">Last Activity:</span>
+                    <span class="detail-value">2h ago</span>
+                </div>
+                <div class="agent-stats">
+                    <div class="stat">
+                        <div class="stat-value">28</div>
+                        <div class="stat-label">Documents</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">3</div>
+                        <div class="stat-label">Pending</div>
+                    </div>
+                </div>
+                <div class="agent-description">
+                    Maintains comprehensive documentation, API specifications, and knowledge base for team reference.
+                </div>
+            </div>
+            <div class="agent-footer">
+                <button class="btn-small">View Activity</button>
+            </div>
+        </div>
+
+        <div class="agent-card idle">
+            <div class="agent-header">
+                <h3>Release Manager</h3>
+                <span class="agent-badge idle">IDLE</span>
+            </div>
+            <div class="agent-body">
+                <div class="agent-detail">
+                    <span class="detail-label">Role:</span>
+                    <span class="detail-value">Release & Deployment</span>
+                </div>
+                <div class="agent-detail">
+                    <span class="detail-label">Status:</span>
+                    <span class="detail-value idle">○ Awaiting Tasks</span>
+                </div>
+                <div class="agent-detail">
+                    <span class="detail-label">Last Activity:</span>
+                    <span class="detail-value">1d ago</span>
+                </div>
+                <div class="agent-stats">
+                    <div class="stat">
+                        <div class="stat-value">12</div>
+                        <div class="stat-label">Releases</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">2.1.0</div>
+                        <div class="stat-label">Current</div>
+                    </div>
+                </div>
+                <div class="agent-description">
+                    Coordinates release cycles, manages version control, and oversees deployment to production environments.
+                </div>
+            </div>
+            <div class="agent-footer">
+                <button class="btn-small">View Activity</button>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        // Load agent data
+        await Task.CompletedTask;
+    }
+}

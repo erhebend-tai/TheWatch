@@ -1,0 +1,27 @@
+# ============================================================================
+# WRITE-AHEAD LOG (WAL)
+# ============================================================================
+# File:        actions.intent.MAIN.yaml
+# Module:      TheWatch Google Home - Global Main Intent Handler
+# Created:     2026-03-24
+# Author:      TheWatch Platform Team
+# ----------------------------------------------------------------------------
+# PURPOSE:
+#   Global intent handler for the MAIN invocation. This is the entry point
+#   when a user says "Hey Google, talk to The Watch" or "Hey Google, ask
+#   The Watch". Transitions to the MainScene which handles the welcome
+#   flow and subsequent intent routing.
+#
+# INVOCATION EXAMPLES:
+#   "Hey Google, talk to The Watch"
+#   "Hey Google, open The Watch"
+#   "Hey Google, ask The Watch to check my status"
+#   "Hey Google, let me talk to The Watch"
+#
+# CHANGES:
+#   2026-03-24  Initial creation
+# ============================================================================
+
+handler:
+  webhookHandler: actions.intent.MAIN
+transitionTo: MainScene

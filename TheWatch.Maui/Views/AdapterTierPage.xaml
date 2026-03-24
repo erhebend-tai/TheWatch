@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:TheWatch.Maui.ViewModels"
+             x:Class="TheWatch.Maui.Views.AdapterTierPage"
+             Title="Adapter Tier Switcher"
+             BackgroundColor="#0F172A">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+
+            <!-- Header -->
+            <Label Text="⚙️ Adapter Tier Switcher"
+                   FontSize="24" FontAttributes="Bold"
+                   TextColor="#E2E8F0" />
+
+            <Label Text="{Binding StatusMessage}"
+                   FontSize="14" TextColor="#94A3B8" />
+
+            <!-- Action Buttons -->
+            <HorizontalStackLayout Spacing="10">
+                <Button Text="🔄 Refresh"
+                        Command="{Binding LoadCommand}"
+                        BackgroundColor="#1E40AF"
+                        TextColor="White"
+                        CornerRadius="8"
+                        HeightRequest="40" />
+                <Button Text="🧪 Reset All to Mock"
+                        Command="{Binding ResetAllCommand}"
+                        BackgroundColor="#7F1D1D"
+                        TextColor="White"
+                        CornerRadius="8"
+                        HeightRequest="40" />
+            </HorizontalStackLayout>
+
+            <!-- Loading Indicator -->
+            <ActivityIndicator IsRunning="{Binding IsLoading}"
+                               IsVisible="{Binding IsLoading}"
+                               Color="#60A5FA" />
+
+            <!-- Cloud Providers Section -->
+            <Frame BackgroundColor="#1E293B" CornerRadius="12" Padding="16" BorderColor="Transparent">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="☁️ Cloud Providers" FontSize="18" FontAttributes="Bold" TextColor="#E2E8F0" />
+                    <CollectionView ItemsSource="{Binding CloudProviders}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="*, Auto, Auto" Padding="8,4" ColumnSpacing="12">
+                                    <Label Text="{Binding Name}" TextColor="#CBD5E1" VerticalOptions="Center" />
+                                    <Label Grid.Column="1"
+                                           Text="{Binding CurrentTier}"
+                                           TextColor="{Binding TierColor}"
+                                           FontAttributes="Bold"
+                                           VerticalOptions="Center" />
+                                    <Button Grid.Column="2"
+                                            Text="{Binding TierIcon}"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AdapterTierViewModel}}, Path=SwitchTierCommand}"
+                                            CommandParameter="{Binding .}"
+                                            BackgroundColor="#334155"
+                                            TextColor="White"
+                                            CornerRadius="6"
+                                            WidthRequest="50" HeightRequest="36" />
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Data Layer Section -->
+            <Frame BackgroundColor="#1E293B" CornerRadius="12" Padding="16" BorderColor="Transparent">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="🗄️ Data Layer" FontSize="18" FontAttributes="Bold" TextColor="#E2E8F0" />
+                    <CollectionView ItemsSource="{Binding DataLayer}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="*, Auto, Auto" Padding="8,4" ColumnSpacing="12">
+                                    <Label Text="{Binding Name}" TextColor="#CBD5E1" VerticalOptions="Center" />
+                                    <Label Grid.Column="1" Text="{Binding CurrentTier}" TextColor="{Binding TierColor}" FontAttributes="Bold" VerticalOptions="Center" />
+                                    <Button Grid.Column="2" Text="{Binding TierIcon}"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AdapterTierViewModel}}, Path=SwitchTierCommand}"
+                                            CommandParameter="{Binding .}"
+                                            BackgroundColor="#334155" TextColor="White" CornerRadius="6" WidthRequest="50" HeightRequest="36" />
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Features Section -->
+            <Frame BackgroundColor="#1E293B" CornerRadius="12" Padding="16" BorderColor="Transparent">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="🔧 Features" FontSize="18" FontAttributes="Bold" TextColor="#E2E8F0" />
+                    <CollectionView ItemsSource="{Binding Features}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="*, Auto, Auto" Padding="8,4" ColumnSpacing="12">
+                                    <Label Text="{Binding Name}" TextColor="#CBD5E1" VerticalOptions="Center" />
+                                    <Label Grid.Column="1" Text="{Binding CurrentTier}" TextColor="{Binding TierColor}" FontAttributes="Bold" VerticalOptions="Center" />
+                                    <Button Grid.Column="2" Text="{Binding TierIcon}"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AdapterTierViewModel}}, Path=SwitchTierCommand}"
+                                            CommandParameter="{Binding .}"
+                                            BackgroundColor="#334155" TextColor="White" CornerRadius="6" WidthRequest="50" HeightRequest="36" />
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- AI Section -->
+            <Frame BackgroundColor="#1E293B" CornerRadius="12" Padding="16" BorderColor="Transparent">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="🤖 AI / Embeddings" FontSize="18" FontAttributes="Bold" TextColor="#E2E8F0" />
+                    <CollectionView ItemsSource="{Binding AI}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="*, Auto, Auto" Padding="8,4" ColumnSpacing="12">
+                                    <Label Text="{Binding Name}" TextColor="#CBD5E1" VerticalOptions="Center" />
+                                    <Label Grid.Column="1" Text="{Binding CurrentTier}" TextColor="{Binding TierColor}" FontAttributes="Bold" VerticalOptions="Center" />
+                                    <Button Grid.Column="2" Text="{Binding TierIcon}"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AdapterTierViewModel}}, Path=SwitchTierCommand}"
+                                            CommandParameter="{Binding .}"
+                                            BackgroundColor="#334155" TextColor="White" CornerRadius="6" WidthRequest="50" HeightRequest="36" />
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Frame>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

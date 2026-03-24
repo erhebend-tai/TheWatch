@@ -1,0 +1,41 @@
+# ============================================================================
+# WRITE-AHEAD LOG (WAL)
+# ============================================================================
+# File:        nearby_responders.yaml
+# Module:      TheWatch Google Home - Nearby Responders Intent
+# Created:     2026-03-24
+# Author:      TheWatch Platform Team
+# ----------------------------------------------------------------------------
+# PURPOSE:
+#   Intent for querying nearby volunteer responders. Uses geohash/H3
+#   indexing on the backend to find over-18 volunteers in cache.
+#
+# TRAINING PHRASES: 18+
+# CHANGES:
+#   2026-03-24  Initial creation
+# ============================================================================
+
+parameters: []
+
+trainingPhrases:
+  - who is nearby
+  - who's nearby
+  - are there responders nearby
+  - nearby responders
+  - find nearby responders
+  - show me nearby responders
+  - who can help me
+  - are there volunteers nearby
+  - nearby volunteers
+  - find volunteers near me
+  - how many responders are near me
+  - is anyone close by
+  - who is closest to me
+  - show nearby help
+  - any helpers around
+  - how close is the nearest responder
+  - check for nearby responders
+  - look for responders
+  - who is available to help
+  - are there any watchers nearby
+  - find someone near me

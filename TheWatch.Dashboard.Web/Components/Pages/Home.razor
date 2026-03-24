@@ -1,0 +1,277 @@
+@page "/"
+@using TheWatch.Shared.Dtos
+@using TheWatch.Shared.Enums
+
+<PageTitle>Dashboard - TheWatch</PageTitle>
+
+<div class="home-container">
+
+    <!-- Header -->
+    <div class="page-header">
+        <h1>Project Dashboard</h1>
+        <p class="subtitle">Life-Safety Emergency Response Platform</p>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <div class="metric-icon">📊</div>
+            <div class="metric-content">
+                <div class="metric-label">Overall Progress</div>
+                <div class="metric-value">45%</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 45%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="metric-card">
+            <div class="metric-icon">🎯</div>
+            <div class="metric-content">
+                <div class="metric-label">Milestones Complete</div>
+                <div class="metric-value">2 / 8</div>
+            </div>
+        </div>
+
+        <div class="metric-card">
+            <div class="metric-icon">📋</div>
+            <div class="metric-content">
+                <div class="metric-label">Active Work Items</div>
+                <div class="metric-value">24</div>
+            </div>
+        </div>
+
+        <div class="metric-card">
+            <div class="metric-icon">🤖</div>
+            <div class="metric-content">
+                <div class="metric-label">AI Agents Active</div>
+                <div class="metric-value">6 / 8</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-content">
+
+        <!-- Left Column: Milestones and Agents -->
+        <div class="left-column">
+
+            <!-- Milestones Section -->
+            <div class="card milestones-card">
+                <div class="card-header">
+                    <h2>Milestones (M0-M7)</h2>
+                    <a href="/milestones" class="view-all-link">View All →</a>
+                </div>
+
+                <div class="milestones-list">
+                    <div class="milestone-item completed">
+                        <div class="milestone-marker">✓</div>
+                        <div class="milestone-info">
+                            <div class="milestone-title">M0: Core Infrastructure</div>
+                            <div class="milestone-date">Completed</div>
+                        </div>
+                        <div class="milestone-progress">100%</div>
+                    </div>
+
+                    <div class="milestone-item completed">
+                        <div class="milestone-marker">✓</div>
+                        <div class="milestone-info">
+                            <div class="milestone-title">M1: API & Persistence</div>
+                            <div class="milestone-date">Completed</div>
+                        </div>
+                        <div class="milestone-progress">100%</div>
+                    </div>
+
+                    <div class="milestone-item in-progress">
+                        <div class="milestone-marker">→</div>
+                        <div class="milestone-info">
+                            <div class="milestone-title">M2: Dashboard & Monitoring</div>
+                            <div class="milestone-date">In Progress</div>
+                        </div>
+                        <div class="milestone-progress">65%</div>
+                    </div>
+
+                    <div class="milestone-item pending">
+                        <div class="milestone-marker">○</div>
+                        <div class="milestone-info">
+                            <div class="milestone-title">M3: Multi-Agent Orchestration</div>
+                            <div class="milestone-date">Pending</div>
+                        </div>
+                        <div class="milestone-progress">0%</div>
+                    </div>
+
+                    <div class="milestone-item pending">
+                        <div class="milestone-marker">○</div>
+                        <div class="milestone-info">
+                            <div class="milestone-title">M4: Advanced Analytics</div>
+                            <div class="milestone-date">Pending</div>
+                        </div>
+                        <div class="milestone-progress">0%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Agents Panel -->
+            <div class="card agents-card">
+                <div class="card-header">
+                    <h2>AI Agents</h2>
+                    <a href="/agents" class="view-all-link">View All →</a>
+                </div>
+
+                <div class="agents-list">
+                    <div class="agent-item active">
+                        <div class="agent-status active"></div>
+                        <div class="agent-info">
+                            <div class="agent-name">Project Manager Agent</div>
+                            <div class="agent-task">Tracking milestones</div>
+                        </div>
+                        <div class="agent-badge">ACTIVE</div>
+                    </div>
+
+                    <div class="agent-item active">
+                        <div class="agent-status active"></div>
+                        <div class="agent-info">
+                            <div class="agent-name">Research Analyst</div>
+                            <div class="agent-task">Data analysis</div>
+                        </div>
+                        <div class="agent-badge">ACTIVE</div>
+                    </div>
+
+                    <div class="agent-item active">
+                        <div class="agent-status active"></div>
+                        <div class="agent-info">
+                            <div class="agent-name">Code Quality Monitor</div>
+                            <div class="agent-task">Build monitoring</div>
+                        </div>
+                        <div class="agent-badge">ACTIVE</div>
+                    </div>
+
+                    <div class="agent-item idle">
+                        <div class="agent-status idle"></div>
+                        <div class="agent-info">
+                            <div class="agent-name">Documentation Bot</div>
+                            <div class="agent-task">Awaiting tasks</div>
+                        </div>
+                        <div class="agent-badge">IDLE</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Builds and Activity -->
+        <div class="right-column">
+
+            <!-- Recent Builds -->
+            <div class="card builds-card">
+                <div class="card-header">
+                    <h2>Recent Builds</h2>
+                    <a href="/builds" class="view-all-link">View All →</a>
+                </div>
+
+                <div class="builds-list">
+                    <div class="build-item success">
+                        <div class="build-status">✓</div>
+                        <div class="build-info">
+                            <div class="build-name">Release Build v2.1.0</div>
+                            <div class="build-details">All platforms compiled successfully</div>
+                        </div>
+                        <div class="build-time">2h ago</div>
+                    </div>
+
+                    <div class="build-item success">
+                        <div class="build-status">✓</div>
+                        <div class="build-info">
+                            <div class="build-name">Dashboard Deployment</div>
+                            <div class="build-details">Web server updated</div>
+                        </div>
+                        <div class="build-time">4h ago</div>
+                    </div>
+
+                    <div class="build-item warning">
+                        <div class="build-status">⚠</div>
+                        <div class="build-info">
+                            <div class="build-name">Mobile Build (Android)</div>
+                            <div class="build-details">2 warnings in dependencies</div>
+                        </div>
+                        <div class="build-time">6h ago</div>
+                    </div>
+
+                    <div class="build-item success">
+                        <div class="build-status">✓</div>
+                        <div class="build-info">
+                            <div class="build-name">API Server Update</div>
+                            <div class="build-details">Microservices deployed</div>
+                        </div>
+                        <div class="build-time">1d ago</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Feed -->
+            <div class="card activity-card">
+                <div class="card-header">
+                    <h2>Recent Activity</h2>
+                    <a href="/workitems" class="view-all-link">View All →</a>
+                </div>
+
+                <div class="activity-list">
+                    <div class="activity-item">
+                        <div class="activity-icon">📌</div>
+                        <div class="activity-content">
+                            <div class="activity-action">M2: Dashboard UI Components</div>
+                            <div class="activity-details">Created responsive grid layout</div>
+                            <div class="activity-time">15 min ago</div>
+                        </div>
+                    </div>
+
+                    <div class="activity-item">
+                        <div class="activity-icon">✓</div>
+                        <div class="activity-content">
+                            <div class="activity-action">Device Simulator Feature</div>
+                            <div class="activity-details">Completed MAUI implementation</div>
+                            <div class="activity-time">2h ago</div>
+                        </div>
+                    </div>
+
+                    <div class="activity-item">
+                        <div class="activity-icon">🔧</div>
+                        <div class="activity-content">
+                            <div class="activity-action">SignalR Integration</div>
+                            <div class="activity-details">Real-time event streaming enabled</div>
+                            <div class="activity-time">4h ago</div>
+                        </div>
+                    </div>
+
+                    <div class="activity-item">
+                        <div class="activity-icon">📊</div>
+                        <div class="activity-content">
+                            <div class="activity-action">Dashboard Analytics</div>
+                            <div class="activity-details">Added metric tracking system</div>
+                            <div class="activity-time">1d ago</div>
+                        </div>
+                    </div>
+
+                    <div class="activity-item">
+                        <div class="activity-icon">🎯</div>
+                        <div class="activity-content">
+                            <div class="activity-action">M1 Milestone Completed</div>
+                            <div class="activity-details">All API endpoints functional</div>
+                            <div class="activity-time">3d ago</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        // Load dashboard data
+        await Task.CompletedTask;
+    }
+}

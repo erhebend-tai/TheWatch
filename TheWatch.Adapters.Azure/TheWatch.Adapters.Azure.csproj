@@ -1,0 +1,24 @@
+<!--
+  TheWatch.Adapters.Azure — Live Azure adapter implementations (Resource Manager, Service Bus,
+  Notification Hub). Used in Production with "Azure": "Live" in AdapterRegistry.
+
+  Example — checks Azure resource health:
+    IAzurePort azure = serviceProvider.GetRequiredService<IAzurePort>();
+    var health = await azure.GetResourceHealthAsync();
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\TheWatch.Shared\TheWatch.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.ResourceManager" Version="1.14.0" />
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.0" />
+    <PackageReference Include="Azure.ResourceManager.NotificationHubs" Version="1.1.0" />
+
+    <!-- Azure OpenAI — Chat Completions API for swarm agent orchestration -->
+    <PackageReference Include="Azure.AI.OpenAI" Version="2.2.0-beta.1" />
+  </ItemGroup>
+
+</Project>
