@@ -1,0 +1,9 @@
+<Solution>
+  <Project Path="TheWatch.ApiService/TheWatch.ApiService.csproj" />
+  <Project Path="TheWatch.AppHost/TheWatch.AppHost.csproj" />
+  <Project Path="TheWatch.Functions/TheWatch.Functions.csproj" />
+  <Project Path="TheWatch.ServiceDefaults/TheWatch.ServiceDefaults.csproj" />
+  <Project Path="TheWatch.Tests/TheWatch.Tests.csproj" />
+  <Project Path="TheWatch.Web/TheWatch.Web.csproj" />
+  <Project Path="TheWatch.WorkerServices/TheWatch.WorkerServices.csproj" />
+</Solution>
