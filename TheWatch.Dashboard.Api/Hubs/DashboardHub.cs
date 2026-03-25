@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using TheWatch.Shared.Domain.Models;
 using TheWatch.Shared.Enums;
@@ -7,6 +8,7 @@ namespace TheWatch.Dashboard.Api.Hubs;
 /// <summary>
 /// SignalR hub for real-time dashboard updates broadcast to connected clients.
 /// </summary>
+[Authorize]
 public class DashboardHub : Hub
 {
     private readonly ILogger<DashboardHub> _logger;

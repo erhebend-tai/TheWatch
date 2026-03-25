@@ -20,7 +20,9 @@
 
 using Hangfire;
 using Hangfire.MemoryStorage;
+using Microsoft.AspNetCore.Authentication;
 using Serilog;
+using TheWatch.Dashboard.Api.Auth;
 using TheWatch.Dashboard.Api.Hubs;
 using TheWatch.Dashboard.Api.Services;
 using TheWatch.Data.Configuration;
@@ -90,7 +92,16 @@ builder.Services.AddSwarmInventoryFirestore(builder.Configuration);
 // Firebase in production (validates ID tokens server-side), Mock in development.
 builder.Services.AddAuthPort(builder.Configuration);
 
-// ── 6. Controllers & API ──────────────────────────────────────────────────────────
+// ── 6. Authentication — Firebase ID token validation via IAuthPort ──────────────
+builder.Services.AddAuthentication(FirebaseAuthenticationHandler.SchemeName)
+    .AddScheme<AuthenticationSchemeOptions, FirebaseAuthenticationHandler>(
+        FirebaseAuthenticationHandler.SchemeName, _ => { });
+builder.Services.AddAuthorizationBuilder()
+    .SetFallbackPolicy(new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build());
+
+// ── 7. Controllers & API ──────────────────────────────────────────────────────────
 builder.Services.AddControllers();
 
 // CORS — allow web dashboard and MAUI clients
@@ -104,6 +115,9 @@ builder.Services.AddCors(options =>
             .AllowAnyHeader();
     });
 });
+
+// SOS bypass token service — short-lived HMAC tokens for emergency access without full auth
+builder.Services.AddSingleton<TheWatch.Dashboard.Api.Auth.SosBypassTokenService>();
 
 // Simulation service (always local, not a port)
 builder.Services.AddSingleton<ISimulationService, SimulationService>();
@@ -158,6 +172,7 @@ app.UseSerilogRequestLogging(options =>
 
 app.UseHttpsRedirection();
 app.UseCors("DashboardClients");
+app.UseAuthentication();
 app.UseAuthorization();
 
 // Map controllers

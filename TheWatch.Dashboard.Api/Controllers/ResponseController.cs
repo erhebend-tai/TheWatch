@@ -14,7 +14,9 @@
 // WAL: All heavy lifting delegated to IResponseCoordinationService.
 //      Controller is thin — validation + delegation only.
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TheWatch.Dashboard.Api.Auth;
 using TheWatch.Dashboard.Api.Services;
 using TheWatch.Shared.Domain.Ports;
 
@@ -26,16 +28,39 @@ public class ResponseController : ControllerBase
 {
     private readonly IResponseCoordinationService _coordinationService;
     private readonly IParticipationPort _participationPort;
+    private readonly SosBypassTokenService _sosBypass;
     private readonly ILogger<ResponseController> _logger;
 
     public ResponseController(
         IResponseCoordinationService coordinationService,
         IParticipationPort participationPort,
+        SosBypassTokenService sosBypass,
         ILogger<ResponseController> logger)
     {
         _coordinationService = coordinationService;
         _participationPort = participationPort;
+        _sosBypass = sosBypass;
         _logger = logger;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // SOS Bypass Token
+    // ─────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Issues a short-lived SOS bypass token. Mobile apps should call this
+    /// after authentication and cache the token locally. The token allows
+    /// SOS triggers even when the primary auth token (Firebase) has expired.
+    /// </summary>
+    [HttpPost("sos-token")]
+    public IActionResult IssueSosToken()
+    {
+        var uid = User.FindFirst("uid")?.Value;
+        if (string.IsNullOrEmpty(uid))
+            return Unauthorized(new { error = "User identity not found" });
+
+        var token = _sosBypass.GenerateToken(uid);
+        return Ok(new { token, expiresIn = "24h" });
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -45,12 +70,38 @@ public class ResponseController : ControllerBase
     /// <summary>
     /// Initiates a new SOS response. Called by mobile clients when an SOS is triggered
     /// (phrase detection, quick-tap, or manual button press).
+    /// Accepts either: full Firebase auth (Bearer token) OR X-SOS-Bypass-Token header.
     /// </summary>
     [HttpPost("trigger")]
+    [AllowAnonymous] // Auth handled manually — accepts both full auth and SOS bypass tokens
     public async Task<IActionResult> TriggerResponse(
         [FromBody] TriggerResponseRequest request,
         CancellationToken ct)
     {
+        // Validate identity: prefer full auth, fall back to SOS bypass token
+        var uid = User.FindFirst("uid")?.Value;
+        if (string.IsNullOrEmpty(uid))
+        {
+            var bypassToken = Request.Headers["X-SOS-Bypass-Token"].ToString();
+            if (!string.IsNullOrEmpty(bypassToken))
+            {
+                var (valid, bypassUid) = _sosBypass.ValidateToken(bypassToken);
+                if (valid && !string.IsNullOrEmpty(bypassUid))
+                {
+                    uid = bypassUid;
+                    _logger.LogWarning("SOS trigger via bypass token for {Uid}", uid);
+                }
+            }
+        }
+
+        // If neither auth method worked, still allow with the request's UserId
+        // (life-safety: never block an SOS) but log the anomaly
+        if (string.IsNullOrEmpty(uid))
+        {
+            uid = request.UserId;
+            _logger.LogWarning("SOS trigger with NO authentication for UserId={UserId} — allowing for life-safety", request.UserId);
+        }
+
         if (string.IsNullOrWhiteSpace(request.UserId))
             return BadRequest(new { error = "UserId is required" });
 

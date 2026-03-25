@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TheWatch.Shared.Domain.Ports;
 using TheWatch.Shared.Dtos;
@@ -6,6 +7,7 @@ namespace TheWatch.Dashboard.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[AllowAnonymous]
 public class HealthController : ControllerBase
 {
     private readonly IAzurePort _azurePort;

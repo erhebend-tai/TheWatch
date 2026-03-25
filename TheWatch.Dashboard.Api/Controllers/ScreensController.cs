@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace TheWatch.Dashboard.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/screens")]
+[AllowAnonymous]
 public class ScreensController : ControllerBase
 {
     // GET /api/v1/screens — list all screens with metadata
