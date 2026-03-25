@@ -477,6 +477,102 @@ public static class CodeIndexCommand
             rows.AddRange(await ScanMultiLangFileAsync(file, repoName, includeBodies));
         }
 
+        // ── Scan OpenAPI/Swagger JSON files ─────────────────────────────
+        // Find all .json and .yaml/.yml files, check if they're OpenAPI specs
+        var candidateOpenApiFiles = new[] { "*.json", "*.yaml", "*.yml" }
+            .SelectMany(ext =>
+            {
+                try { return Directory.GetFiles(dir, ext, SearchOption.AllDirectories); }
+                catch { return Array.Empty<string>(); }
+            })
+            .Where(f => !f.Contains("/obj/") && !f.Contains("\\obj\\")
+                     && !f.Contains("/bin/") && !f.Contains("\\bin\\")
+                     && !f.Contains("/node_modules/") && !f.Contains("\\node_modules\\")
+                     && !f.Contains("/.gradle/") && !f.Contains("\\.gradle\\")
+                     && !f.Contains("/.venv/") && !f.Contains("\\.venv\\")
+                     // Skip versioned specs in older version directories — only index latest
+                     && !f.Replace('\\', '/').Contains("/v0.")
+                     )
+            .Distinct();
+
+        foreach (var file in candidateOpenApiFiles)
+        {
+            try
+            {
+                // Check filename first (cheap)
+                if (!MultiLanguageParser.IsOpenApiFile(file))
+                {
+                    // Content sniff — read first 100 chars
+                    var peek = await File.ReadAllTextAsync(file);
+                    if (peek.Length > 200) peek = peek[..200];
+                    if (!MultiLanguageParser.IsOpenApiContent(peek))
+                        continue;
+
+                    // Full content read
+                    var content = await File.ReadAllTextAsync(file);
+                    var relPath = GetRelativePath(file);
+                    var projectName = GuessProjectName(relPath);
+                    var parsed = MultiLanguageParser.ParseOpenApi(content);
+
+                    foreach (var sym in parsed)
+                    {
+                        var tags = DeriveTags(relPath, projectName, sym.Kind, sym.Name, sym.Namespace);
+                        tags += " #openapi";
+                        tags = tags.Trim();
+
+                        rows.Add(new CodeIndexRow
+                        {
+                            Repo = repoName,
+                            Project = projectName,
+                            File = relPath,
+                            Kind = sym.Kind,
+                            Language = "openapi",
+                            Name = sym.Name,
+                            Signature = sym.Signature,
+                            Tags = tags,
+                            DependsOn = sym.DependsOn,
+                            Lines = sym.EndLine - sym.StartLine + 1,
+                            BodyHash = ""
+                        });
+                    }
+                }
+                else
+                {
+                    // Filename matched — read and parse
+                    var content = await File.ReadAllTextAsync(file);
+                    var relPath = GetRelativePath(file);
+                    var projectName = GuessProjectName(relPath);
+                    var parsed = MultiLanguageParser.ParseOpenApi(content);
+
+                    foreach (var sym in parsed)
+                    {
+                        var tags = DeriveTags(relPath, projectName, sym.Kind, sym.Name, sym.Namespace);
+                        tags += " #openapi";
+                        tags = tags.Trim();
+
+                        rows.Add(new CodeIndexRow
+                        {
+                            Repo = repoName,
+                            Project = projectName,
+                            File = relPath,
+                            Kind = sym.Kind,
+                            Language = "openapi",
+                            Name = sym.Name,
+                            Signature = sym.Signature,
+                            Tags = tags,
+                            DependsOn = sym.DependsOn,
+                            Lines = sym.EndLine - sym.StartLine + 1,
+                            BodyHash = ""
+                        });
+                    }
+                }
+            }
+            catch
+            {
+                // Skip unreadable files
+            }
+        }
+
         return rows;
     }
 

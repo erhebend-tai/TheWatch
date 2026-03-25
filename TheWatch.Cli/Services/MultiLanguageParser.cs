@@ -31,6 +31,7 @@
 // =============================================================================
 
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace TheWatch.Cli.Services;
@@ -99,6 +100,9 @@ public static class MultiLanguageParser
         [".css"]  = "css",
         [".scss"] = "scss",
         [".html"] = "html",
+        [".openapi.json"] = "openapi",
+        // Note: regular .json and .yaml files should NOT be auto-parsed — only OpenAPI-specific ones.
+        // Use IsOpenApiFile() to detect OpenAPI files by filename or content sniffing.
     };
 
     /// <summary>
@@ -145,6 +149,7 @@ public static class MultiLanguageParser
                 "bicep"      => ParseBicep(content),
                 "powershell" => ParsePowerShell(content),
                 "shell"      => ParseShell(content),
+                "openapi"    => ParseOpenApi(content),
                 "razor" or "xaml" or "css" or "scss" or "html" => [], // Markup: file-level only
                 _            => []
             };
@@ -1465,5 +1470,441 @@ public static class MultiLanguageParser
             }
         }
         return symbols;
+    }
+
+    // ====================================================================
+    // OpenAPI / Swagger Parser
+    // ====================================================================
+    // Extracts: API title+version, paths/{endpoint}.{method} → endpoints,
+    //           components/schemas (OpenAPI 3.x) or definitions (Swagger 2)
+    //
+    // Handles both OpenAPI 3.x and Swagger 2.0 JSON formats.
+    // YAML support requires YamlDotNet — currently JSON only; YAML files
+    // are skipped with a comment symbol indicating the limitation.
+    //
+    // Example matches:
+    //   {"openapi":"3.0.3","info":{"title":"TheWatch API","version":"1.0"}, ...}
+    //   {"swagger":"2.0","info":{"title":"Emergency API"}, ...}
+    //
+    // Example usage:
+    //   var symbols = MultiLanguageParser.ParseOpenApi(jsonContent);
+    //   // => [ ParsedSymbol("TheWatch API v1.0", "api", ...),
+    //   //      ParsedSymbol("GET /api/users", "endpoint", ...),
+    //   //      ParsedSymbol("User", "schema", ...) ]
+    //
+    // WAL: JSON-only parsing via System.Text.Json. YAML OpenAPI files need
+    //      YamlDotNet NuGet to deserialize; those are currently skipped.
+    //      Missing fields are handled gracefully — no exceptions on incomplete specs.
+    // ====================================================================
+
+    /// <summary>
+    /// Returns true if the file is likely an OpenAPI/Swagger specification.
+    /// Checks: filename contains "openapi" or "swagger", OR content starts with
+    /// known OpenAPI/Swagger JSON or YAML markers.
+    /// </summary>
+    public static bool IsOpenApiFile(string filePath)
+    {
+        var fileName = Path.GetFileName(filePath).ToLowerInvariant();
+
+        // Filename-based detection
+        if (fileName.Contains("openapi") || fileName.Contains("swagger"))
+            return true;
+
+        return false;
+    }
+
+    /// <summary>
+    /// Content-based OpenAPI detection — reads the first portion of file content
+    /// to determine if it's an OpenAPI/Swagger spec.
+    /// </summary>
+    public static bool IsOpenApiContent(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            return false;
+
+        var trimmed = content.TrimStart();
+
+        // JSON OpenAPI 3.x: {"openapi":"3...
+        if (trimmed.StartsWith("{\"openapi\":", StringComparison.Ordinal) ||
+            trimmed.StartsWith("{ \"openapi\":", StringComparison.Ordinal))
+            return true;
+
+        // JSON Swagger 2.0: {"swagger":"2...
+        if (trimmed.StartsWith("{\"swagger\":", StringComparison.Ordinal) ||
+            trimmed.StartsWith("{ \"swagger\":", StringComparison.Ordinal))
+            return true;
+
+        // YAML OpenAPI 3.x: openapi: "3... or openapi: 3...
+        if (trimmed.StartsWith("openapi:", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        // YAML Swagger 2.0: swagger: "2... or swagger: 2...
+        if (trimmed.StartsWith("swagger:", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return false;
+    }
+
+    /// <summary>
+    /// Parse an OpenAPI/Swagger JSON spec and return symbols for:
+    ///   - The API itself (title + version)
+    ///   - Each endpoint (path + method → operationId, tags, parameters, request/response types)
+    ///   - Each schema definition (components/schemas for 3.x, definitions for 2.0)
+    /// Dependencies: endpoints depend on their referenced schema names.
+    /// </summary>
+    public static List<ParsedSymbol> ParseOpenApi(string content)
+    {
+        var symbols = new List<ParsedSymbol>();
+
+        if (string.IsNullOrWhiteSpace(content))
+            return symbols;
+
+        var trimmed = content.TrimStart();
+
+        // YAML detection — currently unsupported without YamlDotNet
+        if (!trimmed.StartsWith("{"))
+        {
+            // YAML OpenAPI file detected but cannot parse without YamlDotNet
+            // TODO: Add YamlDotNet NuGet package to support YAML OpenAPI specs
+            if (trimmed.StartsWith("openapi:", StringComparison.OrdinalIgnoreCase) ||
+                trimmed.StartsWith("swagger:", StringComparison.OrdinalIgnoreCase))
+            {
+                symbols.Add(new ParsedSymbol(
+                    "OpenAPI (YAML — parse skipped)",
+                    "api",
+                    null,
+                    "YAML OpenAPI spec — needs YamlDotNet for parsing",
+                    "",
+                    1, 1
+                ));
+            }
+            return symbols;
+        }
+
+        JsonDocument doc;
+        try
+        {
+            doc = JsonDocument.Parse(content, new JsonDocumentOptions
+            {
+                CommentHandling = JsonCommentHandling.Skip,
+                AllowTrailingCommas = true
+            });
+        }
+        catch
+        {
+            return symbols; // Not valid JSON
+        }
+
+        var root = doc.RootElement;
+
+        // ── Detect version: OpenAPI 3.x vs Swagger 2.0 ─────────────────
+        var isSwagger2 = root.TryGetProperty("swagger", out var swaggerProp);
+        var isOpenApi3 = root.TryGetProperty("openapi", out var openapiProp);
+        var specVersion = isSwagger2
+            ? swaggerProp.GetString() ?? "2.0"
+            : isOpenApi3
+                ? openapiProp.GetString() ?? "3.0"
+                : "unknown";
+
+        // ── API title + version as top-level symbol ─────────────────────
+        var apiTitle = "Untitled API";
+        var apiVersion = specVersion;
+        if (root.TryGetProperty("info", out var infoProp))
+        {
+            if (infoProp.TryGetProperty("title", out var titleProp))
+                apiTitle = titleProp.GetString() ?? apiTitle;
+            if (infoProp.TryGetProperty("version", out var versionProp))
+                apiVersion = versionProp.GetString() ?? apiVersion;
+        }
+
+        symbols.Add(new ParsedSymbol(
+            $"{apiTitle} v{apiVersion}",
+            "api",
+            null,
+            isSwagger2 ? $"Swagger {specVersion}" : $"OpenAPI {specVersion}",
+            "",
+            1, 1
+        ));
+
+        // ── Parse paths → endpoints ─────────────────────────────────────
+        if (root.TryGetProperty("paths", out var pathsProp))
+        {
+            var endpointLine = 2; // approximate
+            foreach (var pathEntry in pathsProp.EnumerateObject())
+            {
+                var pathStr = pathEntry.Name; // e.g., "/api/users"
+
+                foreach (var methodEntry in pathEntry.Value.EnumerateObject())
+                {
+                    var method = methodEntry.Name.ToUpperInvariant();
+
+                    // Skip non-HTTP-method keys like "parameters", "summary", "$ref"
+                    if (method is not ("GET" or "POST" or "PUT" or "DELETE" or "PATCH" or "OPTIONS" or "HEAD" or "TRACE"))
+                        continue;
+
+                    var endpointName = $"{method} {pathStr}";
+                    var operationId = "";
+                    var tagsStr = "";
+                    var paramSummary = "";
+                    var requestType = "";
+                    var responseTypes = new List<string>();
+                    var schemaDeps = new List<string>();
+
+                    var op = methodEntry.Value;
+
+                    // operationId
+                    if (op.TryGetProperty("operationId", out var opIdProp))
+                        operationId = opIdProp.GetString() ?? "";
+
+                    // tags
+                    if (op.TryGetProperty("tags", out var tagsProp) && tagsProp.ValueKind == JsonValueKind.Array)
+                        tagsStr = string.Join(", ", tagsProp.EnumerateArray().Select(t => t.GetString() ?? ""));
+
+                    // parameters summary
+                    if (op.TryGetProperty("parameters", out var paramsProp) && paramsProp.ValueKind == JsonValueKind.Array)
+                    {
+                        var paramNames = new List<string>();
+                        foreach (var p in paramsProp.EnumerateArray())
+                        {
+                            var pName = "";
+                            var pIn = "";
+                            if (p.TryGetProperty("name", out var pNameProp)) pName = pNameProp.GetString() ?? "";
+                            if (p.TryGetProperty("in", out var pInProp)) pIn = pInProp.GetString() ?? "";
+                            paramNames.Add($"{pName}({pIn})");
+
+                            // Extract schema refs from parameters
+                            var schemaRef = ExtractSchemaRef(p);
+                            if (schemaRef != null) schemaDeps.Add(schemaRef);
+                        }
+                        paramSummary = string.Join(", ", paramNames);
+                    }
+
+                    // requestBody (OpenAPI 3.x)
+                    if (op.TryGetProperty("requestBody", out var reqBodyProp))
+                    {
+                        var reqRef = ExtractDeepSchemaRef(reqBodyProp);
+                        if (reqRef != null)
+                        {
+                            requestType = reqRef;
+                            schemaDeps.Add(reqRef);
+                        }
+                    }
+
+                    // body parameter (Swagger 2.0)
+                    if (isSwagger2 && op.TryGetProperty("parameters", out var swParams) && swParams.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var p in swParams.EnumerateArray())
+                        {
+                            if (p.TryGetProperty("in", out var inProp) && inProp.GetString() == "body")
+                            {
+                                var bodyRef = ExtractSchemaRef(p);
+                                if (bodyRef != null)
+                                {
+                                    requestType = bodyRef;
+                                    schemaDeps.Add(bodyRef);
+                                }
+                            }
+                        }
+                    }
+
+                    // responses
+                    if (op.TryGetProperty("responses", out var responsesProp))
+                    {
+                        foreach (var resp in responsesProp.EnumerateObject())
+                        {
+                            var respRef = isSwagger2
+                                ? ExtractSchemaRef(resp.Value)
+                                : ExtractDeepSchemaRef(resp.Value);
+                            if (respRef != null)
+                            {
+                                responseTypes.Add(respRef);
+                                schemaDeps.Add(respRef);
+                            }
+                        }
+                    }
+
+                    // Build signature
+                    var sigParts = new List<string>();
+                    if (!string.IsNullOrEmpty(operationId)) sigParts.Add($"operationId={operationId}");
+                    if (!string.IsNullOrEmpty(tagsStr)) sigParts.Add($"tags=[{tagsStr}]");
+                    if (!string.IsNullOrEmpty(paramSummary)) sigParts.Add($"params=({paramSummary})");
+                    if (!string.IsNullOrEmpty(requestType)) sigParts.Add($"request={requestType}");
+                    if (responseTypes.Count > 0) sigParts.Add($"response={string.Join("|", responseTypes.Distinct())}");
+                    var signature = $"{endpointName} {{{string.Join("; ", sigParts)}}}";
+
+                    // Deduplicate schema dependencies
+                    var dependsOn = string.Join(";", schemaDeps.Distinct());
+
+                    symbols.Add(new ParsedSymbol(
+                        endpointName,
+                        "endpoint",
+                        null,
+                        signature,
+                        dependsOn,
+                        endpointLine, endpointLine
+                    ));
+
+                    endpointLine++;
+                }
+            }
+        }
+
+        // ── Parse schemas ───────────────────────────────────────────────
+        // OpenAPI 3.x: components.schemas
+        // Swagger 2.0: definitions
+        JsonElement? schemaContainer = null;
+        if (root.TryGetProperty("components", out var componentsProp) &&
+            componentsProp.TryGetProperty("schemas", out var schemasProp))
+        {
+            schemaContainer = schemasProp;
+        }
+        else if (root.TryGetProperty("definitions", out var defsProp))
+        {
+            schemaContainer = defsProp;
+        }
+
+        if (schemaContainer.HasValue)
+        {
+            var schemaLine = symbols.Count + 2; // approximate line numbers
+            foreach (var schema in schemaContainer.Value.EnumerateObject())
+            {
+                var schemaName = schema.Name;
+                var schemaType = "object";
+                var properties = new List<string>();
+                var schemaDeps = new List<string>();
+
+                if (schema.Value.TryGetProperty("type", out var typeProp))
+                    schemaType = typeProp.GetString() ?? "object";
+
+                // Extract properties
+                if (schema.Value.TryGetProperty("properties", out var propsProp))
+                {
+                    foreach (var prop in propsProp.EnumerateObject())
+                    {
+                        var propType = "any";
+                        if (prop.Value.TryGetProperty("type", out var ptProp))
+                            propType = ptProp.GetString() ?? "any";
+
+                        // Check for $ref in the property
+                        var propRef = ExtractSchemaRef(prop.Value);
+                        if (propRef != null)
+                        {
+                            propType = propRef;
+                            schemaDeps.Add(propRef);
+                        }
+
+                        // Check for array items ref
+                        if (prop.Value.TryGetProperty("items", out var itemsProp))
+                        {
+                            var itemRef = ExtractSchemaRef(itemsProp);
+                            if (itemRef != null)
+                            {
+                                propType = $"{itemRef}[]";
+                                schemaDeps.Add(itemRef);
+                            }
+                        }
+
+                        properties.Add($"{prop.Name}: {propType}");
+                    }
+                }
+
+                // Check allOf/oneOf/anyOf for composition deps
+                foreach (var compositionKey in new[] { "allOf", "oneOf", "anyOf" })
+                {
+                    if (schema.Value.TryGetProperty(compositionKey, out var compProp) &&
+                        compProp.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var item in compProp.EnumerateArray())
+                        {
+                            var compRef = ExtractSchemaRef(item);
+                            if (compRef != null)
+                                schemaDeps.Add(compRef);
+                        }
+                    }
+                }
+
+                // Build signature
+                var propSummary = properties.Count > 0
+                    ? string.Join(", ", properties.Take(10))
+                    : "no properties";
+                if (properties.Count > 10) propSummary += $", ... +{properties.Count - 10} more";
+
+                var schemaSig = $"{schemaType} {schemaName} {{ {propSummary} }}";
+                var dependsOn = string.Join(";", schemaDeps.Distinct());
+
+                symbols.Add(new ParsedSymbol(
+                    schemaName,
+                    "schema",
+                    null,
+                    schemaSig,
+                    dependsOn,
+                    schemaLine, schemaLine
+                ));
+
+                schemaLine++;
+            }
+        }
+
+        doc.Dispose();
+        return symbols;
+    }
+
+    /// <summary>
+    /// Extract a schema name from a $ref string like "#/components/schemas/User" or "#/definitions/User".
+    /// Returns just the schema name (last segment), or null if no $ref found.
+    /// </summary>
+    private static string? ExtractSchemaRef(JsonElement element)
+    {
+        if (element.TryGetProperty("$ref", out var refProp))
+        {
+            var refStr = refProp.GetString();
+            if (refStr != null)
+            {
+                var lastSlash = refStr.LastIndexOf('/');
+                return lastSlash >= 0 ? refStr[(lastSlash + 1)..] : refStr;
+            }
+        }
+
+        // Check for schema property with $ref inside
+        if (element.TryGetProperty("schema", out var schemaProp))
+        {
+            return ExtractSchemaRef(schemaProp);
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Extract schema ref from nested content structures (OpenAPI 3.x requestBody/response).
+    /// Navigates: content → application/json → schema → $ref
+    /// Also handles direct $ref and schema.$ref.
+    /// </summary>
+    private static string? ExtractDeepSchemaRef(JsonElement element)
+    {
+        // Direct $ref
+        var direct = ExtractSchemaRef(element);
+        if (direct != null) return direct;
+
+        // content → {mediaType} → schema → $ref
+        if (element.TryGetProperty("content", out var contentProp))
+        {
+            foreach (var mediaType in contentProp.EnumerateObject())
+            {
+                if (mediaType.Value.TryGetProperty("schema", out var schemaProp))
+                {
+                    var schemaRef = ExtractSchemaRef(schemaProp);
+                    if (schemaRef != null) return schemaRef;
+
+                    // Array of items
+                    if (schemaProp.TryGetProperty("items", out var itemsProp))
+                    {
+                        var itemRef = ExtractSchemaRef(itemsProp);
+                        if (itemRef != null) return itemRef;
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 }

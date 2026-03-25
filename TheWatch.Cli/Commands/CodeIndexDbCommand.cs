@@ -262,7 +262,19 @@ public static class CodeIndexDbCommand
 
         if (reset)
         {
-            Console.WriteLine("[CODEINDEX-DB] Dropping existing graph tables...");
+            Console.WriteLine("[CODEINDEX-DB] Dropping existing tables...");
+            // Drop edge constraints first (they block table drops on SQL Server 2019+)
+            var dropConstraintSql = """
+                IF EXISTS (SELECT 1 FROM sys.edge_constraints WHERE name = 'EC_references_symbols_to_symbols')
+                    ALTER TABLE [dbo].[references] DROP CONSTRAINT [EC_references_symbols_to_symbols];
+                """;
+            try
+            {
+                await using var ecCmd = new SqlCommand(dropConstraintSql, conn);
+                await ecCmd.ExecuteNonQueryAsync();
+            }
+            catch { /* edge constraint may not exist */ }
+
             var dropSql = """
                 IF OBJECT_ID('dbo.tags', 'U') IS NOT NULL DROP TABLE [dbo].[tags];
                 IF OBJECT_ID('dbo.references', 'U') IS NOT NULL DROP TABLE [dbo].[references];
@@ -271,9 +283,29 @@ public static class CodeIndexDbCommand
                 """;
             await using var dropCmd = new SqlCommand(dropSql, conn);
             await dropCmd.ExecuteNonQueryAsync();
+
+            // When resetting, use SqlBulkCopy-compatible tables (no AS NODE/EDGE)
+            // Graph EDGE tables have hidden $from_id/$to_id that SqlBulkCopy cannot populate.
+            Console.WriteLine("[CODEINDEX-DB] Creating SqlBulkCopy-compatible tables...");
+            var bulkCompatSql = GetBulkCompatibleMigrationSql();
+            var resetBatches = bulkCompatSql.Split(new[] { "\nGO\n", "\nGO\r\n", "\nGO" },
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            foreach (var batch in resetBatches)
+            {
+                if (string.IsNullOrWhiteSpace(batch)) continue;
+                try
+                {
+                    await using var sqlCmd = new SqlCommand(batch, conn);
+                    sqlCmd.CommandTimeout = 60;
+                    await sqlCmd.ExecuteNonQueryAsync();
+                }
+                catch (SqlException ex) when (ex.Number == 2714) { }
+            }
+            Console.WriteLine("[CODEINDEX-DB] Schema initialized (bulk-compatible mode).");
+            return;
         }
 
-        // Execute the migration SQL
+        // Execute the migration SQL (may use graph EDGE tables)
         var migrationSql = LoadMigrationSql();
 
         // SQL Server requires splitting on GO statements for batch execution
@@ -321,6 +353,69 @@ public static class CodeIndexDbCommand
         // Fallback: inline minimal schema creation
         Console.WriteLine("[CODEINDEX-DB] Migration SQL file not found, using inline schema.");
         return GetInlineMigrationSql();
+    }
+
+    /// <summary>
+    /// Returns migration SQL that creates regular (non-graph) tables compatible with SqlBulkCopy.
+    /// SQL Server graph EDGE tables have hidden $from_id/$to_id columns that SqlBulkCopy cannot set,
+    /// so when --reset is used we create standard relational tables with FK-style columns instead.
+    /// </summary>
+    private static string GetBulkCompatibleMigrationSql()
+    {
+        return """
+            CREATE TABLE [dbo].[symbols] (
+                [Id] UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID(),
+                [Repo] NVARCHAR(256) NOT NULL,
+                [Project] NVARCHAR(256) NOT NULL,
+                [File] NVARCHAR(1024) NOT NULL,
+                [Kind] NVARCHAR(64) NOT NULL,
+                [Language] NVARCHAR(64) NOT NULL,
+                [FullName] NVARCHAR(1024) NOT NULL,
+                [Signature] NVARCHAR(2048) NOT NULL,
+                [Lines] INT NOT NULL DEFAULT 0,
+                [BodyHash] NVARCHAR(64) NULL,
+                [IndexedAt] DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+                CONSTRAINT [PK_symbols] PRIMARY KEY ([Id])
+            );
+
+            CREATE TABLE [dbo].[documents] (
+                [Id] UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID(),
+                [Repo] NVARCHAR(256) NOT NULL,
+                [Project] NVARCHAR(256) NOT NULL,
+                [FilePath] NVARCHAR(1024) NOT NULL,
+                [Language] NVARCHAR(64) NOT NULL,
+                [Lines] INT NOT NULL DEFAULT 0,
+                [IndexedAt] DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+                CONSTRAINT [PK_documents] PRIMARY KEY ([Id])
+            );
+
+            CREATE TABLE [dbo].[references] (
+                [Id] UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID(),
+                [SourceId] UNIQUEIDENTIFIER NOT NULL,
+                [TargetId] UNIQUEIDENTIFIER NOT NULL,
+                [Kind] NVARCHAR(64) NOT NULL,
+                [SourceFile] NVARCHAR(1024) NULL,
+                [SourceLine] INT NULL,
+                CONSTRAINT [PK_references] PRIMARY KEY ([Id])
+            );
+
+            CREATE TABLE [dbo].[tags] (
+                [Id] UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID(),
+                [SymbolId] UNIQUEIDENTIFIER NOT NULL,
+                [Tag] NVARCHAR(128) NOT NULL,
+                CONSTRAINT [PK_tags] PRIMARY KEY ([Id])
+            );
+
+            CREATE NONCLUSTERED INDEX [IX_symbols_FullName] ON [dbo].[symbols] ([FullName]);
+            CREATE NONCLUSTERED INDEX [IX_symbols_Repo] ON [dbo].[symbols] ([Repo]);
+            CREATE NONCLUSTERED INDEX [IX_symbols_Kind] ON [dbo].[symbols] ([Kind]);
+            CREATE NONCLUSTERED INDEX [IX_symbols_Language] ON [dbo].[symbols] ([Language]);
+            CREATE NONCLUSTERED INDEX [IX_references_SourceId] ON [dbo].[references] ([SourceId]);
+            CREATE NONCLUSTERED INDEX [IX_references_TargetId] ON [dbo].[references] ([TargetId]);
+            CREATE NONCLUSTERED INDEX [IX_references_Kind] ON [dbo].[references] ([Kind]);
+            CREATE NONCLUSTERED INDEX [IX_tags_Tag] ON [dbo].[tags] ([Tag]);
+            CREATE NONCLUSTERED INDEX [IX_tags_SymbolId] ON [dbo].[tags] ([SymbolId]);
+            """;
     }
 
     private static string GetInlineMigrationSql()
@@ -638,6 +733,85 @@ public static class CodeIndexDbCommand
             catch
             {
                 // Skip files that can't be read/parsed
+            }
+        }
+
+        // ── Scan OpenAPI/Swagger JSON files ─────────────────────────────
+        var candidateOpenApiFiles = new[] { "*.json", "*.yaml", "*.yml" }
+            .SelectMany(ext =>
+            {
+                try { return Directory.GetFiles(dir, ext, SearchOption.AllDirectories); }
+                catch { return Array.Empty<string>(); }
+            })
+            .Where(f => !f.Contains("/obj/") && !f.Contains("\\obj\\")
+                     && !f.Contains("/bin/") && !f.Contains("\\bin\\")
+                     && !f.Contains("/node_modules/") && !f.Contains("\\node_modules\\")
+                     && !f.Contains("/.gradle/") && !f.Contains("\\.gradle\\")
+                     && !f.Replace('\\', '/').Contains("/v0."))
+            .Distinct();
+
+        foreach (var file in candidateOpenApiFiles)
+        {
+            try
+            {
+                // Determine if this is an OpenAPI file
+                var isOpenApi = MultiLanguageParser.IsOpenApiFile(file);
+                if (!isOpenApi)
+                {
+                    var peek = await File.ReadAllTextAsync(file);
+                    if (peek.Length > 200) peek = peek[..200];
+                    if (!MultiLanguageParser.IsOpenApiContent(peek))
+                        continue;
+                }
+
+                var content = await File.ReadAllTextAsync(file);
+                var relPath = GetRelativePath(file);
+                var projectName = GuessProjectName(relPath);
+                var parsed = MultiLanguageParser.ParseOpenApi(content);
+                var lineCount = content.Split('\n').Length;
+
+                documents.Add(new DocumentNode
+                {
+                    Id = Guid.NewGuid(),
+                    Repo = repoName,
+                    Project = projectName,
+                    FilePath = relPath,
+                    Language = "openapi",
+                    Lines = lineCount,
+                    IndexedAt = DateTime.UtcNow
+                });
+
+                foreach (var sym in parsed)
+                {
+                    var fullName = sym.Name;
+                    var tags = DeriveTags(relPath, projectName, sym.Kind, sym.Name, sym.Namespace);
+                    tags += " #openapi";
+                    tags = tags.Trim();
+
+                    symbols.Add(new SymbolRecord
+                    {
+                        Id = Guid.NewGuid(),
+                        Repo = repoName,
+                        Project = projectName,
+                        File = relPath,
+                        Kind = sym.Kind,
+                        Language = "openapi",
+                        FullName = fullName,
+                        Signature = sym.Signature,
+                        Lines = sym.EndLine - sym.StartLine + 1,
+                        BodyHash = "",
+                        Tags = tags.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList(),
+                        DependsOn = sym.DependsOn
+                    });
+
+                    // Emit edges from schema dependencies (endpoint → schema)
+                    var depEdges = LsifEmitter.EmitFromDependsOn(fullName, sym.DependsOn, relPath, sym.StartLine);
+                    edges.AddRange(depEdges);
+                }
+            }
+            catch
+            {
+                // Skip unreadable files
             }
         }
 
