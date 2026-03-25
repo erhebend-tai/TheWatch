@@ -149,10 +149,14 @@ public static class CodeIndexCommand
 
             foreach (var dir in scanDirs)
             {
-                var dirName = Path.GetFileName(dir);
+                var dirName = Path.GetFileName(Path.GetFullPath(dir));
                 Console.Write($"  {dirName}... ");
                 var dirRows = await ScanDirectoryAsync(dir, dirName, includeBodies);
-                rows.AddRange(dirRows);
+                // Fix project name: use dirName for all rows from this directory
+                foreach (var row in dirRows)
+                {
+                    rows.Add(row with { Project = dirName });
+                }
                 Console.WriteLine($"{dirRows.Count} symbols");
             }
         }
@@ -346,18 +350,28 @@ public static class CodeIndexCommand
                 var fileName = Path.GetFileNameWithoutExtension(file);
                 var lines = File.ReadLines(file).Count();
 
-                // Derive kind from naming conventions
+                // Derive kind from naming conventions and folder context
+                var folderContext = relPath.Replace('\\', '/').ToLowerInvariant();
                 var kind = fileName switch
                 {
                     _ when fileName.EndsWith("ViewModel") => "viewmodel",
-                    _ when fileName.EndsWith("View") || fileName.EndsWith("Screen") => "view",
-                    _ when fileName.EndsWith("Service") => "service",
+                    _ when fileName.EndsWith("View") || fileName.EndsWith("Screen") || fileName.EndsWith("Page") => "view",
+                    _ when fileName.EndsWith("Service") || fileName.EndsWith("Port") => "service",
                     _ when fileName.EndsWith("Repository") => "repository",
                     _ when fileName.EndsWith("Adapter") => "adapter",
                     _ when fileName.EndsWith("Model") || fileName.EndsWith("Models") => "model",
                     _ when fileName.EndsWith("Controller") => "controller",
+                    _ when fileName.EndsWith("Coordinator") || fileName.EndsWith("Engine") || fileName.EndsWith("Worker") || fileName.EndsWith("Dispatcher") => "service",
                     _ when fileName.StartsWith("Mock") => "mock",
                     _ when fileName.EndsWith("Tests") || fileName.EndsWith("Test") => "test",
+                    _ when fileName.EndsWith("Config") || fileName.EndsWith("Configuration") || fileName.EndsWith("Constants") => "config",
+                    _ when fileName.EndsWith("Entity") || fileName.EndsWith("Dto") || fileName.EndsWith("Request") || fileName.EndsWith("Response") => "model",
+                    _ when folderContext.Contains("/models/") || folderContext.Contains("/model/") || folderContext.Contains("/data/model/") => "model",
+                    _ when folderContext.Contains("/views/") || folderContext.Contains("/screens/") || folderContext.Contains("/ui/") => "view",
+                    _ when folderContext.Contains("/viewmodels/") || folderContext.Contains("/viewmodel/") => "viewmodel",
+                    _ when folderContext.Contains("/services/") || folderContext.Contains("/service/") => "service",
+                    _ when folderContext.Contains("/repository/") || folderContext.Contains("/repositories/") => "repository",
+                    _ when folderContext.Contains("/di/") || folderContext.Contains("/navigation/") => "config",
                     _ => "source"
                 };
 
