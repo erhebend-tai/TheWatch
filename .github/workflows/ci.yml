@@ -1,0 +1,210 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# TheWatch — CI Pipeline (GitHub Actions)
+# ═══════════════════════════════════════════════════════════════════════════════
+# Mirrors the TeamCity pipeline stages exactly:
+#   1. Restore → 2. Build → 3. Unit Tests → 4. Audit Integrity → 5. Publish
+#
+# Integration tests run as a separate job (requires Azure OpenAI secrets).
+# Self-hosted runner support included for Windows machines.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+name: CI
+
+on:
+  push:
+    branches: [master, main, develop, 'release/**', 'feature/**']
+  pull_request:
+    branches: [master, main, develop]
+  workflow_dispatch:
+    inputs:
+      run_integration_tests:
+        description: 'Run integration tests (requires Azure creds)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  CONFIGURATION: Release
+  SOLUTION: TheWatch.slnx
+  # Arcade-style versioning: OfficialBuild + BuildId → 1.0.0-ci.YYYYMMDD.N
+  OFFICIAL_BUILD: 'true'
+
+jobs:
+  # ── Stage 1-5: Build + Unit Tests + Audit + Publish ────────────────────────
+  build:
+    name: Build & Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+        include:
+          - os: windows-latest
+            script: build.cmd
+          - os: ubuntu-latest
+            script: ./build.sh
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for version calculation
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-quality: preview
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'Directory.Packages.props', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      # ── Restore ──────────────────────────────────────────────
+      - name: Restore
+        run: ${{ matrix.script }} restore
+
+      # ── Build ────────────────────────────────────────────────
+      - name: Build
+        env:
+          BUILD_ID: ${{ github.run_number }}
+        run: ${{ matrix.script }} build
+
+      # ── Unit Tests ───────────────────────────────────────────
+      - name: Unit Tests
+        run: ${{ matrix.script }} test
+
+      # ── Audit Trail Integrity ────────────────────────────────
+      - name: Audit Trail Integrity Check
+        run: ${{ matrix.script }} audit-verify
+
+      # ── Publish Artifacts ────────────────────────────────────
+      - name: Publish
+        if: matrix.os == 'windows-latest'
+        run: ${{ matrix.script }} publish
+
+      # ── Upload Test Results ──────────────────────────────────
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: test-results/
+          retention-days: 30
+
+      # ── Upload Build Artifacts ───────────────────────────────
+      - name: Upload build artifacts
+        if: matrix.os == 'windows-latest' && github.ref == 'refs/heads/master'
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployable-artifacts
+          path: artifacts/
+          retention-days: 90
+
+      # ── Upload Code Coverage ─────────────────────────────────
+      - name: Upload coverage
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: test-results/**/coverage.opencover.xml
+          retention-days: 30
+
+  # ── Integration Tests (separate job, requires secrets) ─────────────────────
+  integration-tests:
+    name: Integration Tests (Azure OpenAI)
+    needs: build
+    if: >
+      github.event_name == 'workflow_dispatch' && github.event.inputs.run_integration_tests == 'true'
+      || github.ref == 'refs/heads/master'
+      || github.ref == 'refs/heads/main'
+    runs-on: windows-latest
+    environment: azure-integration
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-quality: preview
+
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'Directory.Packages.props', 'global.json') }}
+
+      - name: Restore & Build
+        run: |
+          build.cmd restore
+          build.cmd build
+
+      - name: Run Integration Tests
+        env:
+          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_OPENAI_DEPLOYMENT_GPT41: gpt-4.1
+          AZURE_OPENAI_DEPLOYMENT_GPT4O: gpt-4o
+          AZURE_OPENAI_DEPLOYMENT_GPT4O_MINI: gpt-4o-mini
+          AZURE_OPENAI_DEPLOYMENT_EMBEDDING: text-embedding-3-large
+        run: build.cmd test-integ
+
+      - name: Upload integration test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: test-results/
+          retention-days: 30
+
+  # ── Security Scan ──────────────────────────────────────────────────────────
+  security:
+    name: Security Scan
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-quality: preview
+
+      - name: Restore
+        run: dotnet restore ${{ env.SOLUTION }}
+
+      - name: Run dotnet list package --vulnerable
+        run: |
+          echo "## Vulnerable Packages" >> $GITHUB_STEP_SUMMARY
+          dotnet list ${{ env.SOLUTION }} package --vulnerable --include-transitive 2>&1 | tee vulnerability-report.txt
+          if grep -q "has the following vulnerable packages" vulnerability-report.txt; then
+            echo "::warning::Vulnerable NuGet packages detected. See report."
+            cat vulnerability-report.txt >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No vulnerable packages found." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Check for secrets in code
+        run: |
+          echo "Scanning for hardcoded secrets..."
+          ! grep -rn --include="*.cs" --include="*.json" --include="*.yaml" \
+            -E "(password|secret|apikey|api_key|connectionstring)\s*[:=]\s*['\"][^'\"]{8,}" \
+            --exclude-dir=obj --exclude-dir=bin --exclude-dir=.git \
+            . || echo "::warning::Potential hardcoded secrets found"

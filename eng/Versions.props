@@ -1,0 +1,58 @@
+<!--
+  eng/Versions.props — TheWatch Versioning
+  ════════════════════════════════════════════════════════════════════════════════
+  Central versioning for all TheWatch assemblies and NuGet packages.
+
+  Local build:  1.0.0-dev
+  CI build:     1.0.0-ci.20260324.42  (pass -p:OfficialBuild=true -p:BuildId=42)
+  Release:      1.0.0                 (pass -p:OfficialBuild=true -p:DotNetFinalVersionKind=release)
+
+  Example CI invocation:
+    dotnet build -c Release -p:OfficialBuild=true -p:BuildId=$BUILD_BUILDID
+
+  Write-ahead log:
+    - v1.0.0: Initial Arcade-style versioning (2026-03-24)
+    - VersionPrefix is the semantic version base
+    - VersionSuffix is computed: dev (local), ci.YYYYMMDD.N (CI), empty (release)
+  ════════════════════════════════════════════════════════════════════════════════
+-->
+<Project>
+  <!-- ── Product Version ──────────────────────────────────────────────────── -->
+  <PropertyGroup>
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <PreReleaseVersionLabel>dev</PreReleaseVersionLabel>
+  </PropertyGroup>
+
+  <!-- ── Version Suffix Computation ───────────────────────────────────────── -->
+  <PropertyGroup>
+    <!--
+      OfficialBuild: set by CI to indicate a non-local build
+      BuildId: numeric build counter from CI system (GitHub run_number, TeamCity build.counter, etc.)
+      DotNetFinalVersionKind: set to "release" for stable versions (no suffix)
+    -->
+    <OfficialBuild Condition="'$(OfficialBuild)' == ''">false</OfficialBuild>
+    <BuildId Condition="'$(BuildId)' == ''">0</BuildId>
+  </PropertyGroup>
+
+  <!-- Local dev build: 1.0.0-dev -->
+  <PropertyGroup Condition="'$(OfficialBuild)' != 'true'">
+    <VersionSuffix>$(PreReleaseVersionLabel)</VersionSuffix>
+  </PropertyGroup>
+
+  <!-- CI build: 1.0.0-ci.YYYYMMDD.N -->
+  <PropertyGroup Condition="'$(OfficialBuild)' == 'true' AND '$(DotNetFinalVersionKind)' != 'release'">
+    <_BuildDate>$([System.DateTime]::UtcNow.ToString("yyyyMMdd"))</_BuildDate>
+    <VersionSuffix>ci.$(_BuildDate).$(BuildId)</VersionSuffix>
+  </PropertyGroup>
+
+  <!-- Release build: 1.0.0 (no suffix) -->
+  <PropertyGroup Condition="'$(OfficialBuild)' == 'true' AND '$(DotNetFinalVersionKind)' == 'release'">
+    <VersionSuffix></VersionSuffix>
+  </PropertyGroup>
+
+  <!-- ── Arcade SDK Versions (used in global.json msbuild-sdks) ───────────── -->
+  <PropertyGroup>
+    <MicrosoftDotNetArcadeSdkVersion>9.0.0-beta.25163.5</MicrosoftDotNetArcadeSdkVersion>
+    <MicrosoftDotNetApiCompatTaskVersion>9.0.100-rc.1.24420.3</MicrosoftDotNetApiCompatTaskVersion>
+  </PropertyGroup>
+</Project>

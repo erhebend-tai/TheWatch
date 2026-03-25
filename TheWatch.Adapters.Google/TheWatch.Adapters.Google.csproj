@@ -14,9 +14,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Google.Cloud.Firestore" Version="3.10.0" />
-    <PackageReference Include="Google.Cloud.Functions.Framework" Version="2.2.0" />
-    <PackageReference Include="FirebaseAuthentication.Net" Version="4.1.0" />
+    <PackageReference Include="Google.Cloud.Firestore" />
+    <PackageReference Include="Google.Cloud.Functions.Framework" />
+    <PackageReference Include="FirebaseAuthentication.Net" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,269 @@
+<!--
+  Directory.Packages.props — TheWatch Central Package Management
+  ════════════════════════════════════════════════════════════════════════════════
+  Single source of truth for all NuGet package versions across 27+ projects.
+  Every <PackageReference> in csproj files omits Version="..." and inherits from here.
+
+  To add a new package:
+    1. Add <PackageVersion Include="Package.Name" Version="x.y.z" /> below
+    2. Add <PackageReference Include="Package.Name" /> in your csproj
+    3. Done — version is managed here centrally
+
+  To update a package version:
+    1. Change the Version here
+    2. dotnet restore
+    3. All projects using the package get the new version
+
+  Version drift resolutions applied (2026-03-24):
+    - Microsoft.Extensions.Logging: 10.0.0/10.0.1 → 10.0.1
+    - Microsoft.Extensions.Hosting: 10.0.0/10.0.5 → 10.0.5
+    - Microsoft.AspNetCore.OpenApi: 9.0.3/10.0.0/10.0.1 → 10.0.1
+    - Serilog.AspNetCore: 8.0.1/9.0.0 → 9.0.0
+    - Microsoft.NET.Test.Sdk: 17.13.0/17.14.1 → 17.14.1
+    - Azure.AI.OpenAI: 2.1.0/2.2.0-beta.1 → 2.2.0-beta.1
+    - Aspire.StackExchange.Redis.OutputCaching: 9.2.0/13.1.3 → 13.1.3
+    - Microsoft.Extensions.Http: 9.0.4/10.0.0 → 10.0.0
+    - Microsoft.Extensions.Hosting (LocalAiBatchWorker): 9.0.4 → 10.0.5
+    - Microsoft.EntityFrameworkCore.SqlServer (LspWebApi): 8.0.11 → 10.0.0
+    - Microsoft.EntityFrameworkCore.Tools (LspWebApi): 8.0.11 → 10.0.0
+    - Microsoft.AspNetCore.SignalR.StackExchangeRedis: 8.0.11 → 10.0.0
+
+  Write-ahead log:
+    - v1.0.0: Initial consolidation of ~123 unique packages (2026-03-24)
+  ════════════════════════════════════════════════════════════════════════════════
+-->
+<Project>
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- .NET Aspire                                                           -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <!-- Aspire Hosting (AppHost) -->
+    <PackageVersion Include="Aspire.Hosting.Azure.Functions" Version="13.1.3" />
+    <PackageVersion Include="Aspire.Hosting.Azure.CosmosDB" Version="13.1.3" />
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.1.3" />
+    <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="13.1.3" />
+    <PackageVersion Include="Aspire.Hosting.Redis" Version="13.1.3" />
+    <PackageVersion Include="Aspire.Hosting.SqlServer" Version="13.1.3" />
+    <PackageVersion Include="Aspire.Hosting.Testing" Version="13.1.3" />
+
+    <!-- Aspire Components (service projects) -->
+    <PackageVersion Include="Aspire.Microsoft.Azure.Cosmos" Version="9.2.0" />
+    <PackageVersion Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="9.2.0" />
+    <PackageVersion Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.2.0" />
+    <PackageVersion Include="Aspire.RabbitMQ.Client" Version="9.2.0" />
+    <PackageVersion Include="Aspire.StackExchange.Redis" Version="9.2.0" />
+    <PackageVersion Include="Aspire.StackExchange.Redis.DistributedCaching" Version="9.2.0" />
+    <PackageVersion Include="Aspire.StackExchange.Redis.OutputCaching" Version="13.1.3" />
+  </ItemGroup>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- Entity Framework Core & Database                                      -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.0" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.46.0" />
+  </ItemGroup>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- Azure                                                                 -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <PackageVersion Include="Azure.AI.OpenAI" Version="2.2.0-beta.1" />
+    <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.20.0" />
+    <PackageVersion Include="Azure.ResourceManager" Version="1.14.0" />
+    <PackageVersion Include="Azure.ResourceManager.NotificationHubs" Version="1.1.0" />
+    <PackageVersion Include="Azure.Storage.Blobs" Version="12.24.0" />
+    <PackageVersion Include="Microsoft.ApplicationInsights.WorkerService" Version="2.23.0" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker" Version="2.51.0" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" Version="2.50.0" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.1.0" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.RabbitMQ" Version="2.0.3" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.3.1" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.7" />
+    <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.28.0" />
+  </ItemGroup>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- Google Cloud & Firebase                                               -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <PackageVersion Include="FirebaseAdmin" Version="3.1.0" />
+    <PackageVersion Include="FirebaseAuthentication.Net" Version="4.1.0" />
+    <PackageVersion Include="Google.Cloud.AIPlatform.V1" Version="3.8.0" />
+    <PackageVersion Include="Google.Cloud.Firestore" Version="3.10.0" />
+    <PackageVersion Include="Google.Cloud.Functions.Framework" Version="2.2.0" />
+  </ItemGroup>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- AWS                                                                   -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <PackageVersion Include="AWSSDK.Core" Version="3.7.500.0" />
+    <PackageVersion Include="AWSSDK.DynamoDBv2" Version="3.7.500.0" />
+    <PackageVersion Include="AWSSDK.Lambda" Version="3.7.500.0" />
+    <PackageVersion Include="AWSSDK.S3" Version="3.7.500.0" />
+  </ItemGroup>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- Oracle                                                                -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <PackageVersion Include="Oracle.ManagedDataAccess.Core" Version="23.7.0" />
+  </ItemGroup>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- AI & Vector Databases                                                 -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <PackageVersion Include="Anthropic.SDK" Version="3.6.0" />
+    <PackageVersion Include="Qdrant.Client" Version="1.13.0" />
+  </ItemGroup>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- ASP.NET Core & Web                                                    -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1" />
+    <PackageVersion Include="Microsoft.AspNetCore.SignalR" Version="1.2.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.0-preview.1.25120.3" />
+    <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.9.0" />
+  </ItemGroup>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- Logging & Diagnostics                                                 -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <PackageVersion Include="Serilog.AspNetCore" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
+  </ItemGroup>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- OpenTelemetry & Observability                                         -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.14.0" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.14.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.14.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.14.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.14.0" />
+  </ItemGroup>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- Microsoft Extensions                                                  -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.1.0" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.1.0" />
+  </ItemGroup>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- Roslyn & Code Analysis                                                -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.Build.Locator" Version="1.7.8" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.12.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="4.12.0" />
+    <PackageVersion Include="Roslynator.Analyzers" Version="4.12.10" />
+  </ItemGroup>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- Job Scheduling                                                        -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <PackageVersion Include="Hangfire.AspNetCore" Version="1.8.17" />
+    <PackageVersion Include="Hangfire.Core" Version="1.8.17" />
+    <PackageVersion Include="Hangfire.InMemory" Version="1.0.0" />
+    <PackageVersion Include="Hangfire.MemoryStorage" Version="1.8.1.1" />
+  </ItemGroup>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- Messaging                                                             -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <PackageVersion Include="RabbitMQ.Client" Version="6.8.1" />
+  </ItemGroup>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- UI / MAUI / Blazor                                                    -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <PackageVersion Include="CommunityToolkit.Maui" Version="14.0.1" />
+    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.1" />
+    <PackageVersion Include="Microsoft.Maui.Controls" Version="10.0.41" />
+    <PackageVersion Include="Microsoft.Maui.Essentials" Version="10.0.41" />
+    <PackageVersion Include="MudBlazor" Version="8.6.0" />
+  </ItemGroup>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- Testing                                                               -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+    <PackageVersion Include="FluentAssertions" Version="7.1.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="NSubstitute" Version="5.3.0" />
+    <PackageVersion Include="NUnit" Version="4.4.0" />
+    <PackageVersion Include="NUnit.Analyzers" Version="4.10.0" />
+    <PackageVersion Include="NUnit3TestAdapter" Version="4.6.0" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- CLI & Terminal                                                        -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <PackageVersion Include="CliWrap" Version="3.7.0" />
+    <PackageVersion Include="Mono.Cecil" Version="0.11.6" />
+    <PackageVersion Include="System.CommandLine" Version="2.0.0-beta5.25306.1" />
+    <PackageVersion Include="Terminal.Gui" Version="2.0.0" />
+  </ItemGroup>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- Build Tools & Serialization                                           -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <PackageVersion Include="MSBuild.StructuredLogger" Version="2.2.400" />
+    <PackageVersion Include="StreamJsonRpc" Version="2.19.27" />
+    <PackageVersion Include="SharpCompress" Version="0.39.0" />
+    <PackageVersion Include="System.Reflection.MetadataLoadContext" Version="9.0.3" />
+    <PackageVersion Include="System.Text.Json" Version="10.0.0" />
+    <PackageVersion Include="YamlDotNet" Version="16.3.0" />
+  </ItemGroup>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- GitHub Integration                                                    -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <PackageVersion Include="Octokit" Version="13.1.1" />
+  </ItemGroup>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- Docker & Containers                                                   -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
+  </ItemGroup>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- SourceLink (referenced in Directory.Build.props)                      -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.102" />
+    <PackageVersion Include="Microsoft.DotNet.ApiCompat.Task" Version="9.0.100-rc.1.24420.3" />
+  </ItemGroup>
+</Project>

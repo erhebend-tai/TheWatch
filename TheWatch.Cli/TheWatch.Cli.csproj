@@ -6,29 +6,38 @@
 
   <ItemGroup>
     <!-- Terminal.Gui v2 — full TUI framework (windows, panels, menus, scrollbars) -->
-    <PackageReference Include="Terminal.Gui" Version="2.0.0" />
+    <PackageReference Include="Terminal.Gui" />
 
     <!-- SignalR client — real-time updates from Dashboard API hub -->
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" />
 
     <!-- HTTP client factory for REST API calls -->
-    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
 
     <!-- JSON serialization for API DTOs -->
-    <PackageReference Include="System.Text.Json" Version="10.0.0" />
+    <PackageReference Include="System.Text.Json" />
 
     <!-- Logging -->
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" />
 
     <!-- Command-line argument parsing -->
-    <PackageReference Include="System.CommandLine" Version="2.0.0-beta5.25306.1" />
+    <PackageReference Include="System.CommandLine" />
 
     <!-- Roslyn workspace APIs for code analysis, generation, and formatting -->
-    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="4.12.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.12.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
 
     <!-- MSBuild locator — discovers SDK for Roslyn MSBuildWorkspace -->
-    <PackageReference Include="Microsoft.Build.Locator" Version="1.7.8" />
+    <PackageReference Include="Microsoft.Build.Locator" />
+
+    <!-- Mono.Cecil — IL-level assembly scanning for port/adapter resolution across DLLs -->
+    <PackageReference Include="Mono.Cecil" />
+
+    <!-- Roslynator analyzers — code quality enforcement during codegen pipeline -->
+    <PackageReference Include="Roslynator.Analyzers">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
@@ -37,6 +46,9 @@
 
     <!-- Azure adapters — includes AzureOpenAISwarmAdapter for swarm commands -->
     <ProjectReference Include="..\TheWatch.Adapters.Azure\TheWatch.Adapters.Azure.csproj" />
+
+    <!-- Mock adapters — fallback when Azure OpenAI is not configured -->
+    <ProjectReference Include="..\TheWatch.Adapters.Mock\TheWatch.Adapters.Mock.csproj" />
   </ItemGroup>
 
 </Project>

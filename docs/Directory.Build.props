@@ -1,0 +1,10 @@
+<!--
+  docs/Directory.Build.props — Study/reference projects opt out of central package management.
+  These projects target different TFMs (e.g., net8.0) and use their own package versions.
+-->
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>

@@ -1,28 +1,23 @@
 <!--
-  TheWatch.Shared.Tests — xUnit test project for domain models, enums, and port contracts.
-  Inherits net10.0 from Directory.Build.props.
-
-  Example — running tests:
-    dotnet test TheWatch.Shared.Tests
-
-  WAL: Test project must NOT reference any database SDKs. Tests verify domain logic only.
+  TheWatch.Adapters.Mock.Tests — xUnit tests for all mock adapter implementations.
+  Tests verify that mock adapters fulfill their port contracts correctly.
+  WAL: These tests validate the mock layer used during development/staging.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
-
   <ItemGroup>
+    <ProjectReference Include="..\TheWatch.Adapters.Mock\TheWatch.Adapters.Mock.csproj" />
     <ProjectReference Include="..\TheWatch.Shared\TheWatch.Shared.csproj" />
   </ItemGroup>
-
 </Project>

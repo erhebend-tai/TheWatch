@@ -1,0 +1,48 @@
+<!--
+  Directory.Build.targets — TheWatch
+  ════════════════════════════════════════════════════════════════════════════════
+  Applied after all project files. Sets test project defaults and API
+  compatibility checking for port interface contracts.
+
+  Example: To add a new API compat baseline:
+    dotnet build TheWatch.Shared -c Release
+    cp artifacts/bin/TheWatch.Shared/Release/net10.0/TheWatch.Shared.dll eng/apicompat/TheWatch.Shared.baseline.dll
+    Then uncomment the ApiCompat section below.
+
+  Write-ahead log:
+    - v1.0.0: Test project defaults, API compat scaffolding (2026-03-24)
+  ════════════════════════════════════════════════════════════════════════════════
+-->
+<Project>
+  <!-- ── Test Project Defaults ────────────────────────────────────────────── -->
+  <!-- Test projects should never produce NuGet packages -->
+  <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+    <IsPackable>false</IsPackable>
+    <IsPublishable>false</IsPublishable>
+  </PropertyGroup>
+
+  <!-- ── API Compatibility Checking (TheWatch.Shared) ─────────────────────── -->
+  <!--
+    Protects port interface contracts (IResponseCoordinationPort, IAuditTrail, etc.)
+    from accidental breaking changes. Enable once baseline DLL is created.
+
+    To create baseline:
+      1. Build: dotnet build TheWatch.Shared -c Release
+      2. Copy: cp artifacts/bin/TheWatch.Shared/Release/net10.0/TheWatch.Shared.dll eng/apicompat/TheWatch.Shared.baseline.dll
+      3. Uncomment the section below
+
+    Breaking changes will then fail the build with detailed diff output.
+
+    To update the baseline after intentional breaking changes:
+      1. Build: dotnet build TheWatch.Shared -c Release
+      2. Copy: cp TheWatch.Shared/bin/Release/net10.0/TheWatch.Shared.dll eng/apicompat/TheWatch.Shared.baseline.dll
+      3. Commit the updated baseline
+  -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'TheWatch.Shared'">
+    <PackageReference Include="Microsoft.DotNet.ApiCompat.Task" PrivateAssets="all" />
+  </ItemGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'TheWatch.Shared'">
+    <ApiCompatValidateAssemblies>true</ApiCompatValidateAssemblies>
+    <ApiCompatContractAssembly>$(MSBuildThisFileDirectory)eng\apicompat\TheWatch.Shared.baseline.dll</ApiCompatContractAssembly>
+  </PropertyGroup>
+</Project>

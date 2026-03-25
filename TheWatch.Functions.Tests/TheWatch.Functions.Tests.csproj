@@ -1,0 +1,33 @@
+<!--
+  TheWatch.Functions.Tests - xUnit tests for Azure Functions (RabbitMQ/Timer triggers).
+  WAL: Functions are tested by calling Run() directly with serialized JSON messages.
+
+  Test Strategy:
+    - RabbitMQ-triggered functions: call Run(string message) with JSON-serialized payloads
+    - Timer-triggered functions: call Run(TimerInfo) or test RabbitMQ overloads only
+    - HTTP-triggered functions: not tested here (require HttpRequestData mocking via Worker SDK)
+    - All functions use ILogger<T> via NullLoggerFactory for silent test execution
+
+  Example:
+    var fn = new ResponseDispatchFunction(NullLoggerFactory.Instance.CreateLogger<ResponseDispatchFunction>());
+    var msg = JsonSerializer.Serialize(new ResponseDispatchMessage(...));
+    await fn.Run(msg); // should not throw
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TheWatch.Functions\TheWatch.Functions.csproj" />
+    <ProjectReference Include="..\TheWatch.Shared\TheWatch.Shared.csproj" />
+  </ItemGroup>
+</Project>

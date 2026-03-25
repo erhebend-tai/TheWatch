@@ -13,12 +13,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.ResourceManager" Version="1.14.0" />
-    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.0" />
-    <PackageReference Include="Azure.ResourceManager.NotificationHubs" Version="1.1.0" />
+    <PackageReference Include="Azure.ResourceManager" />
+    <PackageReference Include="Azure.Messaging.ServiceBus" />
+    <PackageReference Include="Azure.ResourceManager.NotificationHubs" />
 
     <!-- Azure OpenAI — Chat Completions API for swarm agent orchestration -->
-    <PackageReference Include="Azure.AI.OpenAI" Version="2.2.0-beta.1" />
+    <PackageReference Include="Azure.AI.OpenAI" />
   </ItemGroup>
 
 </Project>

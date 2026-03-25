@@ -1,0 +1,29 @@
+<!--
+  TheWatch.Dashboard.Api.Tests — xUnit tests for Dashboard API services and controllers.
+  WAL: Tests use mock adapters for all port dependencies. No real databases.
+  Uses NSubstitute for IHubContext<DashboardHub> and IBackgroundJobClient stubs.
+
+  Example — running tests:
+    dotnet test TheWatch.Dashboard.Api.Tests/TheWatch.Dashboard.Api.Tests.csproj
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TheWatch.Dashboard.Api\TheWatch.Dashboard.Api.csproj" />
+    <ProjectReference Include="..\TheWatch.Adapters.Mock\TheWatch.Adapters.Mock.csproj" />
+    <ProjectReference Include="..\TheWatch.Shared\TheWatch.Shared.csproj" />
+  </ItemGroup>
+</Project>

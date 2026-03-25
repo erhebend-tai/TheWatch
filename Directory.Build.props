@@ -1,4 +1,23 @@
+<!--
+  Directory.Build.props — TheWatch
+  ════════════════════════════════════════════════════════════════════════════════
+  Applied to every project in the repo. Sets shared compiler settings,
+  imports versioning, enables deterministic builds, SourceLink, and NuGet metadata.
+
+  Example: To override a property in a specific project, set it in that project's csproj
+    and it will take precedence over values here.
+
+  Write-ahead log:
+    - v1.0.0: Initial — TFM, nullability, implicit usings (2026-03-24)
+    - v1.1.0: Arcade integration — versioning import, SourceLink, deterministic builds,
+              NuGet metadata, ContinuousIntegrationBuild auto-detection (2026-03-24)
+  ════════════════════════════════════════════════════════════════════════════════
+-->
 <Project>
+  <!-- ── Import Versioning ────────────────────────────────────────────────── -->
+  <Import Project="eng/Versions.props" />
+
+  <!-- ── Compiler Settings ────────────────────────────────────────────────── -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -6,5 +25,42 @@
     <LangVersion>latest</LangVersion>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+  <!-- ── Central Package Management ───────────────────────────────────────── -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <!-- ── Deterministic Builds ─────────────────────────────────────────────── -->
+  <PropertyGroup>
+    <Deterministic>true</Deterministic>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <!-- ── CI Detection ─────────────────────────────────────────────────────── -->
+  <!-- Auto-detect CI from GitHub Actions, Azure DevOps, TeamCity -->
+  <PropertyGroup>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+    <ContinuousIntegrationBuild Condition="'$(TF_BUILD)' == 'True'">true</ContinuousIntegrationBuild>
+    <ContinuousIntegrationBuild Condition="'$(TEAMCITY_VERSION)' != ''">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <!-- ── SourceLink (GitHub) ──────────────────────────────────────────────── -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+  </ItemGroup>
+
+  <!-- ── NuGet Package Metadata ───────────────────────────────────────────── -->
+  <PropertyGroup>
+    <Authors>TheWatch Contributors</Authors>
+    <Company>TheWatch</Company>
+    <Product>TheWatch</Product>
+    <Copyright>Copyright (c) TheWatch Contributors. All rights reserved.</Copyright>
+    <RepositoryUrl>https://github.com/erheb/TheWatch</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/erheb/TheWatch</PackageProjectUrl>
   </PropertyGroup>
 </Project>
