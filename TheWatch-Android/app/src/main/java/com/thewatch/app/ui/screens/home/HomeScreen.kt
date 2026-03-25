@@ -256,15 +256,9 @@ fun HomeScreen(
                 .padding(bottom = 32.dp)
         ) {
             SOSButton(
-                onActivate = {
-                    sosActive = true
-                    scope.launch {
-                        viewModel.activateAlert()
-                    }
-                },
-                onCancel = {
-                    sosActive = false
-                    viewModel.cancelAlert()
+                onSOSActivate = {
+                    // Navigate to full-screen SOS countdown overlay
+                    navController.navigate(NavRoute.SosCountdown.route)
                 }
             )
         }

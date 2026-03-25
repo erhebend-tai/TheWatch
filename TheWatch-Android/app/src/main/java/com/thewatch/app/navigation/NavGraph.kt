@@ -21,6 +21,9 @@ import com.thewatch.app.ui.screens.settings.SettingsScreen
 import com.thewatch.app.ui.screens.evacuation.EvacuationScreen
 import com.thewatch.app.ui.screens.health.HealthDashboardScreen
 import com.thewatch.app.ui.screens.health.WearableManagementScreen
+import com.thewatch.app.ui.screens.sos.SosCountdownScreen
+import com.thewatch.app.services.SosTriggerService
+import com.thewatch.app.services.SosTriggerSource
 
 sealed class NavRoute(val route: String) {
     object Login : NavRoute("login")
@@ -40,6 +43,8 @@ sealed class NavRoute(val route: String) {
     object WearableManagement : NavRoute("wearable_management")
     object TwoFactor : NavRoute("two_factor")
     object EmailVerify : NavRoute("email_verify")
+
+    object SosCountdown : NavRoute("sos_countdown")
 
     object AuthGraph : NavRoute("auth_graph")
     object AppGraph : NavRoute("app_graph")
@@ -102,6 +107,16 @@ fun NavGraphBuilder.appGraph(navController: NavController) {
         }
         composable(NavRoute.WearableManagement.route) {
             WearableManagementScreen(navController = navController)
+        }
+        composable(NavRoute.SosCountdown.route) {
+            // SosTriggerService is injected via Hilt at the Activity level.
+            // The screen obtains it from the Hilt entry point or LocalContext.
+            // For now, we use a simplified approach — the service is a singleton.
+            SosCountdownScreen(
+                sosTriggerService = SosTriggerService.instance,
+                triggerSource = SosTriggerSource.MANUAL_BUTTON,
+                onDismiss = { navController.popBackStack() }
+            )
         }
     }
 }

@@ -5,9 +5,15 @@
 // requiring an Azure OpenAI endpoint. Guides users through the same flow
 // as the real agent but with deterministic responses.
 //
+// RAG Integration:
+//   When an IContextRetrievalPort is provided, keyword queries trigger a
+//   context retrieval and the results are appended to the canned response.
+//   This exercises the full RAG pipeline even in mock mode.
+//
 // WAL: Uses [WAL-SWARMAGENT-MOCK] log prefix for all trace output.
 // =============================================================================
 
+using System.Text;
 using Microsoft.Extensions.Logging;
 using TheWatch.Shared.Domain.Ports;
 
@@ -16,24 +22,28 @@ namespace TheWatch.Adapters.Mock;
 public class MockSwarmAgentAdapter : ISwarmAgentPort
 {
     private readonly ILogger<MockSwarmAgentAdapter> _logger;
+    private readonly IContextRetrievalPort? _contextRetrieval;
 
-    public MockSwarmAgentAdapter(ILogger<MockSwarmAgentAdapter> logger)
+    public MockSwarmAgentAdapter(ILogger<MockSwarmAgentAdapter> logger,
+        IContextRetrievalPort? contextRetrieval = null)
     {
         _logger = logger;
+        _contextRetrieval = contextRetrieval;
     }
 
-    public string ProviderName => "Mock";
+    public string ProviderName => _contextRetrieval is not null ? "Mock+RAG" : "Mock";
 
     public Task<string> GetGreetingAsync(CancellationToken ct = default)
     {
         _logger.LogDebug("[WAL-SWARMAGENT-MOCK] GetGreetingAsync");
+        var ragStatus = _contextRetrieval is not null ? " (RAG-enabled)" : "";
         return Task.FromResult(
-            "TheWatch Swarm Agent ready (mock mode — no Azure OpenAI configured).\n" +
+            $"TheWatch Swarm Agent ready (mock mode{ragStatus} — no Azure OpenAI configured).\n" +
             "I can help you explore swarm commands. What would you like to do?\n" +
             "Type 'help' for available commands, or describe your goal.");
     }
 
-    public Task<SwarmAgentResponse> SendMessageAsync(
+    public async Task<SwarmAgentResponse> SendMessageAsync(
         string userMessage,
         IReadOnlyList<SwarmAgentMessage> conversationHistory,
         CancellationToken ct = default)
@@ -112,6 +122,53 @@ public class MockSwarmAgentAdapter : ISwarmAgentPort
                     "Try describing your goal, or type 'help' for command reference.")
         };
 
-        return Task.FromResult(response);
+        // RAG: append retrieved context to non-trivial responses
+        if (_contextRetrieval is not null && lower != "help" && lower != "?" && lower != "commands"
+            && !lower.Contains("bye") && !lower.Contains("exit") && !lower.Contains("quit"))
+        {
+            var ragContext = await RetrieveAndFormatContextAsync(userMessage, ct);
+            if (ragContext is not null)
+            {
+                response = response with
+                {
+                    Content = response.Content + "\n\n── Retrieved Context ──\n" + ragContext
+                };
+            }
+        }
+
+        return response;
+    }
+
+    private async Task<string?> RetrieveAndFormatContextAsync(string query, CancellationToken ct)
+    {
+        try
+        {
+            var result = await _contextRetrieval!.RetrieveContextAsync(
+                query,
+                namespaces: null,  // search all
+                maxTokens: 2000,
+                topK: 5,
+                minScore: 0.3f,
+                ct);
+
+            if (!result.Success || result.Data is null || result.Data.Count == 0)
+                return null;
+
+            var sb = new StringBuilder();
+            foreach (var chunk in result.Data)
+            {
+                sb.AppendLine($"  [{chunk.Source}] (score: {chunk.RelevanceScore:F2})");
+                sb.AppendLine($"  {chunk.Content}");
+                sb.AppendLine();
+            }
+
+            _logger.LogDebug("[WAL-SWARMAGENT-MOCK] RAG appended {Count} chunks", result.Data.Count);
+            return sb.ToString().TrimEnd();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[WAL-SWARMAGENT-MOCK] RAG retrieval failed");
+            return null;
+        }
     }
 }

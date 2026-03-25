@@ -28,6 +28,12 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IFirestorePort, MockFirestoreAdapter>();
         services.AddSingleton<IGitHubPort, MockGitHubAdapter>();
 
+        // Register mock spatial index (geohash/H3 volunteer lookup)
+        services.AddSingleton<ISpatialIndex, MockSpatialIndex>();
+
+        // Register mock emergency services port (911/RapidSOS)
+        services.AddSingleton<IEmergencyServicesPort, MockEmergencyServicesPort>();
+
         // Register mock response coordination adapters
         services.AddSingleton<IResponseRequestPort, MockResponseRequestAdapter>();
         services.AddSingleton<IResponseDispatchPort, MockResponseDispatchAdapter>();
@@ -65,6 +71,9 @@ public static class ServiceCollectionExtensions
 
         // Swarm agent: interactive conversational agent for CLI swarm guidance
         services.AddSingleton<ISwarmAgentPort, MockSwarmAgentAdapter>();
+
+        // Context retrieval: RAG orchestration (keyword-matched seed corpus for dev)
+        services.AddSingleton<IContextRetrievalPort, MockContextRetrievalPort>();
 
         return services;
     }

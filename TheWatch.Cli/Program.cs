@@ -109,9 +109,28 @@ ISwarmPort? CreateSwarmPort()
     return _cachedSwarmPort;
 }
 
+// ── Context Retrieval Port Factory ────────────────────────────────
+// Creates the RAG context retrieval port used by the swarm agent.
+// Always available — mock provides seeded corpus, live providers use vector stores.
+
+IContextRetrievalPort? _cachedContextPort = null;
+
+IContextRetrievalPort CreateContextRetrievalPort()
+{
+    if (_cachedContextPort is not null) return _cachedContextPort;
+
+    var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
+    var logger = loggerFactory.CreateLogger<TheWatch.Adapters.Mock.MockContextRetrievalPort>();
+    _cachedContextPort = new TheWatch.Adapters.Mock.MockContextRetrievalPort(logger);
+    // Future: check AdapterRegistry for live providers (CosmosDB, Firestore, Qdrant)
+    // and create ContextRetrievalService with real embedding + vector search adapters.
+    return _cachedContextPort;
+}
+
 // ── Swarm Agent Port Factory ──────────────────────────────────────
 // Creates the interactive swarm agent that prompts users for their request.
 // Uses Azure OpenAI when configured, falls back to mock adapter.
+// Both paths receive the RAG context retrieval port for grounded responses.
 
 ISwarmAgentPort? _cachedAgentPort = null;
 
@@ -125,16 +144,18 @@ ISwarmAgentPort CreateSwarmAgentPort()
         ?? Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY");
 
     var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
+    var contextPort = CreateContextRetrievalPort();
 
     if (!string.IsNullOrEmpty(endpoint) && !string.IsNullOrEmpty(key))
     {
         var logger = loggerFactory.CreateLogger<TheWatch.Adapters.Azure.AzureOpenAISwarmAgentAdapter>();
-        _cachedAgentPort = new TheWatch.Adapters.Azure.AzureOpenAISwarmAgentAdapter(endpoint, key, logger);
+        _cachedAgentPort = new TheWatch.Adapters.Azure.AzureOpenAISwarmAgentAdapter(
+            endpoint, key, logger, contextRetrieval: contextPort);
     }
     else
     {
         var logger = loggerFactory.CreateLogger<TheWatch.Adapters.Mock.MockSwarmAgentAdapter>();
-        _cachedAgentPort = new TheWatch.Adapters.Mock.MockSwarmAgentAdapter(logger);
+        _cachedAgentPort = new TheWatch.Adapters.Mock.MockSwarmAgentAdapter(logger, contextRetrieval: contextPort);
     }
 
     return _cachedAgentPort;

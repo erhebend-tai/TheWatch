@@ -36,6 +36,7 @@ final class PhraseDetectionCoordinator {
 
     private let phraseDetectionService = PhraseDetectionService.shared
     private let locationCoordinator = LocationCoordinator.shared
+    private let sosTriggerService = SosTriggerService.shared
     private var cancellables = Set<AnyCancellable>()
 
     private init() {
@@ -100,22 +101,30 @@ final class PhraseDetectionCoordinator {
         case .duress:
             // Silent SOS — no visible UI, no countdown, no haptics
             isSOSActive = true
-            locationCoordinator.escalateToEmergency()
+            sosTriggerService.trigger(
+                source: .silentDuress,
+                description: "Duress phrase detected — silent SOS activated",
+                skipCountdown: true
+            )
             triggerSilentSOS(description: "Duress phrase detected — silent SOS activated")
 
         case .clearWord:
             // Cancel active SOS — user confirmed safe
             if isSOSActive {
                 isSOSActive = false
+                sosTriggerService.cancel()
                 locationCoordinator.deescalateToNormal()
                 cancelActiveSOS()
                 print("[PhraseCoordinator] Clear word detected — SOS cancelled")
             }
 
         case .custom:
-            // Standard SOS trigger
+            // Standard SOS trigger — shows countdown overlay
             isSOSActive = true
-            locationCoordinator.escalateToEmergency()
+            sosTriggerService.trigger(
+                source: .phrase,
+                description: "Emergency phrase detected: \(phrase.phraseText)"
+            )
             triggerStandardSOS(description: "Emergency phrase detected")
         }
     }

@@ -25,6 +25,14 @@ import javax.inject.Singleton
 interface LocationRepository {
     val currentLocation: StateFlow<Location?>
 
+    /** Convenience: last known latitude, or null if no location yet. */
+    val lastLatitude: Double?
+        get() = currentLocation.value?.latitude
+
+    /** Convenience: last known longitude, or null if no location yet. */
+    val lastLongitude: Double?
+        get() = currentLocation.value?.longitude
+
     suspend fun startTracking(mode: LocationService.TrackingMode)
     suspend fun stopTracking()
     suspend fun getLastKnownLocation(): Location?

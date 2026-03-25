@@ -21,6 +21,7 @@ final class QuickTapCoordinator {
 
     private let quickTapDetector = QuickTapDetector.shared
     private let locationCoordinator = LocationCoordinator.shared
+    private let sosTriggerService = SosTriggerService.shared
     private var cancellables = Set<AnyCancellable>()
 
     /// Whether quick-tap SOS is enabled by the user.
@@ -64,8 +65,11 @@ final class QuickTapCoordinator {
         print("[QuickTapCoordinator] SOS triggered via \(event.triggerType.rawValue): " +
               "\(event.tapCount) taps in \(event.windowSeconds)s")
 
-        // Escalate location to emergency mode
-        locationCoordinator.escalateToEmergency()
+        // Trigger SOS through the centralized service — handles auth, API, offline queue
+        sosTriggerService.trigger(
+            source: .quickTap,
+            description: "Quick-tap SOS: \(event.tapCount) \(event.triggerType.rawValue) taps"
+        )
 
         // Fire SOS notification — any active ViewModel can observe
         NotificationCenter.default.post(

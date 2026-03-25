@@ -7,6 +7,7 @@ struct HomeView: View {
     @State var viewModel: HomeViewModel?
     @State private var position = MapCameraPosition.automatic
     @State private var isSettingsSheet = false
+    @State private var sosViewModel = SosCountdownViewModel()
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -142,15 +143,44 @@ struct HomeView: View {
                 .padding(12)
             }
 
-            // SOS Button
+            // SOS Button — tapping opens full-screen SOS countdown overlay
             VStack(alignment: .center) {
                 Spacer()
 
-                if let vm = viewModel {
-                    SOSButton(viewModel: vm)
+                Button(action: {
+                    sosViewModel.startSOS(source: .manualButton)
+                }) {
+                    VStack(spacing: 8) {
+                        ZStack {
+                            Circle()
+                                .fill(Color(red: 0.9, green: 0.22, blue: 0.27))
+                                .frame(width: 140, height: 140)
+                                .shadow(color: Color(red: 0.9, green: 0.22, blue: 0.27).opacity(0.4), radius: 8)
+
+                            VStack(spacing: 8) {
+                                Image(systemName: "exclamationmark")
+                                    .font(.system(size: 40, weight: .bold))
+                                    .foregroundColor(.white)
+                                Text("SOS")
+                                    .font(.headline)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .frame(width: 140, height: 140)
+
+                        Text("Tap to activate")
+                            .font(.caption2)
+                            .foregroundColor(.gray)
+                    }
                 }
+                .accessibilityLabel("SOS button")
+                .accessibilityValue("Tap to activate emergency response")
             }
             .padding(20)
+            .fullScreenCover(isPresented: $sosViewModel.isPresented) {
+                SosCountdownView(viewModel: sosViewModel)
+            }
 
             // Navigation Drawer
             if viewModel?.showNavigationDrawer == true {

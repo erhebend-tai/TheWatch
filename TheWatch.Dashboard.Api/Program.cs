@@ -79,6 +79,12 @@ builder.Services.AddHangfireServer(options =>
     options.WorkerCount = 2; // Low for dev, scale in production
 });
 
+// ── 4a. Escalation Configuration — 4-stage escalation chain timeouts ──────────────
+// Configurable via "Escalation" section in appsettings.json.
+// Stages: InitialDispatch (0s) → WidenScope (300s) → EmergencyContacts (600s) → FirstResponders (900s)
+builder.Services.Configure<TheWatch.Shared.Domain.Models.EscalationConfiguration>(
+    builder.Configuration.GetSection(TheWatch.Shared.Domain.Models.EscalationConfiguration.SectionName));
+
 // ── 5. Data Layer (Port/Adapter wiring via AdapterRegistry) ───────────────────────
 // Reads "AdapterRegistry" section from appsettings to select Mock vs Live adapters.
 // In Development: all Mock. In Production: SqlServer/CosmosDb/PostgreSql/Live.

@@ -12,7 +12,11 @@
 //   dotnet test --filter "FullyQualifiedName~CreateResponseAsync_CheckIn_UsesCorrectDefaults"
 
 using Hangfire;
+using Microsoft.Extensions.Options;
+using RabbitMQ.Client;
 using TheWatch.Adapters.Mock;
+using TheWatch.Shared.Domain.Models;
+using TheWatch.Shared.Domain.Ports;
 
 namespace TheWatch.Dashboard.Api.Tests;
 
@@ -41,6 +45,23 @@ public class ResponseCoordinationServiceTests
         var communicationPort = new MockResponderCommunicationAdapter(
             guardrailsPort, trackingPort, NullLogger<MockResponderCommunicationAdapter>.Instance);
 
+        // Spatial index for responder geolocation lookups
+        var spatialIndex = new MockSpatialIndex();
+
+        // Audit trail for compliance logging
+        var auditTrail = Substitute.For<IAuditTrail>();
+
+        // Emergency services port for 911 escalation
+        var emergencyServices = new MockEmergencyServicesPort();
+
+        // Escalation configuration (defaults)
+        var escalationConfig = Options.Create(new EscalationConfiguration());
+
+        // Notification ports
+        var notificationSendPort = new MockNotificationSendAdapter(NullLogger<MockNotificationSendAdapter>.Instance);
+        var notificationRegistrationPort = new MockNotificationRegistrationAdapter(NullLogger<MockNotificationRegistrationAdapter>.Instance);
+        var notificationTrackingPort = new MockNotificationTrackingAdapter(NullLogger<MockNotificationTrackingAdapter>.Instance);
+
         // NSubstitute stubs for SignalR and Hangfire — we don't verify broadcast content,
         // only that the pipeline doesn't throw when broadcasting.
         var hubContext = Substitute.For<IHubContext<DashboardHub>>();
@@ -52,10 +73,20 @@ public class ResponseCoordinationServiceTests
 
         var hangfireClient = Substitute.For<IBackgroundJobClient>();
 
+        // RabbitMQ connection stub — model stub logs but doesn't connect
+        var rabbitConnection = Substitute.For<IConnection>();
+        var rabbitModel = Substitute.For<IModel>();
+        var basicProperties = Substitute.For<IBasicProperties>();
+        rabbitConnection.CreateModel().Returns(rabbitModel);
+        rabbitModel.CreateBasicProperties().Returns(basicProperties);
+
         var service = new ResponseCoordinationService(
             requestPort, dispatchPort, trackingPort,
             escalationPort, participationPort, navigationPort,
-            communicationPort, hubContext, hangfireClient,
+            communicationPort, spatialIndex, auditTrail,
+            emergencyServices, escalationConfig,
+            notificationSendPort, notificationRegistrationPort, notificationTrackingPort,
+            hubContext, hangfireClient, rabbitConnection,
             NullLogger<ResponseCoordinationService>.Instance);
 
         return (service, requestPort, dispatchPort, trackingPort,
@@ -140,8 +171,10 @@ public class ResponseCoordinationServiceTests
 
         Assert.Equal(EscalationPolicy.TimedEscalation, result.Escalation);
 
-        // Verify Hangfire was called to schedule a delayed job
-        hangfireClient.Received(1).Create(
+        // Verify Hangfire was called to schedule escalation jobs (4 total):
+        //   Stage 2 (WidenScope), Stage 3 (EmergencyContacts), Stage 4 (FirstResponders),
+        //   plus the legacy IEscalationPort.CheckAndEscalateAsync fallback.
+        hangfireClient.Received(4).Create(
             Arg.Any<Hangfire.Common.Job>(),
             Arg.Any<Hangfire.States.IState>());
     }
