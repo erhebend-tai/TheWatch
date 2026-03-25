@@ -166,6 +166,7 @@ ISwarmAgentPort CreateSwarmAgentPort()
 rootCommand.Add(SwarmCommand.Build(CreateSwarmPort, CreateSwarmAgentPort));
 rootCommand.Add(PlanCommand.Build(CreateSwarmPort));
 rootCommand.Add(CodeGenCommand.Build());
+rootCommand.Add(CodeIndexCommand.Build());
 
 // ── Default Handler (TUI Dashboard) ─────────────────────────────────
 
