@@ -1,0 +1,707 @@
+@page "/"
+@page "/dashboard"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject DashboardApiClient ApiClient
+@inject DashboardHubService HubService
+@inject ISnackbar Snackbar
+@implements IAsyncDisposable
+
+@* =============================================================================
+   Dashboard.razor — TheWatch Command Center main operational dashboard.
+   =============================================================================
+   Real-time incident map, active incidents, responder status, escalation
+   timeline, and evidence feed — all updated live via SignalR.
+
+   Integration points:
+     - Leaflet.js: The incident map placeholder below should be replaced with a
+       Leaflet.js map component using the BlazorLeaflet or leaflet-blazor package.
+       The map should plot incident pins (red), responder pins (blue), and draw
+       radius circles for each response scope.
+       Example: <LeafletMap @ref="_map" Center="@(new LatLng(30.27, -97.74))" Zoom="13" />
+     - Mapbox GL JS: Alternative to Leaflet for richer styling. Use Mapbox.Blazor
+       or interop via IJSRuntime.
+     - Google Maps: If a Google Maps API key is available, use
+       GoogleMaps.Blazor for native integration.
+
+   WAL: All panels subscribe to DashboardHubService events and call
+        InvokeAsync(StateHasChanged) for thread-safe re-renders.
+   ============================================================================= *@
+
+<PageTitle>Dashboard — TheWatch Command Center</PageTitle>
+
+<div class="dashboard-header">
+    <div class="header-left">
+        <MudText Typo="Typo.h4" Class="header-title">Command Center</MudText>
+        <MudChip T="string"
+                 Color="@(HubService.IsConnected ? Color.Success : Color.Error)"
+                 Size="Size.Small"
+                 Variant="Variant.Filled">
+            @(HubService.IsConnected ? "LIVE" : "DISCONNECTED")
+        </MudChip>
+    </div>
+    <div class="header-right">
+        <MudText Typo="Typo.caption" Class="header-time">
+            @DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss") UTC
+        </MudText>
+    </div>
+</div>
+
+@* ── Summary Cards ──────────────────────────────────────────────── *@
+<MudGrid Class="mb-4 px-4">
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Class="stat-card stat-active">
+            <MudCardContent>
+                <MudText Typo="Typo.caption" Class="stat-label">ACTIVE INCIDENTS</MudText>
+                <MudText Typo="Typo.h3" Class="stat-value">@_activeIncidents.Count</MudText>
+                <MudText Typo="Typo.caption" Class="stat-sub">
+                    @_activeIncidents.Count(i => i.Status == ResponseStatus.Escalated) escalated
+                </MudText>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Class="stat-card stat-responders">
+            <MudCardContent>
+                <MudText Typo="Typo.caption" Class="stat-label">RESPONDERS EN ROUTE</MudText>
+                <MudText Typo="Typo.h3" Class="stat-value">@_totalRespondersEnRoute</MudText>
+                <MudText Typo="Typo.caption" Class="stat-sub">@_totalRespondersOnScene on scene</MudText>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Class="stat-card stat-evidence">
+            <MudCardContent>
+                <MudText Typo="Typo.caption" Class="stat-label">EVIDENCE ITEMS</MudText>
+                <MudText Typo="Typo.h3" Class="stat-value">@_evidenceFeed.Count</MudText>
+                <MudText Typo="Typo.caption" Class="stat-sub">last 30 minutes</MudText>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Class="stat-card stat-resolved">
+            <MudCardContent>
+                <MudText Typo="Typo.caption" Class="stat-label">RESOLVED TODAY</MudText>
+                <MudText Typo="Typo.h3" Class="stat-value">@_resolvedToday</MudText>
+                <MudText Typo="Typo.caption" Class="stat-sub">avg @_avgResponseTime response</MudText>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+@* ── Main Dashboard Grid ────────────────────────────────────────── *@
+<MudGrid Class="px-4">
+
+    @* ── Incident Map Placeholder ────────────────────────────────── *@
+    <MudItem xs="12" md="8">
+        <MudCard Class="dashboard-panel" Style="min-height: 400px;">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Filled.Map" Class="mr-1" />
+                        Incident Map
+                    </MudText>
+                </CardHeaderContent>
+                <CardHeaderActions>
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">
+                        @_activeIncidents.Count active
+                    </MudChip>
+                </CardHeaderActions>
+            </MudCardHeader>
+            <MudCardContent>
+                @* ────────────────────────────────────────────────────────────────
+                   LEAFLET.JS INTEGRATION POINT
+                   ────────────────────────────────────────────────────────────────
+                   Replace this placeholder with a Leaflet.js or Mapbox GL JS map.
+                   Recommended packages:
+                     - BlazorLeaflet (NuGet: Darnton.Blazor.Leaflet)
+                     - leaflet-interop via IJSRuntime
+                     - Mapbox.Blazor for Mapbox GL
+
+                   Map should display:
+                     - Red pins for active SOS incidents (ResponseRequest.Latitude/Longitude)
+                     - Blue pins for en-route responders (ResponderAcknowledgment positions)
+                     - Green pins for on-scene responders
+                     - Radius circles (ResponseRequest.RadiusMeters) around each incident
+                     - Popup on click: incident details + responder count + elapsed time
+
+                   Data source: _activeIncidents list + real-time ResponderLocationUpdated events
+
+                   Example Leaflet JS interop:
+                     await JS.InvokeVoidAsync("leafletMap.init", "map-container", 30.27, -97.74, 13);
+                     await JS.InvokeVoidAsync("leafletMap.addIncidentMarker", lat, lng, requestId, scope);
+                     await JS.InvokeVoidAsync("leafletMap.updateResponderMarker", responderId, lat, lng);
+                   ──────────────────────────────────────────────────────────────── *@
+
+                <div class="map-placeholder">
+                    <MudIcon Icon="@Icons.Material.Filled.Map" Style="font-size: 64px; opacity: 0.3;" />
+                    <MudText Typo="Typo.body1" Style="opacity: 0.5;">
+                        Interactive Map — Leaflet.js integration pending
+                    </MudText>
+                    <MudText Typo="Typo.caption" Style="opacity: 0.3;">
+                        Incident pins, responder tracks, and radius overlays will render here
+                    </MudText>
+
+                    @* ── Fallback: Incident List within Map Area ─── *@
+                    @if (_activeIncidents.Any())
+                    {
+                        <MudDivider Class="my-3" />
+                        <MudSimpleTable Dense="true" Hover="true" Style="max-height: 200px; overflow-y: auto;">
+                            <thead>
+                                <tr>
+                                    <th>Request ID</th>
+                                    <th>Scope</th>
+                                    <th>Location</th>
+                                    <th>Status</th>
+                                    <th>Radius</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var incident in _activeIncidents)
+                                {
+                                    <tr>
+                                        <td><MudText Typo="Typo.caption">@incident.RequestId[..8]...</MudText></td>
+                                        <td>
+                                            <MudChip T="string" Size="Size.Small" Color="@GetScopeColor(incident.Scope)">
+                                                @incident.Scope
+                                            </MudChip>
+                                        </td>
+                                        <td><MudText Typo="Typo.caption">@incident.Latitude.ToString("F4"), @incident.Longitude.ToString("F4")</MudText></td>
+                                        <td>
+                                            <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(incident.Status)">
+                                                @incident.Status
+                                            </MudChip>
+                                        </td>
+                                        <td><MudText Typo="Typo.caption">@(incident.RadiusMeters)m</MudText></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption" Class="mt-2" Style="opacity: 0.4;">
+                            No active incidents — system monitoring
+                        </MudText>
+                    }
+                </div>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    @* ── Active Incidents Panel ──────────────────────────────────── *@
+    <MudItem xs="12" md="4">
+        <MudCard Class="dashboard-panel" Style="min-height: 400px; max-height: 500px; overflow-y: auto;">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Filled.Warning" Class="mr-1" Color="Color.Error" />
+                        Active SOS Requests
+                    </MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                @if (!_activeIncidents.Any())
+                {
+                    <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Dense="true">
+                        No active SOS requests. All clear.
+                    </MudAlert>
+                }
+                else
+                {
+                    @foreach (var incident in _activeIncidents.OrderByDescending(i => i.CreatedAt))
+                    {
+                        var elapsed = DateTime.UtcNow - incident.CreatedAt;
+                        var situation = _situations.GetValueOrDefault(incident.RequestId);
+
+                        <MudCard Class="incident-card mb-3" Elevation="0" Outlined="true">
+                            <MudCardContent Class="pa-3">
+                                <div class="d-flex justify-space-between align-center mb-2">
+                                    <MudChip T="string" Size="Size.Small" Color="@GetScopeColor(incident.Scope)"
+                                             Variant="Variant.Filled">
+                                        @incident.Scope
+                                    </MudChip>
+                                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(incident.Status)"
+                                             Variant="Variant.Outlined">
+                                        @incident.Status
+                                    </MudChip>
+                                </div>
+                                <MudText Typo="Typo.body2" Class="mb-1">
+                                    @(incident.Description ?? "SOS triggered")
+                                </MudText>
+                                <div class="d-flex gap-4">
+                                    <MudText Typo="Typo.caption">
+                                        <MudIcon Icon="@Icons.Material.Filled.Timer" Size="Size.Small" />
+                                        @FormatElapsed(elapsed)
+                                    </MudText>
+                                    <MudText Typo="Typo.caption">
+                                        <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Small" />
+                                        @(situation?.TotalAcknowledged ?? 0)/@incident.DesiredResponderCount
+                                    </MudText>
+                                    <MudText Typo="Typo.caption">
+                                        <MudIcon Icon="@Icons.Material.Filled.DirectionsRun" Size="Size.Small" />
+                                        @(situation?.TotalEnRoute ?? 0) en route
+                                    </MudText>
+                                </div>
+                                @if (incident.TriggerSource is not null)
+                                {
+                                    <MudText Typo="Typo.caption" Style="opacity: 0.6;" Class="mt-1">
+                                        Trigger: @incident.TriggerSource
+                                    </MudText>
+                                }
+                            </MudCardContent>
+                        </MudCard>
+                    }
+                }
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    @* ── Responder Status Panel ──────────────────────────────────── *@
+    <MudItem xs="12" md="6">
+        <MudCard Class="dashboard-panel" Style="min-height: 300px; max-height: 400px; overflow-y: auto;">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Filled.Groups" Class="mr-1" Color="Color.Primary" />
+                        Responder Status
+                    </MudText>
+                </CardHeaderContent>
+                <CardHeaderActions>
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info">
+                        @_allAcknowledgments.Count total
+                    </MudChip>
+                </CardHeaderActions>
+            </MudCardHeader>
+            <MudCardContent>
+                @if (!_allAcknowledgments.Any())
+                {
+                    <MudText Typo="Typo.body2" Style="opacity: 0.5;">
+                        No active responders.
+                    </MudText>
+                }
+                else
+                {
+                    <MudSimpleTable Dense="true" Hover="true">
+                        <thead>
+                            <tr>
+                                <th>Responder</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Distance</th>
+                                <th>ETA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var ack in _allAcknowledgments.OrderBy(a => a.Status))
+                            {
+                                <tr>
+                                    <td>
+                                        <MudText Typo="Typo.body2">@ack.ResponderName</MudText>
+                                    </td>
+                                    <td>
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                                 Color="@GetRoleColor(ack.ResponderRole)">
+                                            @(ack.ResponderRole ?? "VOLUNTEER")
+                                        </MudChip>
+                                    </td>
+                                    <td>
+                                        <MudChip T="string" Size="Size.Small" Color="@GetAckStatusColor(ack.Status)"
+                                                 Variant="Variant.Filled">
+                                            @ack.Status
+                                        </MudChip>
+                                    </td>
+                                    <td>
+                                        <MudText Typo="Typo.caption">
+                                            @FormatDistance(ack.DistanceMeters)
+                                        </MudText>
+                                    </td>
+                                    <td>
+                                        <MudText Typo="Typo.caption">
+                                            @(ack.EstimatedArrival.HasValue ? $"{ack.EstimatedArrival.Value.TotalMinutes:F0} min" : "—")
+                                        </MudText>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    @* ── Escalation Timeline ─────────────────────────────────────── *@
+    <MudItem xs="12" md="6">
+        <MudCard Class="dashboard-panel" Style="min-height: 300px; max-height: 400px; overflow-y: auto;">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Class="mr-1" Color="Color.Warning" />
+                        Escalation Timeline
+                    </MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                @if (!_escalationEvents.Any())
+                {
+                    <MudText Typo="Typo.body2" Style="opacity: 0.5;">
+                        No escalation events. Response thresholds being met.
+                    </MudText>
+                }
+                else
+                {
+                    <MudTimeline TimelineOrientation="TimelineOrientation.Vertical"
+                                 TimelinePosition="TimelinePosition.Start">
+                        @foreach (var esc in _escalationEvents.OrderByDescending(e => e.TriggeredAt))
+                        {
+                            <MudTimelineItem Color="@GetEscalationColor(esc.PolicyTriggered)"
+                                             Size="Size.Small"
+                                             Elevation="0">
+                                <ItemContent>
+                                    <MudText Typo="Typo.body2" GutterBottom="true">
+                                        <strong>@esc.PolicyTriggered</strong>
+                                    </MudText>
+                                    <MudText Typo="Typo.caption">@esc.Reason</MudText>
+                                    <MudText Typo="Typo.caption" Style="opacity: 0.5;">
+                                        @esc.TriggeredAt.ToString("HH:mm:ss") UTC
+                                    </MudText>
+                                    @if (esc.NewScope.HasValue)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="mt-1">
+                                            Scope -> @esc.NewScope
+                                        </MudChip>
+                                    }
+                                </ItemContent>
+                            </MudTimelineItem>
+                        }
+                    </MudTimeline>
+                }
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    @* ── Evidence Feed ────────────────────────────────────────────── *@
+    <MudItem xs="12">
+        <MudCard Class="dashboard-panel" Style="max-height: 350px; overflow-y: auto;">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Filled.PhotoLibrary" Class="mr-1" Color="Color.Tertiary" />
+                        Evidence Feed
+                    </MudText>
+                </CardHeaderContent>
+                <CardHeaderActions>
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default">
+                        @_evidenceFeed.Count items
+                    </MudChip>
+                </CardHeaderActions>
+            </MudCardHeader>
+            <MudCardContent>
+                @if (!_evidenceFeed.Any())
+                {
+                    <MudText Typo="Typo.body2" Style="opacity: 0.5;">
+                        No evidence submissions in the current session.
+                    </MudText>
+                }
+                else
+                {
+                    <MudGrid>
+                        @foreach (var evidence in _evidenceFeed.OrderByDescending(e => e.Timestamp).Take(20))
+                        {
+                            <MudItem xs="12" sm="6" md="4" lg="3">
+                                <MudCard Outlined="true" Class="evidence-card">
+                                    <MudCardContent Class="pa-2">
+                                        <div class="d-flex align-center gap-2 mb-1">
+                                            <MudIcon Icon="@GetEvidenceIcon(evidence.Type)" Size="Size.Small" />
+                                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
+                                                @evidence.Type
+                                            </MudChip>
+                                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                                     Color="@GetPhaseColor(evidence.Phase)">
+                                                @evidence.Phase
+                                            </MudChip>
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(evidence.ThumbnailUrl))
+                                        {
+                                            <MudImage Src="@evidence.ThumbnailUrl"
+                                                      Alt="Evidence thumbnail"
+                                                      Style="max-height: 100px; width: 100%; object-fit: cover; border-radius: 4px;" />
+                                        }
+                                        <MudText Typo="Typo.caption" Style="opacity: 0.5;">
+                                            @evidence.RequestId[..8]... @evidence.Timestamp.ToString("HH:mm:ss")
+                                        </MudText>
+                                    </MudCardContent>
+                                </MudCard>
+                            </MudItem>
+                        }
+                    </MudGrid>
+                }
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+@code {
+    // ── State ────────────────────────────────────────────────────
+    private List<ResponseRequest> _activeIncidents = new();
+    private Dictionary<string, ResponseSituation> _situations = new();
+    private List<ResponderAcknowledgment> _allAcknowledgments = new();
+    private List<EscalationEvent> _escalationEvents = new();
+    private List<EvidenceSubmittedUpdate> _evidenceFeed = new();
+    private int _totalRespondersEnRoute;
+    private int _totalRespondersOnScene;
+    private int _resolvedToday;
+    private string _avgResponseTime = "—";
+    private System.Threading.Timer? _clockTimer;
+
+    // ── Lifecycle ────────────────────────────────────────────────
+    protected override async Task OnInitializedAsync()
+    {
+        // Subscribe to real-time events
+        HubService.OnResponderLocationUpdated += HandleResponderLocationUpdated;
+        HubService.OnResponderOnScene += HandleResponderOnScene;
+        HubService.OnEvidenceSubmitted += HandleEvidenceSubmitted;
+        HubService.OnConnectionChanged += HandleConnectionChanged;
+
+        // Start the hub connection
+        await HubService.StartAsync();
+
+        // Load initial data from the API
+        await LoadDashboardDataAsync();
+
+        // Update the clock every second
+        _clockTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(StateHasChanged);
+        }, null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
+    }
+
+    private async Task LoadDashboardDataAsync()
+    {
+        try
+        {
+            // In a full implementation, the DashboardApiClient would have methods
+            // for fetching active incidents, situations, etc. For now, we use
+            // the simulation data and real-time events to populate the dashboard.
+            // The active incidents would come from: GET /api/response/active/{userId}
+            // For the command center (admin), a dedicated GET /api/response/all-active
+            // endpoint would be needed.
+
+            // Join response groups for each active incident so we get real-time updates
+            foreach (var incident in _activeIncidents)
+            {
+                await HubService.JoinResponseGroupAsync(incident.RequestId);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load dashboard data: {ex.Message}", Severity.Error);
+        }
+    }
+
+    // ── SignalR Event Handlers ───────────────────────────────────
+    private async void HandleResponderLocationUpdated(ResponderLocationUpdate update)
+    {
+        // Update responder position in the acknowledgments list
+        // In a full implementation, this would update the map markers in real-time
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void HandleResponderOnScene(ResponderOnSceneUpdate update)
+    {
+        _totalRespondersOnScene++;
+        Snackbar.Add($"Responder {update.ResponderId[..6]} arrived on scene for {update.RequestId[..8]}", Severity.Success);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void HandleEvidenceSubmitted(EvidenceSubmittedUpdate update)
+    {
+        _evidenceFeed.Insert(0, update);
+        // Keep evidence feed to last 100 items
+        if (_evidenceFeed.Count > 100)
+            _evidenceFeed.RemoveRange(100, _evidenceFeed.Count - 100);
+
+        Snackbar.Add($"New evidence: {update.Type} for incident {update.RequestId[..8]}", Severity.Info);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void HandleConnectionChanged(HubConnectionState state)
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    // ── Helper Methods ───────────────────────────────────────────
+    private static string FormatElapsed(TimeSpan elapsed)
+    {
+        if (elapsed.TotalHours >= 1)
+            return $"{elapsed.Hours}h {elapsed.Minutes}m";
+        if (elapsed.TotalMinutes >= 1)
+            return $"{elapsed.Minutes}m {elapsed.Seconds}s";
+        return $"{elapsed.Seconds}s";
+    }
+
+    private static string FormatDistance(double meters)
+    {
+        if (meters >= 1000)
+            return $"{meters / 1000:F1} km";
+        return $"{meters:F0} m";
+    }
+
+    private static Color GetScopeColor(ResponseScope scope) => scope switch
+    {
+        ResponseScope.CheckIn => Color.Info,
+        ResponseScope.Neighborhood => Color.Warning,
+        ResponseScope.Community => Color.Error,
+        ResponseScope.Evacuation => Color.Dark,
+        ResponseScope.SilentDuress => Color.Secondary,
+        _ => Color.Default
+    };
+
+    private static Color GetStatusColor(ResponseStatus status) => status switch
+    {
+        ResponseStatus.Pending => Color.Default,
+        ResponseStatus.Dispatching => Color.Info,
+        ResponseStatus.Active => Color.Warning,
+        ResponseStatus.Escalated => Color.Error,
+        ResponseStatus.Resolved => Color.Success,
+        ResponseStatus.Cancelled => Color.Dark,
+        ResponseStatus.Expired => Color.Dark,
+        _ => Color.Default
+    };
+
+    private static Color GetAckStatusColor(AckStatus status) => status switch
+    {
+        AckStatus.Acknowledged => Color.Info,
+        AckStatus.EnRoute => Color.Warning,
+        AckStatus.OnScene => Color.Success,
+        AckStatus.Declined => Color.Dark,
+        AckStatus.TimedOut => Color.Error,
+        _ => Color.Default
+    };
+
+    private static Color GetRoleColor(string? role) => role switch
+    {
+        "EMT" => Color.Error,
+        "NURSE" => Color.Primary,
+        "CPR" or "FIRST_AID" => Color.Warning,
+        "TRUSTED_CONTACT" => Color.Secondary,
+        _ => Color.Default
+    };
+
+    private static Color GetEscalationColor(EscalationPolicy policy) => policy switch
+    {
+        EscalationPolicy.TimedEscalation => Color.Warning,
+        EscalationPolicy.Immediate911 => Color.Error,
+        EscalationPolicy.Conditional911 => Color.Error,
+        EscalationPolicy.FullCascade => Color.Dark,
+        _ => Color.Info
+    };
+
+    private static string GetEvidenceIcon(string type) => type switch
+    {
+        "Photo" or "Image" => Icons.Material.Filled.Photo,
+        "Video" => Icons.Material.Filled.Videocam,
+        "Audio" => Icons.Material.Filled.Mic,
+        "Sitrep" or "Text" => Icons.Material.Filled.Description,
+        _ => Icons.Material.Filled.AttachFile
+    };
+
+    private static Color GetPhaseColor(string phase) => phase switch
+    {
+        "Active" => Color.Error,
+        "PostIncident" => Color.Warning,
+        "Review" => Color.Info,
+        _ => Color.Default
+    };
+
+    // ── Disposal ─────────────────────────────────────────────────
+    public async ValueTask DisposeAsync()
+    {
+        HubService.OnResponderLocationUpdated -= HandleResponderLocationUpdated;
+        HubService.OnResponderOnScene -= HandleResponderOnScene;
+        HubService.OnEvidenceSubmitted -= HandleEvidenceSubmitted;
+        HubService.OnConnectionChanged -= HandleConnectionChanged;
+
+        if (_clockTimer is not null)
+            await _clockTimer.DisposeAsync();
+
+        // Leave response groups
+        foreach (var incident in _activeIncidents)
+        {
+            try { await HubService.LeaveResponseGroupAsync(incident.RequestId); }
+            catch { /* best effort */ }
+        }
+    }
+}
+
+<style>
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 24px 24px 16px;
+    }
+
+    .header-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .header-title {
+        font-weight: 700;
+    }
+
+    .header-time {
+        opacity: 0.5;
+        font-family: 'Cascadia Code', 'Fira Code', monospace;
+    }
+
+    .stat-card {
+        border-radius: 12px !important;
+        border-left: 4px solid;
+    }
+
+    .stat-active { border-left-color: #DC3545; }
+    .stat-responders { border-left-color: #5C8AFF; }
+    .stat-evidence { border-left-color: #9C27B0; }
+    .stat-resolved { border-left-color: #28A745; }
+
+    .stat-label {
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        opacity: 0.6;
+    }
+
+    .stat-value {
+        font-weight: 800;
+        margin: 4px 0;
+    }
+
+    .stat-sub {
+        opacity: 0.5;
+    }
+
+    .dashboard-panel {
+        border-radius: 12px !important;
+    }
+
+    .map-placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 200px;
+        border: 2px dashed rgba(255,255,255,0.1);
+        border-radius: 8px;
+        padding: 24px;
+        text-align: center;
+    }
+
+    .incident-card {
+        border-radius: 8px !important;
+    }
+
+    .evidence-card {
+        border-radius: 8px !important;
+    }
+</style>

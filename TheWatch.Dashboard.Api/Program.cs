@@ -131,11 +131,37 @@ builder.Services.AddSingleton<ISimulationService, SimulationService>();
 // Response coordination service — orchestrates SOS → dispatch → track → escalate pipeline
 builder.Services.AddScoped<IResponseCoordinationService, ResponseCoordinationService>();
 
+// Watch Call service — orchestrates Watch Call lifecycle, scene narration, and escalation
+builder.Services.AddScoped<IWatchCallService, WatchCallService>();
+
+// Sensor fusion service — aggregates multi-source sensor data, anomaly detection, SignalR broadcasting
+builder.Services.AddScoped<ISensorFusionService, SensorFusionService>();
+
 // Context retrieval service — RAG orchestration across Azure/Google/Qdrant vector stores
 builder.Services.AddSingleton<IContextRetrievalPort, ContextRetrievalService>();
 
-// OpenAPI / Swagger
-builder.Services.AddOpenApi();
+// OpenAPI — uses the built-in .NET OpenApi middleware (Microsoft.AspNetCore.OpenApi).
+// The spec is generated at /openapi/v1.json. In Dev/Staging, a Swagger-compatible
+// UI is served that redirects to the OpenAPI spec.
+//
+// Bearer auth requirement is configured via the OpenApiOptions transformer:
+//   All endpoints with [Authorize] get a Bearer security requirement in the spec.
+//
+// Example — accessing the OpenAPI spec:
+//   curl https://localhost:7001/openapi/v1.json
+//   Open in browser: https://localhost:7001/openapi for interactive UI
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer((document, context, ct) =>
+    {
+        document.Info.Title = "TheWatch Dashboard API";
+        document.Info.Version = "v1";
+        document.Info.Description = "REST API for TheWatch emergency response coordination system. " +
+                                    "Provides endpoints for SOS triggering, responder dispatch, escalation, " +
+                                    "evidence management, surveys, Watch Calls, and administrative operations.";
+        return Task.CompletedTask;
+    });
+});
 
 // ── Build ─────────────────────────────────────────────────────────────────────────
 var app = builder.Build();
@@ -143,7 +169,11 @@ var app = builder.Build();
 // ── Middleware Pipeline ───────────────────────────────────────────────────────────
 app.MapDefaultEndpoints();
 
-if (app.Environment.IsDevelopment())
+// OpenAPI spec endpoint — enabled in Development and Staging.
+// Spec available at: /openapi/v1.json
+// For Swagger UI, use Scalar (dotnet add Scalar.AspNetCore → app.MapScalarApiReference())
+// or import the spec URL into Swagger Editor / Postman.
+if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
 {
     app.MapOpenApi();
 }

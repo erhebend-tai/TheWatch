@@ -3,10 +3,12 @@ package com.thewatch.app.ui.screens.home
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.thewatch.app.data.model.Responder
 import com.thewatch.app.data.repository.AlertRepository
 import com.thewatch.app.data.repository.PhraseDetectionRepository
 import com.thewatch.app.data.repository.PhraseMatchResult
 import com.thewatch.app.data.repository.PhraseType
+import com.thewatch.app.data.signalr.WatchHubConnection
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,7 +27,8 @@ sealed class AlertUiState {
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val alertRepository: AlertRepository,
-    private val phraseDetectionRepository: PhraseDetectionRepository
+    private val phraseDetectionRepository: PhraseDetectionRepository,
+    private val hubConnection: WatchHubConnection
 ) : ViewModel() {
     private val _alertUiState = MutableStateFlow<AlertUiState>(AlertUiState.Idle)
     val alertUiState: StateFlow<AlertUiState> = _alertUiState.asStateFlow()
@@ -35,6 +38,14 @@ class HomeViewModel @Inject constructor(
 
     private val _unreadNotifications = MutableStateFlow(2)
     val unreadNotifications: StateFlow<Int> = _unreadNotifications.asStateFlow()
+
+    /** Nearby responders fetched from API / SignalR. */
+    private val _nearbyResponders = MutableStateFlow<List<Responder>>(emptyList())
+    val nearbyResponders: StateFlow<List<Responder>> = _nearbyResponders.asStateFlow()
+
+    /** Active response request ID, if any. */
+    private val _activeRequestId = MutableStateFlow<String?>(null)
+    val activeRequestId: StateFlow<String?> = _activeRequestId.asStateFlow()
 
     /** Whether phrase detection is currently listening. */
     val isPhraseDetectionActive: StateFlow<Boolean> = phraseDetectionRepository.isListening
@@ -90,14 +101,25 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             _alertUiState.value = if (silent) AlertUiState.AlertActive else AlertUiState.Loading
             try {
-                alertRepository.activateAlert(
+                // Alert.kt has default params for all fields
+                val alert = com.thewatch.app.data.model.Alert(
+                    userId = "current_user", // TODO: inject actual user ID from auth
                     latitude = 40.7128,
                     longitude = -74.0060,
-                    alertType = alertType,
-                    description = description
+                    description = description,
+                    severity = alertType
                 )
-                _alertUiState.value = AlertUiState.AlertActive
-                _isAlertActive.value = true
+                val result = alertRepository.activateAlert(alert)
+                result.onSuccess { activated ->
+                    _activeRequestId.value = activated.id
+                    _alertUiState.value = AlertUiState.AlertActive
+                    _isAlertActive.value = true
+                    // Start loading nearby responders for map overlays
+                    loadNearbyResponders(activated.latitude, activated.longitude)
+                }
+                result.onFailure { e ->
+                    _alertUiState.value = AlertUiState.Error(e.message ?: "Unknown error")
+                }
             } catch (e: Exception) {
                 _alertUiState.value = AlertUiState.Error(e.message ?: "Unknown error")
             }
@@ -108,11 +130,32 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             _alertUiState.value = AlertUiState.Loading
             try {
-                alertRepository.cancelAlert()
+                val requestId = _activeRequestId.value ?: ""
+                alertRepository.cancelAlert(requestId)
                 _alertUiState.value = AlertUiState.AlertCancelled
                 _isAlertActive.value = false
+                _activeRequestId.value = null
+                _nearbyResponders.value = emptyList()
             } catch (e: Exception) {
                 _alertUiState.value = AlertUiState.Error(e.message ?: "Unknown error")
+            }
+        }
+    }
+
+    /**
+     * Load nearby responders from the API. During an active alert, this also
+     * starts a polling flow that updates every 5 seconds (SignalR provides
+     * instant updates when the real hub connection is active).
+     */
+    fun loadNearbyResponders(latitude: Double = 40.7128, longitude: Double = -74.0060) {
+        viewModelScope.launch {
+            try {
+                alertRepository.getNearbyResponders(latitude, longitude, 5000.0)
+                    .collect { responders ->
+                        _nearbyResponders.value = responders
+                    }
+            } catch (e: Exception) {
+                Log.w("HomeViewModel", "Failed to load nearby responders: ${e.message}")
             }
         }
     }

@@ -16,15 +16,18 @@ final class HomeViewModel {
     var isPhraseDetectionActive = false
     var lastPhraseMatch: PhraseMatchResult?
 
-    private let alertService: MockAlertService
-    private let volunteerService: MockVolunteerService
+    private let alertService: any AlertServiceProtocol
+    private let volunteerService: any VolunteerServiceProtocol
+    private let apiClient = WatchApiClient.shared
+    private let hubConnection = WatchHubConnection.shared
     private let phraseDetectionService = PhraseDetectionService.shared
     private var sosTimer: Timer?
     private var cancellables = Set<AnyCancellable>()
+    private var responderPollingTask: Task<Void, Never>?
 
     init(
-        alertService: MockAlertService,
-        volunteerService: MockVolunteerService
+        alertService: any AlertServiceProtocol,
+        volunteerService: any VolunteerServiceProtocol
     ) {
         self.alertService = alertService
         self.volunteerService = volunteerService
@@ -170,6 +173,10 @@ final class HomeViewModel {
                 self.activeAlert = alert
                 self.isSOS = false
 
+                // Start polling for responder positions (real-time via SignalR
+                // when hub is live; polling as fallback in mock mode)
+                startResponderPolling(requestId: alert.id)
+
                 // Additional haptic pulses
                 for _ in 0..<3 {
                     try await Task.sleep(nanoseconds: 200_000_000)
@@ -190,7 +197,50 @@ final class HomeViewModel {
         showNavigationDrawer.toggle()
     }
 
+    /// Start polling for responder locations during an active alert.
+    /// This is a fallback when SignalR is in mock mode; the real hub
+    /// provides instant ResponderLocationUpdated events.
+    func startResponderPolling(requestId: String) {
+        responderPollingTask?.cancel()
+        responderPollingTask = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self else { break }
+                do {
+                    let situation = try await self.apiClient.getSituation(requestId: requestId)
+                    let responders = (situation.responders ?? []).map { ack in
+                        Responder(
+                            id: ack.responderId ?? "",
+                            name: ack.responderName ?? "",
+                            role: ResponderRole(rawValue: ack.responderRole ?? "Volunteer") ?? .volunteer,
+                            latitude: ack.latitude ?? 0,
+                            longitude: ack.longitude ?? 0,
+                            distance: ack.distanceMeters ?? 0,
+                            skills: [],
+                            isVerified: true,
+                            responseTime: nil,
+                            status: .onCall,
+                            availability: .available,
+                            hasVehicle: ack.hasVehicle ?? false
+                        )
+                    }
+                    await MainActor.run {
+                        self.nearbyResponders = responders
+                    }
+                } catch {
+                    // Polling failure is non-fatal; try again next cycle
+                }
+                try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
+            }
+        }
+    }
+
+    func stopResponderPolling() {
+        responderPollingTask?.cancel()
+        responderPollingTask = nil
+    }
+
     deinit {
         sosTimer?.invalidate()
+        responderPollingTask?.cancel()
     }
 }

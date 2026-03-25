@@ -20,6 +20,11 @@ import com.thewatch.app.data.repository.PhraseDetectionRepository
 import com.thewatch.app.data.repository.PhraseDetectionRepositoryImpl
 import com.thewatch.app.data.repository.UserRepository
 import com.thewatch.app.data.repository.VolunteerRepository
+import com.thewatch.app.data.api.WatchApiClient
+import com.thewatch.app.data.repository.api.ApiAlertRepository
+import com.thewatch.app.data.repository.api.ApiHistoryRepository
+import com.thewatch.app.data.repository.api.ApiUserRepository
+import com.thewatch.app.data.repository.api.ApiVolunteerRepository
 import com.thewatch.app.data.repository.mock.MockAlertRepository
 import com.thewatch.app.data.repository.mock.MockAuthRepository
 import com.thewatch.app.data.repository.mock.MockHistoryRepository
@@ -163,46 +168,55 @@ object AppModule {
         }
     }
 
+    // ── WatchApiClient (HTTP client for Dashboard.Api) ──────────
     @Singleton
     @Provides
-    fun provideAlertRepository(registry: AdapterRegistry): AlertRepository {
+    fun provideWatchApiClient(): WatchApiClient = WatchApiClient()
+
+    @Singleton
+    @Provides
+    fun provideAlertRepository(
+        registry: AdapterRegistry,
+        apiClient: WatchApiClient,
+        hubConnection: WatchHubConnection
+    ): AlertRepository {
         return when (registry.getTier(AdapterSlot.SOS)) {
             AdapterTier.Mock -> MockAlertRepository()
             // AdapterTier.Native -> NativeAlertRepository()
-            // AdapterTier.Live -> LiveAlertRepository()
+            AdapterTier.Live -> ApiAlertRepository(apiClient, hubConnection)
             else -> MockAlertRepository()
         }
     }
 
     @Singleton
     @Provides
-    fun provideUserRepository(registry: AdapterRegistry): UserRepository {
+    fun provideUserRepository(registry: AdapterRegistry, apiClient: WatchApiClient): UserRepository {
         return when (registry.getTier(AdapterSlot.Contacts)) {
             AdapterTier.Mock -> MockUserRepository()
             // AdapterTier.Native -> NativeUserRepository()
-            // AdapterTier.Live -> FirestoreUserRepository()
+            AdapterTier.Live -> ApiUserRepository(apiClient)
             else -> MockUserRepository()
         }
     }
 
     @Singleton
     @Provides
-    fun provideHistoryRepository(registry: AdapterRegistry): HistoryRepository {
+    fun provideHistoryRepository(registry: AdapterRegistry, apiClient: WatchApiClient): HistoryRepository {
         return when (registry.getTier(AdapterSlot.Evidence)) {
             AdapterTier.Mock -> MockHistoryRepository()
             // AdapterTier.Native -> RoomHistoryRepository()
-            // AdapterTier.Live -> FirestoreHistoryRepository()
+            AdapterTier.Live -> ApiHistoryRepository(apiClient)
             else -> MockHistoryRepository()
         }
     }
 
     @Singleton
     @Provides
-    fun provideVolunteerRepository(registry: AdapterRegistry): VolunteerRepository {
+    fun provideVolunteerRepository(registry: AdapterRegistry, apiClient: WatchApiClient): VolunteerRepository {
         return when (registry.getTier(AdapterSlot.Contacts)) {
             AdapterTier.Mock -> MockVolunteerRepository()
             // AdapterTier.Native -> NativeVolunteerRepository()
-            // AdapterTier.Live -> FirestoreVolunteerRepository()
+            AdapterTier.Live -> ApiVolunteerRepository(apiClient)
             else -> MockVolunteerRepository()
         }
     }

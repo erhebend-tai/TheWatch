@@ -75,6 +75,15 @@ public static class ServiceCollectionExtensions
         // Context retrieval: RAG orchestration (keyword-matched seed corpus for dev)
         services.AddSingleton<IContextRetrievalPort, MockContextRetrievalPort>();
 
+        // Sensor fusion: ingestion, fusion engine, composite event detection
+        services.AddSingleton<ISensorFusionPort, MockSensorFusionPort>();
+
+        // Volunteering: enrollment, profile, verification, scheduling, stats, leaderboard
+        services.AddSingleton<IVolunteeringPort, MockVolunteeringAdapter>();
+
+        // Incident history: paginated history, timelines, HTML export, personal safety stats
+        services.AddSingleton<IIncidentHistoryPort, MockIncidentHistoryAdapter>();
+
         return services;
     }
 }

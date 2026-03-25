@@ -21,11 +21,14 @@
 // WAL: Thin controller — validation + delegation to IGuardReportPort.
 //      Escalation calls IResponseCoordinationService to create the SOS.
 
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using TheWatch.Dashboard.Api.Hubs;
 using TheWatch.Dashboard.Api.Services;
+using TheWatch.Shared.Domain.Models;
 using TheWatch.Shared.Domain.Ports;
+using TheWatch.Shared.Enums;
 
 namespace TheWatch.Dashboard.Api.Controllers;
 
@@ -35,17 +38,23 @@ public class GuardReportController : ControllerBase
 {
     private readonly IGuardReportPort _guardPort;
     private readonly IResponseCoordinationService _coordinationService;
+    private readonly IWatchCallService _watchCallService;
+    private readonly IAuditTrail _auditTrail;
     private readonly IHubContext<DashboardHub> _hubContext;
     private readonly ILogger<GuardReportController> _logger;
 
     public GuardReportController(
         IGuardReportPort guardPort,
         IResponseCoordinationService coordinationService,
+        IWatchCallService watchCallService,
+        IAuditTrail auditTrail,
         IHubContext<DashboardHub> hubContext,
         ILogger<GuardReportController> logger)
     {
         _guardPort = guardPort;
         _coordinationService = coordinationService;
+        _watchCallService = watchCallService;
+        _auditTrail = auditTrail;
         _hubContext = hubContext;
         _logger = logger;
     }
@@ -62,6 +71,24 @@ public class GuardReportController : ControllerBase
             return BadRequest(new { error = "UserId is required" });
 
         var result = await _guardPort.EnrollGuardAsync(profile, ct);
+
+        await _auditTrail.AppendAsync(new AuditEntry
+        {
+            UserId = result.UserId,
+            ActorRole = "Guard",
+            Action = AuditAction.GuardEnrolled,
+            EntityType = "GuardProfile",
+            EntityId = result.UserId,
+            CorrelationId = result.UserId,
+            SourceSystem = "Dashboard.Api",
+            SourceComponent = "GuardReportController",
+            Severity = AuditSeverity.Info,
+            DataClassification = DataClassification.Confidential,
+            Outcome = AuditOutcome.Success,
+            NewValue = JsonSerializer.Serialize(new { result.UserId, result.Name, result.Role, result.Organization }),
+            Reason = $"Guard enrolled: {result.Name} ({result.Role})"
+        }, ct);
+
         return Created($"/api/guard/profile/{result.UserId}", result);
     }
 
@@ -82,6 +109,23 @@ public class GuardReportController : ControllerBase
             return BadRequest(new { error = "UserId is required" });
 
         var updated = await _guardPort.SetDutyStatusAsync(request.UserId, request.IsOnDuty, ct);
+
+        await _auditTrail.AppendAsync(new AuditEntry
+        {
+            UserId = updated.UserId,
+            ActorRole = "Guard",
+            Action = AuditAction.GuardDutyStatusChanged,
+            EntityType = "GuardProfile",
+            EntityId = updated.UserId,
+            CorrelationId = updated.UserId,
+            SourceSystem = "Dashboard.Api",
+            SourceComponent = "GuardReportController",
+            Severity = AuditSeverity.Info,
+            DataClassification = DataClassification.Confidential,
+            Outcome = AuditOutcome.Success,
+            NewValue = JsonSerializer.Serialize(new { updated.UserId, updated.IsOnDuty, updated.ShiftStartUtc, updated.ShiftEndUtc }),
+            Reason = $"Guard {updated.Name} duty status changed to {(updated.IsOnDuty ? "ON DUTY" : "OFF DUTY")}"
+        }, ct);
 
         await _hubContext.Clients.All.SendAsync("GuardDutyStatusChanged", new
         {
@@ -148,6 +192,27 @@ public class GuardReportController : ControllerBase
         _logger.LogInformation(
             "Guard report filed: {ReportId} by {GuardName} — {Category}/{Severity}: {Title}",
             filed.ReportId, filed.GuardName, filed.Category, filed.Severity, filed.Title);
+
+        await _auditTrail.AppendAsync(new AuditEntry
+        {
+            UserId = filed.GuardUserId,
+            ActorRole = "Guard",
+            Action = AuditAction.GuardReportFiled,
+            EntityType = "GuardReport",
+            EntityId = filed.ReportId,
+            CorrelationId = filed.ReportId,
+            SourceSystem = "Dashboard.Api",
+            SourceComponent = "GuardReportController",
+            Severity = filed.Severity >= ReportSeverity.High ? AuditSeverity.Warning : AuditSeverity.Notice,
+            DataClassification = DataClassification.Confidential,
+            Outcome = AuditOutcome.Success,
+            NewValue = JsonSerializer.Serialize(new
+            {
+                filed.ReportId, filed.GuardName, filed.GuardRole, filed.Category,
+                filed.Severity, filed.Title, filed.Latitude, filed.Longitude
+            }),
+            Reason = $"Guard report filed: {filed.Category}/{filed.Severity} — {filed.Title}"
+        }, ct);
 
         // Broadcast to dashboard for supervisor awareness
         await _hubContext.Clients.All.SendAsync("GuardReportFiled", new
@@ -312,6 +377,28 @@ public class GuardReportController : ControllerBase
             EscalatedAt = escalated.EscalatedAt
         }, ct);
 
+        // Audit: guard report escalated to SOS
+        await _auditTrail.AppendAsync(new AuditEntry
+        {
+            UserId = report.GuardUserId,
+            ActorRole = "Guard",
+            Action = AuditAction.GuardReportEscalatedToSOS,
+            EntityType = "GuardReport",
+            EntityId = reportId,
+            CorrelationId = response.RequestId,
+            SourceSystem = "Dashboard.Api",
+            SourceComponent = "GuardReportController",
+            Severity = AuditSeverity.Critical,
+            DataClassification = DataClassification.HighlyConfidential,
+            Outcome = AuditOutcome.Success,
+            NewValue = JsonSerializer.Serialize(new
+            {
+                escalated.ReportId, escalated.GuardName, ResponseRequestId = response.RequestId,
+                Scope = scope.ToString(), escalated.Severity, request.Reason
+            }),
+            Reason = $"Guard report escalated to SOS: {request.Reason ?? "guard observed escalation-worthy conditions"}"
+        }, ct);
+
         return Ok(new
         {
             escalated.ReportId,
@@ -320,7 +407,126 @@ public class GuardReportController : ControllerBase
             Scope = scope.ToString(),
             Severity = escalated.Severity.ToString(),
             escalated.EscalatedAt,
-            Message = "Report escalated to Watch call. Responders are being dispatched."
+            Message = "Report escalated to SOS. Responders are being dispatched."
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Escalation — Upgrade Report to Watch Call (Video De-escalation)
+    // ─────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// UPGRADE a guard report to a Watch Call (live video de-escalation).
+    /// This is the INTERMEDIATE escalation step between a filed report and a
+    /// full SOS dispatch. The Watch Call connects nearby enrolled watchers
+    /// via WebRTC with AI scene narration for neutral, factual observation.
+    ///
+    /// Progressive escalation chain:
+    ///   Guard Report (observation) → Watch Call (video de-escalation) → SOS (full dispatch)
+    ///
+    /// What happens:
+    ///   1. Report status → Escalated
+    ///   2. Watch Call created at the report's location
+    ///   3. Nearby enrolled watchers are notified and invited to join
+    ///   4. AI scene narration begins when video connects
+    ///   5. Watch Call can be further escalated to SOS if needed
+    ///   6. Guard is linked as the originator of the Watch Call
+    ///
+    /// Example:
+    ///   POST /api/guard/reports/gr-002/escalate-to-watchcall
+    ///   { "reason": "Vehicle stopped, person approaching house at 2 AM" }
+    /// </summary>
+    [HttpPost("reports/{reportId}/escalate-to-watchcall")]
+    public async Task<IActionResult> EscalateToWatchCall(
+        string reportId,
+        [FromBody] EscalateToWatchCallRequest request,
+        CancellationToken ct)
+    {
+        var report = await _guardPort.GetReportAsync(reportId, ct);
+        if (report is null)
+            return NotFound(new { error = $"Report {reportId} not found" });
+
+        if (report.Status == ReportStatus.Escalated)
+            return Conflict(new { error = "Report is already escalated", report.EscalatedRequestId });
+
+        _logger.LogWarning(
+            "GUARD → WATCH CALL: Report {ReportId} by {GuardName} → Watch Call. Reason: {Reason}",
+            reportId, report.GuardName, request.Reason);
+
+        // 1. Initiate a Watch Call linked to this guard report
+        var watchCallRequest = new InitiateWatchCallRequest(
+            InitiatorUserId: report.GuardUserId,
+            Latitude: report.Latitude,
+            Longitude: report.Longitude,
+            RadiusMeters: request.RadiusMeters ?? 2000,
+            MaxParticipants: request.MaxParticipants ?? 5,
+            RecordingEnabled: false,
+            LinkedGuardReportId: reportId,
+            Description: $"[Guard Report → Watch Call] {report.Title}\n" +
+                $"Guard: {report.GuardName} ({report.GuardRole})\n" +
+                $"Category: {report.Category}, Severity: {report.Severity}\n" +
+                $"Original report: {report.Description}\n" +
+                (request.Reason != null ? $"Escalation reason: {request.Reason}" : "")
+        );
+
+        var watchCall = await _watchCallService.InitiateCallAsync(watchCallRequest, ct);
+
+        // 2. Update the guard report to Escalated status via the port
+        var escalated = await _guardPort.EscalateToWatchCallAsync(
+            reportId, ResponseScope.Neighborhood, request.Reason, ct);
+
+        // 3. Audit: guard report escalated to Watch Call
+        await _auditTrail.AppendAsync(new AuditEntry
+        {
+            UserId = report.GuardUserId,
+            ActorRole = "Guard",
+            Action = AuditAction.GuardReportEscalatedToWatchCall,
+            EntityType = "GuardReport",
+            EntityId = reportId,
+            CorrelationId = watchCall.CallId,
+            SourceSystem = "Dashboard.Api",
+            SourceComponent = "GuardReportController",
+            Severity = AuditSeverity.Warning,
+            DataClassification = DataClassification.Confidential,
+            Outcome = AuditOutcome.Success,
+            NewValue = JsonSerializer.Serialize(new
+            {
+                escalated.ReportId, escalated.GuardName,
+                WatchCallId = watchCall.CallId,
+                report.Category, report.Severity, request.Reason
+            }),
+            Reason = $"Guard report escalated to Watch Call: {request.Reason ?? "guard initiated video de-escalation"}"
+        }, ct);
+
+        // 4. Broadcast
+        await _hubContext.Clients.All.SendAsync("GuardReportEscalatedToWatchCall", new
+        {
+            escalated.ReportId,
+            escalated.GuardUserId,
+            escalated.GuardName,
+            GuardRole = escalated.GuardRole.ToString(),
+            Category = escalated.Category.ToString(),
+            Severity = escalated.Severity.ToString(),
+            escalated.Title,
+            WatchCallId = watchCall.CallId,
+            watchCall.Latitude,
+            watchCall.Longitude,
+            Reason = request.Reason,
+            EscalatedAt = DateTime.UtcNow
+        }, ct);
+
+        return Ok(new
+        {
+            escalated.ReportId,
+            Status = escalated.Status.ToString(),
+            WatchCallId = watchCall.CallId,
+            WatchCallStatus = watchCall.Status.ToString(),
+            Severity = escalated.Severity.ToString(),
+            escalated.EscalatedAt,
+            Message = "Report escalated to Watch Call. Nearby watchers are being notified for live video de-escalation. " +
+                      "The Watch Call can be further escalated to a full SOS if needed.",
+            WatchCallEndpoint = $"/api/watchcall/{watchCall.CallId}",
+            FurtherEscalationEndpoint = $"/api/watchcall/{watchCall.CallId}/escalate"
         });
     }
 
@@ -334,6 +540,23 @@ public class GuardReportController : ControllerBase
     {
         var resolved = await _guardPort.ResolveReportAsync(
             reportId, request.ResolvedBy ?? "system", request.ResolutionNotes, ct);
+
+        await _auditTrail.AppendAsync(new AuditEntry
+        {
+            UserId = resolved.ResolvedBy ?? "system",
+            ActorRole = "Guard",
+            Action = AuditAction.GuardReportResolved,
+            EntityType = "GuardReport",
+            EntityId = reportId,
+            CorrelationId = resolved.EscalatedRequestId ?? reportId,
+            SourceSystem = "Dashboard.Api",
+            SourceComponent = "GuardReportController",
+            Severity = AuditSeverity.Notice,
+            DataClassification = DataClassification.Confidential,
+            Outcome = AuditOutcome.Success,
+            NewValue = JsonSerializer.Serialize(new { resolved.ReportId, resolved.ResolvedBy, resolved.ResolutionNotes, resolved.ResolvedAt }),
+            Reason = $"Guard report resolved: {request.ResolutionNotes ?? "(no notes)"}"
+        }, ct);
 
         await _hubContext.Clients.All.SendAsync("GuardReportResolved", new
         {
@@ -356,6 +579,24 @@ public class GuardReportController : ControllerBase
 
         var reviewed = await _guardPort.ReviewReportAsync(
             reportId, request.ReviewedBy, request.ReviewNotes ?? "", ct);
+
+        await _auditTrail.AppendAsync(new AuditEntry
+        {
+            UserId = request.ReviewedBy,
+            ActorRole = "Supervisor",
+            Action = AuditAction.GuardReportReviewed,
+            EntityType = "GuardReport",
+            EntityId = reportId,
+            CorrelationId = reportId,
+            SourceSystem = "Dashboard.Api",
+            SourceComponent = "GuardReportController",
+            Severity = AuditSeverity.Info,
+            DataClassification = DataClassification.Confidential,
+            Outcome = AuditOutcome.Success,
+            NewValue = JsonSerializer.Serialize(new { reviewed.ReportId, reviewed.ReviewedBy, reviewed.ReviewNotes, reviewed.ReviewedAt }),
+            Reason = $"Guard report reviewed by {request.ReviewedBy}"
+        }, ct);
+
         return Ok(reviewed);
     }
 
@@ -367,6 +608,24 @@ public class GuardReportController : ControllerBase
             return BadRequest(new { error = "EvidenceId is required" });
 
         var updated = await _guardPort.AttachEvidenceAsync(reportId, request.EvidenceId, ct);
+
+        await _auditTrail.AppendAsync(new AuditEntry
+        {
+            UserId = updated.GuardUserId,
+            ActorRole = "Guard",
+            Action = AuditAction.GuardReportEvidenceAttached,
+            EntityType = "GuardReport",
+            EntityId = reportId,
+            CorrelationId = reportId,
+            SourceSystem = "Dashboard.Api",
+            SourceComponent = "GuardReportController",
+            Severity = AuditSeverity.Info,
+            DataClassification = DataClassification.Confidential,
+            Outcome = AuditOutcome.Success,
+            NewValue = JsonSerializer.Serialize(new { reportId, request.EvidenceId, TotalEvidence = updated.EvidenceIds?.Count ?? 0 }),
+            Reason = $"Evidence {request.EvidenceId} attached to guard report"
+        }, ct);
+
         return Ok(updated);
     }
 }
@@ -412,3 +671,13 @@ public record ReviewGuardReportRequest(
 );
 
 public record AttachEvidenceRequest(string EvidenceId);
+
+/// <summary>
+/// Request DTO for escalating a guard report to a Watch Call (video de-escalation).
+/// This is the intermediate escalation step: Guard Report → Watch Call → SOS.
+/// </summary>
+public record EscalateToWatchCallRequest(
+    string? Reason = null,
+    double? RadiusMeters = null,    // Override default 2000m radius for the Watch Call
+    int? MaxParticipants = null     // Override default 5 participant limit
+);

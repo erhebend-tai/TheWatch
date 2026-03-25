@@ -445,7 +445,7 @@ public class EnumTests
     public void AuditAction_HasExpectedMemberCount()
     {
         var values = Enum.GetValues<AuditAction>();
-        Assert.Equal(15, values.Length);
+        Assert.Equal(160, values.Length);
     }
 
     [Theory]

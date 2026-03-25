@@ -12,9 +12,9 @@ final class ProfileViewModel {
     var isEditing = false
     var editedUser: User?
 
-    private let userService: MockUserService
+    private let userService: any UserServiceProtocol
 
-    init(userService: MockUserService) {
+    init(userService: any UserServiceProtocol) {
         self.userService = userService
     }
 

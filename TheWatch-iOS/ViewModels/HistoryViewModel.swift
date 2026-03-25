@@ -12,9 +12,9 @@ final class HistoryViewModel {
     var selectedStatuses: Set<AlertStatus> = []
     var dateRange: ClosedRange<Date> = Date(timeIntervalSinceNow: -30 * 86400)...Date()
 
-    private let historyService: MockHistoryService
+    private let historyService: any HistoryServiceProtocol
 
-    init(historyService: MockHistoryService) {
+    init(historyService: any HistoryServiceProtocol) {
         self.historyService = historyService
     }
 

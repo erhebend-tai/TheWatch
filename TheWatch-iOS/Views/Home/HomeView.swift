@@ -15,15 +15,43 @@ struct HomeView: View {
             Map(position: $position) {
                 UserAnnotation()
 
-                // Responder annotations
+                // Responder annotations with ETA labels
                 ForEach(viewModel?.nearbyResponders ?? []) { responder in
                     Annotation("", coordinate: CLLocationCoordinate2D(latitude: responder.latitude, longitude: responder.longitude)) {
-                        Image(systemName: "person.fill")
-                            .foregroundColor(.green)
-                            .padding(6)
-                            .background(Color.white)
-                            .clipShape(Circle())
-                            .shadow(radius: 2)
+                        VStack(spacing: 2) {
+                            // Role icon
+                            Image(systemName: responder.hasVehicle ? "car.fill" : "person.fill")
+                                .foregroundColor(responder.status == .onCall ? .blue : .green)
+                                .padding(6)
+                                .background(Color.white)
+                                .clipShape(Circle())
+                                .shadow(radius: 2)
+
+                            // Name + ETA label
+                            VStack(spacing: 0) {
+                                Text(responder.name.isEmpty ? responder.role.rawValue : responder.name)
+                                    .font(.caption2)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.4))
+
+                                HStack(spacing: 2) {
+                                    Text(responder.distanceDisplay)
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                    if let eta = responder.responseTime {
+                                        Text("ETA \(Int(eta / 60))m")
+                                            .font(.caption2)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.blue)
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.white.opacity(0.9))
+                            .cornerRadius(4)
+                            .shadow(radius: 1)
+                        }
                     }
                 }
 
@@ -39,19 +67,24 @@ struct HomeView: View {
                     }
                 }
 
-                // Proximity rings
+                // Proximity scope rings at response radii
                 if let activeAlert = viewModel?.activeAlert {
-                    MapCircle(center: CLLocationCoordinate2D(latitude: activeAlert.latitude, longitude: activeAlert.longitude), radius: 500)
-                        .foregroundStyle(Color.red.opacity(0.2))
-                        .stroke(Color.red, lineWidth: 2)
+                    let center = CLLocationCoordinate2D(latitude: activeAlert.latitude, longitude: activeAlert.longitude)
 
-                    MapCircle(center: CLLocationCoordinate2D(latitude: activeAlert.latitude, longitude: activeAlert.longitude), radius: 1000)
-                        .foregroundStyle(Color.orange.opacity(0.1))
-                        .stroke(Color.orange, lineWidth: 1)
+                    // 1km ring — CheckIn scope (innermost, most urgent)
+                    MapCircle(center: center, radius: 1000)
+                        .foregroundStyle(Color.red.opacity(0.08))
+                        .stroke(Color.red.opacity(0.6), lineWidth: 3)
 
-                    MapCircle(center: CLLocationCoordinate2D(latitude: activeAlert.latitude, longitude: activeAlert.longitude), radius: 2000)
-                        .foregroundStyle(Color.yellow.opacity(0.05))
-                        .stroke(Color.yellow, lineWidth: 1)
+                    // 3km ring — Emergency scope
+                    MapCircle(center: center, radius: 3000)
+                        .foregroundStyle(Color.orange.opacity(0.04))
+                        .stroke(Color.orange.opacity(0.4), lineWidth: 2)
+
+                    // 10km ring — CommunityWatch scope (outermost)
+                    MapCircle(center: center, radius: 10000)
+                        .foregroundStyle(Color.yellow.opacity(0.02))
+                        .stroke(Color.yellow.opacity(0.3), lineWidth: 1)
                 }
             }
             .mapStyle(.standard)

@@ -185,5 +185,30 @@ public enum AuditAction
     AuditIntegrityCheckPassed = 350,
     AuditIntegrityCheckFailed = 351,
     AuditExported = 352,
-    AuditRetentionPurge = 353
+    AuditRetentionPurge = 353,
+
+    // ── Watch Call Lifecycle ──────────────────────────────────────
+    WatchCallInitiated = 400,
+    WatchCallJoined = 401,
+    WatchCallLeft = 402,
+    WatchCallNarrationProduced = 403,
+    WatchCallResolved = 404,
+    WatchCallEscalated = 405,
+    WatchCallExpired = 406,
+    WatchCallMockStarted = 407,
+    WatchCallMockCompleted = 408,
+    WatchCallFrameSubmitted = 409,
+    WatchCallEnrollmentCreated = 410,
+    WatchCallEnrollmentUpdated = 411,
+
+    // ── Guard Report Lifecycle ───────────────────────────────────
+    GuardReportFiled = 420,
+    GuardReportDraftSaved = 421,
+    GuardReportEscalatedToWatchCall = 422,
+    GuardReportEscalatedToSOS = 423,
+    GuardReportResolved = 424,
+    GuardReportReviewed = 425,
+    GuardReportEvidenceAttached = 426,
+    GuardEnrolled = 427,
+    GuardDutyStatusChanged = 428
 }

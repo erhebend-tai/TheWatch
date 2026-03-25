@@ -12,7 +12,7 @@ final class VolunteeringViewModel {
     var isSaving = false
     var errorMessage: String?
 
-    private let volunteerService: MockVolunteerService
+    private let volunteerService: any VolunteerServiceProtocol
 
     let availableSkills = [
         "First Aid",
@@ -27,7 +27,7 @@ final class VolunteeringViewModel {
         "Counseling"
     ]
 
-    init(volunteerService: MockVolunteerService) {
+    init(volunteerService: any VolunteerServiceProtocol) {
         self.volunteerService = volunteerService
     }
 

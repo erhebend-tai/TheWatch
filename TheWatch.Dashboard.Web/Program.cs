@@ -74,6 +74,10 @@ builder.Services.AddHttpClient<DashboardApiClient>(
     client => client.BaseAddress = new Uri("https+http://dashboard-api"));
 
 // ── SignalR Client ───────────────────────────────────────────
+// DashboardHubService — maintains a persistent SignalR connection
+// to the Dashboard.Api hub for real-time incident updates.
+// Scoped: one connection per Blazor circuit (per browser tab).
+builder.Services.AddScoped<DashboardHubService>();
 builder.Services.AddSignalR();
 
 var app = builder.Build();

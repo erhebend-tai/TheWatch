@@ -32,10 +32,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.collectAsState
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.Circle
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
@@ -55,8 +57,13 @@ fun HomeScreen(
 ) {
     var showNavigationDrawer by remember { mutableStateOf(false) }
     var sosActive by remember { mutableStateOf(false) }
-    var unreadNotifications by remember { mutableStateOf(2) }
     val scope = rememberCoroutineScope()
+
+    // Collect live data from ViewModel
+    val nearbyResponders by viewModel.nearbyResponders.collectAsState()
+    val isAlertActive by viewModel.isAlertActive.collectAsState()
+    val unreadNotificationsCount by viewModel.unreadNotifications.collectAsState()
+    var unreadNotifications by remember { mutableStateOf(unreadNotificationsCount) }
 
     val userLocation = LatLng(40.7128, -74.0060)
     val cameraPositionState = rememberCameraPositionState {
@@ -70,20 +77,58 @@ fun HomeScreen(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = cameraPositionState
         ) {
+            // User location marker
             Marker(
                 state = MarkerState(position = userLocation),
                 title = "Your Location"
             )
 
-            Marker(
-                state = MarkerState(position = LatLng(40.7150, -74.0050)),
-                title = "Michael Chen (EMT) - 250m away"
-            )
+            // Proximity ring circles at scope radii (only visible during active alert)
+            if (isAlertActive) {
+                // 1km ring — CheckIn scope
+                Circle(
+                    center = userLocation,
+                    radius = 1000.0,
+                    strokeColor = Color.Red.copy(alpha = 0.6f),
+                    fillColor = Color.Red.copy(alpha = 0.05f),
+                    strokeWidth = 3f
+                )
+                // 3km ring — Emergency scope
+                Circle(
+                    center = userLocation,
+                    radius = 3000.0,
+                    strokeColor = Color(0xFFFF9800).copy(alpha = 0.5f),
+                    fillColor = Color(0xFFFF9800).copy(alpha = 0.03f),
+                    strokeWidth = 2f
+                )
+                // 10km ring — CommunityWatch scope
+                Circle(
+                    center = userLocation,
+                    radius = 10000.0,
+                    strokeColor = Color(0xFFFFC107).copy(alpha = 0.3f),
+                    fillColor = Color(0xFFFFC107).copy(alpha = 0.02f),
+                    strokeWidth = 1f
+                )
+            }
 
-            Marker(
-                state = MarkerState(position = LatLng(40.7100, -74.0080)),
-                title = "Sarah Anderson (Nurse) - 450m away"
-            )
+            // Real-time responder position markers from API / SignalR
+            nearbyResponders.forEach { responder ->
+                Marker(
+                    state = MarkerState(
+                        position = LatLng(responder.latitude, responder.longitude)
+                    ),
+                    title = "${responder.name} (${responder.type})",
+                    snippet = buildString {
+                        append("${responder.distance.toInt()}m away")
+                        if (responder.eta > 0) {
+                            append(" — ETA: ${responder.eta} min")
+                        }
+                        if (responder.hasVehicle) {
+                            append(" (vehicle)")
+                        }
+                    }
+                )
+            }
         }
 
         Column(

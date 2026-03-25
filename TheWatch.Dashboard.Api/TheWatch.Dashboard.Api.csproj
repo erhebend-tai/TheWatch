@@ -9,6 +9,9 @@
   WAL: Controller → Port interface → Adapter. Never inject a concrete adapter directly.
 -->
 <Project Sdk="Microsoft.NET.Sdk.Web"><PropertyGroup>  <UserSecretsId>0b62a3f3-6815-4e86-a7e2-82271896ff1b</UserSecretsId>
+    <!-- Generate XML documentation for Swagger/OpenAPI endpoint descriptions -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

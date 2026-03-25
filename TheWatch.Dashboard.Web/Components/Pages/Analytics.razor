@@ -1,0 +1,470 @@
+@page "/analytics"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject DashboardApiClient ApiClient
+@inject DashboardHubService HubService
+@inject ISnackbar Snackbar
+@implements IAsyncDisposable
+
+@* =============================================================================
+   Analytics.razor — Operational analytics dashboard for TheWatch.
+   =============================================================================
+   Summary cards for key metrics, bar/line/pie charts for incident trends,
+   response times, scope breakdown, and responder performance.
+
+   Uses MudChart for lightweight charting. For production-grade charts,
+   consider integrating:
+     - ApexCharts.Blazor (NuGet: Blazor-ApexCharts)
+     - ChartJs.Blazor (NuGet: ChartJs.Blazor.Fork)
+     - Plotly.Blazor (NuGet: Plotly.Blazor)
+
+   Data sources:
+     GET /api/response/stats          — aggregate incident statistics (to be implemented)
+     GET /api/response/analytics      — time-series analytics (to be implemented)
+     Real-time increments via SignalR  — live counter updates
+
+   WAL: Charts re-render on data change. MudChart requires double[] arrays
+        for data and string[] for labels. Data is transformed from API DTOs
+        in the LoadAnalyticsAsync method.
+   ============================================================================= *@
+
+<PageTitle>Analytics — TheWatch</PageTitle>
+
+<div class="page-header px-6 pt-6 pb-3">
+    <div class="d-flex justify-space-between align-center">
+        <div>
+            <MudText Typo="Typo.h4" Class="font-weight-bold">Operational Analytics</MudText>
+            <MudText Typo="Typo.body2" Style="opacity: 0.6;">
+                Incident metrics, response performance, and system health.
+            </MudText>
+        </div>
+        <div class="d-flex gap-2">
+            <MudSelect T="string" Label="Time Range" Value="@_timeRange"
+                       ValueChanged="OnTimeRangeChanged"
+                       Variant="Variant.Outlined" Dense="true" Style="width: 160px;">
+                <MudSelectItem T="string" Value="@("24h")">Last 24 Hours</MudSelectItem>
+                <MudSelectItem T="string" Value="@("7d")">Last 7 Days</MudSelectItem>
+                <MudSelectItem T="string" Value="@("30d")">Last 30 Days</MudSelectItem>
+                <MudSelectItem T="string" Value="@("90d")">Last 90 Days</MudSelectItem>
+            </MudSelect>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RefreshAnalytics"
+                       StartIcon="@Icons.Material.Filled.Refresh">
+                Refresh
+            </MudButton>
+        </div>
+    </div>
+</div>
+
+@* ── KPI Summary Cards ───────────────────────────────────────── *@
+<MudGrid Class="px-6 mb-4">
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Class="kpi-card" Style="border-left: 4px solid var(--mud-palette-error);">
+            <MudCardContent>
+                <div class="d-flex justify-space-between align-center">
+                    <div>
+                        <MudText Typo="Typo.caption" Style="opacity: 0.6; text-transform: uppercase; letter-spacing: 1px;">
+                            Total Incidents
+                        </MudText>
+                        <MudText Typo="Typo.h3" Class="font-weight-bold">@_totalIncidents</MudText>
+                        <MudText Typo="Typo.caption">
+                            <MudIcon Icon="@(_incidentTrend >= 0 ? Icons.Material.Filled.TrendingUp : Icons.Material.Filled.TrendingDown)"
+                                     Size="Size.Small"
+                                     Color="@(_incidentTrend >= 0 ? Color.Error : Color.Success)" />
+                            @Math.Abs(_incidentTrend)% vs previous period
+                        </MudText>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.Warning" Style="font-size: 48px; opacity: 0.15;" />
+                </div>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Class="kpi-card" Style="border-left: 4px solid var(--mud-palette-primary);">
+            <MudCardContent>
+                <div class="d-flex justify-space-between align-center">
+                    <div>
+                        <MudText Typo="Typo.caption" Style="opacity: 0.6; text-transform: uppercase; letter-spacing: 1px;">
+                            Avg Response Time
+                        </MudText>
+                        <MudText Typo="Typo.h3" Class="font-weight-bold">@_avgResponseTime</MudText>
+                        <MudText Typo="Typo.caption">
+                            <MudIcon Icon="@(_responseTrend <= 0 ? Icons.Material.Filled.TrendingDown : Icons.Material.Filled.TrendingUp)"
+                                     Size="Size.Small"
+                                     Color="@(_responseTrend <= 0 ? Color.Success : Color.Error)" />
+                            @Math.Abs(_responseTrend)% vs previous period
+                        </MudText>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.Timer" Style="font-size: 48px; opacity: 0.15;" />
+                </div>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Class="kpi-card" Style="border-left: 4px solid var(--mud-palette-success);">
+            <MudCardContent>
+                <div class="d-flex justify-space-between align-center">
+                    <div>
+                        <MudText Typo="Typo.caption" Style="opacity: 0.6; text-transform: uppercase; letter-spacing: 1px;">
+                            Active Responders
+                        </MudText>
+                        <MudText Typo="Typo.h3" Class="font-weight-bold">@_activeResponders</MudText>
+                        <MudText Typo="Typo.caption">
+                            @_certifiedResponders certified / @_volunteerResponders volunteers
+                        </MudText>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.Groups" Style="font-size: 48px; opacity: 0.15;" />
+                </div>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Class="kpi-card" Style="border-left: 4px solid var(--mud-palette-warning);">
+            <MudCardContent>
+                <div class="d-flex justify-space-between align-center">
+                    <div>
+                        <MudText Typo="Typo.caption" Style="opacity: 0.6; text-transform: uppercase; letter-spacing: 1px;">
+                            Resolution Rate
+                        </MudText>
+                        <MudText Typo="Typo.h3" Class="font-weight-bold">@_resolutionRate%</MudText>
+                        <MudText Typo="Typo.caption">
+                            @_resolvedCount resolved / @_totalIncidents total
+                        </MudText>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Style="font-size: 48px; opacity: 0.15;" />
+                </div>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+@* ── Charts Row 1 ────────────────────────────────────────────── *@
+<MudGrid Class="px-6 mb-4">
+    @* ── Incidents Over Time (Bar Chart) ──── *@
+    <MudItem xs="12" md="8">
+        <MudCard Style="border-radius: 12px;">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Filled.BarChart" Class="mr-1" />
+                        Incidents Over Time
+                    </MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudChart ChartType="ChartType.Bar"
+                          ChartSeries="@_incidentTimeSeries"
+                          XAxisLabels="@_incidentTimeLabels"
+                          Width="100%" Height="300px"
+                          ChartOptions="@(new ChartOptions { YAxisTicks = 5 })" />
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    @* ── Scope Breakdown (Pie Chart) ──── *@
+    <MudItem xs="12" md="4">
+        <MudCard Style="border-radius: 12px;">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Filled.PieChart" Class="mr-1" />
+                        By Scope
+                    </MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudChart ChartType="ChartType.Donut"
+                          InputData="@_scopeDistribution"
+                          InputLabels="@_scopeLabels"
+                          Width="100%" Height="300px" />
+                <div class="d-flex flex-wrap gap-2 mt-2 justify-center">
+                    @for (int i = 0; i < _scopeLabels.Length; i++)
+                    {
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
+                            @_scopeLabels[i]: @_scopeDistribution[i]
+                        </MudChip>
+                    }
+                </div>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+@* ── Charts Row 2 ────────────────────────────────────────────── *@
+<MudGrid Class="px-6 mb-4">
+    @* ── Response Time Trend (Line Chart) ──── *@
+    <MudItem xs="12" md="6">
+        <MudCard Style="border-radius: 12px;">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Filled.Timeline" Class="mr-1" />
+                        Response Time Trend
+                    </MudText>
+                </CardHeaderContent>
+                <CardHeaderActions>
+                    <MudText Typo="Typo.caption" Style="opacity: 0.5;">
+                        Average first-responder acknowledgment time
+                    </MudText>
+                </CardHeaderActions>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudChart ChartType="ChartType.Line"
+                          ChartSeries="@_responseTimeSeries"
+                          XAxisLabels="@_responseTimeLabels"
+                          Width="100%" Height="280px"
+                          ChartOptions="@(new ChartOptions { YAxisTicks = 5 })" />
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    @* ── Escalation Rate (Bar Chart) ──── *@
+    <MudItem xs="12" md="6">
+        <MudCard Style="border-radius: 12px;">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Class="mr-1" Color="Color.Warning" />
+                        Escalation Breakdown
+                    </MudText>
+                </CardHeaderContent>
+                <CardHeaderActions>
+                    <MudText Typo="Typo.caption" Style="opacity: 0.5;">
+                        Incidents requiring escalation by policy
+                    </MudText>
+                </CardHeaderActions>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudChart ChartType="ChartType.Bar"
+                          ChartSeries="@_escalationSeries"
+                          XAxisLabels="@_escalationLabels"
+                          Width="100%" Height="280px"
+                          ChartOptions="@(new ChartOptions { YAxisTicks = 3 })" />
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+@* ── Performance Table ───────────────────────────────────────── *@
+<MudPaper Class="mx-6 mb-6" Elevation="2" Style="border-radius: 12px; overflow: hidden;">
+    <MudTable T="ScopePerformance" Items="@_scopePerformance" Hover="true" Dense="true"
+              Breakpoint="Breakpoint.Sm">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Performance by Scope</MudText>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Scope</MudTh>
+            <MudTh>Incidents</MudTh>
+            <MudTh>Avg Response</MudTh>
+            <MudTh>Avg Responders</MudTh>
+            <MudTh>Escalation %</MudTh>
+            <MudTh>Resolution %</MudTh>
+            <MudTh>Trend</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Scope">
+                <MudChip T="string" Size="Size.Small" Color="@GetScopeColor(context.Scope)" Variant="Variant.Filled">
+                    @context.Scope
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Incidents">@context.IncidentCount</MudTd>
+            <MudTd DataLabel="Avg Response">@context.AvgResponseTime</MudTd>
+            <MudTd DataLabel="Avg Responders">@context.AvgResponders.ToString("F1")</MudTd>
+            <MudTd DataLabel="Escalation %">
+                <MudProgressLinear Value="@context.EscalationPct" Color="Color.Warning"
+                                   Style="min-width: 80px;" Size="Size.Small" />
+                <MudText Typo="Typo.caption">@context.EscalationPct%</MudText>
+            </MudTd>
+            <MudTd DataLabel="Resolution %">
+                <MudProgressLinear Value="@context.ResolutionPct" Color="Color.Success"
+                                   Style="min-width: 80px;" Size="Size.Small" />
+                <MudText Typo="Typo.caption">@context.ResolutionPct%</MudText>
+            </MudTd>
+            <MudTd DataLabel="Trend">
+                <MudIcon Icon="@(context.TrendUp ? Icons.Material.Filled.TrendingUp : Icons.Material.Filled.TrendingDown)"
+                         Color="@(context.TrendUp ? Color.Error : Color.Success)"
+                         Size="Size.Small" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    // ── KPI State ────────────────────────────────────────────────
+    private int _totalIncidents;
+    private string _avgResponseTime = "—";
+    private int _activeResponders;
+    private int _certifiedResponders;
+    private int _volunteerResponders;
+    private double _resolutionRate;
+    private int _resolvedCount;
+    private double _incidentTrend;
+    private double _responseTrend;
+    private string _timeRange = "7d";
+    private bool _loading = true;
+
+    // ── Chart Data ───────────────────────────────────────────────
+    // Incidents Over Time (Bar)
+    private List<ChartSeries> _incidentTimeSeries = new();
+    private string[] _incidentTimeLabels = Array.Empty<string>();
+
+    // Scope Distribution (Pie/Donut)
+    private double[] _scopeDistribution = Array.Empty<double>();
+    private string[] _scopeLabels = Array.Empty<string>();
+
+    // Response Time Trend (Line)
+    private List<ChartSeries> _responseTimeSeries = new();
+    private string[] _responseTimeLabels = Array.Empty<string>();
+
+    // Escalation Breakdown (Bar)
+    private List<ChartSeries> _escalationSeries = new();
+    private string[] _escalationLabels = Array.Empty<string>();
+
+    // Performance Table
+    private List<ScopePerformance> _scopePerformance = new();
+
+    // ── Lifecycle ────────────────────────────────────────────────
+    protected override async Task OnInitializedAsync()
+    {
+        HubService.OnConnectionChanged += HandleConnectionChanged;
+        await HubService.StartAsync();
+        await LoadAnalyticsAsync();
+    }
+
+    private async Task LoadAnalyticsAsync()
+    {
+        _loading = true;
+        StateHasChanged();
+
+        try
+        {
+            // In production, analytics data would come from dedicated API endpoints:
+            //   GET /api/response/stats?timeRange=7d
+            //   GET /api/response/analytics/incidents-over-time?timeRange=7d
+            //   GET /api/response/analytics/response-times?timeRange=7d
+            //
+            // For now, populate with realistic placeholder data to demonstrate
+            // the chart components and layout. These will be replaced with real
+            // API data when the analytics endpoints are implemented.
+
+            LoadPlaceholderData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load analytics: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void LoadPlaceholderData()
+    {
+        // KPIs
+        _totalIncidents = 0;
+        _avgResponseTime = "—";
+        _activeResponders = 0;
+        _certifiedResponders = 0;
+        _volunteerResponders = 0;
+        _resolutionRate = 0;
+        _resolvedCount = 0;
+        _incidentTrend = 0;
+        _responseTrend = 0;
+
+        // Incidents Over Time — last 7 days
+        var days = _timeRange == "24h" ? 24 : _timeRange == "7d" ? 7 : _timeRange == "30d" ? 30 : 90;
+        _incidentTimeLabels = Enumerable.Range(0, Math.Min(days, 14))
+            .Select(i => DateTime.UtcNow.AddDays(-i).ToString(_timeRange == "24h" ? "HH:00" : "MM/dd"))
+            .Reverse()
+            .ToArray();
+
+        _incidentTimeSeries = new List<ChartSeries>
+        {
+            new() { Name = "Incidents", Data = new double[_incidentTimeLabels.Length] },
+            new() { Name = "Resolved", Data = new double[_incidentTimeLabels.Length] }
+        };
+
+        // Scope Distribution
+        _scopeLabels = new[] { "Check-In", "Neighborhood", "Community", "Evacuation", "Silent Duress" };
+        _scopeDistribution = new double[] { 0, 0, 0, 0, 0 };
+
+        // Response Time Trend
+        _responseTimeLabels = _incidentTimeLabels;
+        _responseTimeSeries = new List<ChartSeries>
+        {
+            new() { Name = "Avg Response (min)", Data = new double[_responseTimeLabels.Length] }
+        };
+
+        // Escalation Breakdown
+        _escalationLabels = new[] { "Manual", "Timed", "Immediate 911", "Conditional 911", "Full Cascade" };
+        _escalationSeries = new List<ChartSeries>
+        {
+            new() { Name = "Escalations", Data = new double[] { 0, 0, 0, 0, 0 } }
+        };
+
+        // Performance by Scope
+        _scopePerformance = new List<ScopePerformance>
+        {
+            new("CheckIn", 0, "—", 0, 0, 0, false),
+            new("Neighborhood", 0, "—", 0, 0, 0, false),
+            new("Community", 0, "—", 0, 0, 0, false),
+            new("Evacuation", 0, "—", 0, 0, 0, false),
+            new("SilentDuress", 0, "—", 0, 0, 0, false),
+        };
+    }
+
+    private async Task RefreshAnalytics()
+    {
+        await LoadAnalyticsAsync();
+    }
+
+    private async Task OnTimeRangeChanged(string value)
+    {
+        _timeRange = value;
+        await LoadAnalyticsAsync();
+    }
+
+    private async void HandleConnectionChanged(HubConnectionState state)
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    // ── Helper Methods ───────────────────────────────────────────
+    private static Color GetScopeColor(string scope) => scope switch
+    {
+        "CheckIn" => Color.Info,
+        "Neighborhood" => Color.Warning,
+        "Community" => Color.Error,
+        "Evacuation" => Color.Dark,
+        "SilentDuress" => Color.Secondary,
+        _ => Color.Default
+    };
+
+    // ── Disposal ─────────────────────────────────────────────────
+    public ValueTask DisposeAsync()
+    {
+        HubService.OnConnectionChanged -= HandleConnectionChanged;
+        return ValueTask.CompletedTask;
+    }
+
+    // ── Performance Row Record ───────────────────────────────────
+    public record ScopePerformance(
+        string Scope,
+        int IncidentCount,
+        string AvgResponseTime,
+        double AvgResponders,
+        double EscalationPct,
+        double ResolutionPct,
+        bool TrendUp
+    );
+}
+
+<style>
+    .page-header {
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .kpi-card {
+        border-radius: 12px !important;
+    }
+</style>
