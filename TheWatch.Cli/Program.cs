@@ -167,6 +167,7 @@ rootCommand.Add(SwarmCommand.Build(CreateSwarmPort, CreateSwarmAgentPort));
 rootCommand.Add(PlanCommand.Build(CreateSwarmPort));
 rootCommand.Add(CodeGenCommand.Build());
 rootCommand.Add(CodeIndexCommand.Build());
+rootCommand.Add(CodeIndexDbCommand.Build());
 
 // ── Default Handler (TUI Dashboard) ─────────────────────────────────
 

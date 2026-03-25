@@ -66,6 +66,7 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.0" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
     <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.46.0" />
+    <PackageVersion Include="Microsoft.Data.SqlClient" Version="6.1.1" />
   </ItemGroup>
 
   <!-- ══════════════════════════════════════════════════════════════════════ -->
