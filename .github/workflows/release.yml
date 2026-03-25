@@ -1,0 +1,186 @@
+# =============================================================================
+# TheWatch — Release Workflow (GitHub Actions)
+# =============================================================================
+# Creates a GitHub Release with auto-generated changelog and NuGet package.
+#
+# Trigger: Manual workflow_dispatch ONLY — requires a version input parameter.
+# This workflow does NOT auto-run on push, tag, or any other event.
+#
+# What it does:
+#   1. Checks out the code at the current ref
+#   2. Builds the solution in Release configuration
+#   3. Runs the full test suite
+#   4. Packs TheWatch.Shared as a NuGet package
+#   5. Creates a GitHub Release with auto-generated changelog
+#   6. Uploads the NuGet package (.nupkg) as a release asset
+#
+# Required GitHub Secrets:
+#   (none — uses GITHUB_TOKEN for release creation)
+#
+# Example — triggering manually:
+#   gh workflow run release.yml -f version=1.0.0
+#   Or use the GitHub Actions UI: Actions → Release → Run workflow → Enter version
+#
+# Write-ahead log:
+#   - v1.0.0: Initial release workflow (2026-03-24)
+#   - NuGet push to nuget.org deferred to v1.1 (requires NUGET_API_KEY secret)
+#   - Apple/Google store submission handled by separate ios-release.yml / android-release.yml
+# =============================================================================
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.0.0, 1.1.0-rc.1)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release?'
+        required: false
+        type: boolean
+        default: false
+      dry_run:
+        description: 'Dry run — build and test only, do not create release'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  release:
+    name: Build, Test & Release v${{ github.event.inputs.version }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required for creating GitHub Releases
+
+    steps:
+      # ── Checkout ──────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for changelog generation
+
+      # ── Validate version input ────────────────────────────────────────
+      - name: Validate version format
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9\.]+)?$ ]]; then
+            echo "::error::Invalid version format: '$VERSION'. Expected semver (e.g., 1.0.0, 1.1.0-rc.1)."
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "Release version: $VERSION"
+
+      # ── Setup .NET SDK ────────────────────────────────────────────────
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-quality: preview
+
+      # ── Restore ───────────────────────────────────────────────────────
+      - name: Restore dependencies
+        run: dotnet restore
+
+      # ── Build (Release configuration) ─────────────────────────────────
+      - name: Build
+        run: |
+          dotnet build -c Release --no-restore \
+            -p:OfficialBuild=true \
+            -p:DotNetFinalVersionKind=release \
+            -p:VersionPrefix=${{ env.VERSION }}
+
+      # ── Test ──────────────────────────────────────────────────────────
+      - name: Run tests
+        run: |
+          dotnet test -c Release --no-build \
+            --logger "trx;LogFileName=test-results.trx" \
+            --results-directory ./test-results \
+            -- RunConfiguration.TreatNoTestsAsError=false
+
+      # ── Upload test results ───────────────────────────────────────────
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ env.VERSION }}
+          path: test-results/
+          retention-days: 30
+
+      # ── Pack NuGet (TheWatch.Shared) ──────────────────────────────────
+      - name: Pack TheWatch.Shared NuGet package
+        run: |
+          dotnet pack TheWatch.Shared/TheWatch.Shared.csproj \
+            -c Release --no-build \
+            -p:PackageVersion=${{ env.VERSION }} \
+            -p:OfficialBuild=true \
+            -p:DotNetFinalVersionKind=release \
+            -o ./nupkg
+
+          echo "## NuGet Package" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          ls -la ./nupkg/*.nupkg | while read -r line; do
+            echo "- \`$(basename $(echo "$line" | awk '{print $NF}'))\`" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      # ── Upload NuGet artifact ─────────────────────────────────────────
+      - name: Upload NuGet artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkg-${{ env.VERSION }}
+          path: nupkg/
+          retention-days: 90
+
+      # ── Create GitHub Release ─────────────────────────────────────────
+      - name: Create GitHub Release
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PRERELEASE_FLAG=""
+          if [[ "${{ github.event.inputs.prerelease }}" == "true" ]]; then
+            PRERELEASE_FLAG="--prerelease"
+          fi
+
+          # Create the release with auto-generated notes from commit history
+          gh release create "v${{ env.VERSION }}" \
+            --title "v${{ env.VERSION }}" \
+            --generate-notes \
+            $PRERELEASE_FLAG \
+            ./nupkg/*.nupkg
+
+          echo "## Release Created" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Tag**: v${{ env.VERSION }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Pre-release**: ${{ github.event.inputs.prerelease }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **URL**: ${{ github.server_url }}/${{ github.repository }}/releases/tag/v${{ env.VERSION }}" >> "$GITHUB_STEP_SUMMARY"
+
+      # ── Dry run summary ───────────────────────────────────────────────
+      - name: Dry run summary
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          echo "## Dry Run Complete" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Build and tests passed for v${{ env.VERSION }}." >> "$GITHUB_STEP_SUMMARY"
+          echo "No release was created (dry_run=true)." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "To create the actual release, re-run with dry_run unchecked." >> "$GITHUB_STEP_SUMMARY"
+
+      # TODO: Push NuGet to nuget.org in v1.1
+      # - name: Push to NuGet.org
+      #   if: ${{ github.event.inputs.dry_run != 'true' }}
+      #   run: |
+      #     dotnet nuget push ./nupkg/*.nupkg \
+      #       --api-key ${{ secrets.NUGET_API_KEY }} \
+      #       --source https://api.nuget.org/v3/index.json \
+      #       --skip-duplicate

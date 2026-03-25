@@ -1,0 +1,409 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_comment": [
+      "TheWatch Production Dashboard — Azure Portal Dashboard Template",
+      "",
+      "Provides at-a-glance production health for the TheWatch emergency response platform.",
+      "",
+      "Panels:",
+      "  1. API Request Rate + Latency (line chart, 5-minute granularity)",
+      "  2. Active Incidents Counter (single-value tile)",
+      "  3. Responder Count Gauge (single-value tile)",
+      "  4. Error Rate Chart (line chart, 5xx and 4xx breakdown)",
+      "  5. Container Health Status (multi-container status grid)",
+      "",
+      "Usage:",
+      "  az portal dashboard create \\",
+      "    --resource-group <rg-name> \\",
+      "    --name thewatch-ops-dashboard \\",
+      "    --input-path infra/dashboards.json",
+      "",
+      "Write-ahead log:",
+      "  - v1.0.0: Initial dashboard with 5 panels (2026-03-24)",
+      "  - Next: Add RabbitMQ queue depth panel, SignalR connection count, AI token usage"
+    ]
+  },
+  "parameters": {
+    "baseName": {
+      "type": "string",
+      "defaultValue": "thewatch",
+      "metadata": {
+        "description": "Base name prefix matching main.bicep deployment."
+      }
+    },
+    "primaryLocation": {
+      "type": "string",
+      "defaultValue": "eastus2",
+      "metadata": {
+        "description": "Primary location matching main.bicep deployment."
+      }
+    },
+    "subscriptionId": {
+      "type": "string",
+      "defaultValue": "[subscription().subscriptionId]",
+      "metadata": {
+        "description": "Azure subscription ID. Auto-detected from deployment context."
+      }
+    },
+    "resourceGroupName": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().name]",
+      "metadata": {
+        "description": "Resource group name. Auto-detected from deployment context."
+      }
+    }
+  },
+  "variables": {
+    "logAnalyticsResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', concat(parameters('baseName'), '-logs'))]",
+    "apiContainerAppResourceId": "[resourceId('Microsoft.App/containerApps', concat(parameters('baseName'), '-api'))]",
+    "workerContainerAppResourceId": "[resourceId('Microsoft.App/containerApps', concat(parameters('baseName'), '-worker'))]",
+    "functionsContainerAppResourceId": "[resourceId('Microsoft.App/containerApps', concat(parameters('baseName'), '-functions'))]",
+    "dashboardName": "[concat(parameters('baseName'), '-ops-dashboard')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Portal/dashboards",
+      "apiVersion": "2020-09-01-preview",
+      "name": "[variables('dashboardName')]",
+      "location": "[parameters('primaryLocation')]",
+      "tags": {
+        "project": "TheWatch",
+        "component": "monitoring",
+        "managedBy": "bicep",
+        "hidden-title": "TheWatch Operations Dashboard"
+      },
+      "properties": {
+        "lenses": [
+          {
+            "order": 0,
+            "parts": [
+              {
+                "position": {
+                  "x": 0,
+                  "y": 0,
+                  "colSpan": 12,
+                  "rowSpan": 1
+                },
+                "metadata": {
+                  "type": "Extension/HubsExtension/PartType/MarkdownPart",
+                  "inputs": [],
+                  "settings": {
+                    "content": {
+                      "content": "# TheWatch Production Operations Dashboard\n**Emergency Response Platform** | [API Health](/health) | [Hangfire](/hangfire) | [OpenAPI](/openapi/v1.json)",
+                      "title": "",
+                      "subtitle": "",
+                      "markdownSource": 1,
+                      "markdownUri": null
+                    }
+                  }
+                }
+              },
+              {
+                "position": {
+                  "x": 0,
+                  "y": 1,
+                  "colSpan": 6,
+                  "rowSpan": 4
+                },
+                "metadata": {
+                  "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart",
+                  "inputs": [
+                    {
+                      "name": "resourceTypeMode",
+                      "isOptional": true
+                    },
+                    {
+                      "name": "ComponentId",
+                      "isOptional": true
+                    }
+                  ],
+                  "settings": {
+                    "content": {
+                      "Query": "ContainerAppConsoleLogs_CL\n| where ContainerAppName_s =~ '{baseName}-api'\n| where Log_s has 'HTTP' and Log_s has 'responded'\n| extend StatusCode = toint(extract(@'responded (\\d{3})', 1, Log_s))\n| extend ElapsedMs = todouble(extract(@'in (\\d+\\.?\\d*)', 1, Log_s))\n| summarize\n    RequestCount = count(),\n    AvgLatencyMs = round(avg(ElapsedMs), 1),\n    P95LatencyMs = round(percentile(ElapsedMs, 95), 1),\n    P99LatencyMs = round(percentile(ElapsedMs, 99), 1)\n    by bin(TimeGenerated, 5m)\n| render timechart with (\n    title='API Request Rate & Latency (5-min)',\n    xtitle='Time',\n    ytitle='Count / ms'\n  )",
+                      "ControlType": "AnalyticsChart",
+                      "SpecificChart": "Line",
+                      "PartTitle": "API Request Rate + Latency",
+                      "PartSubTitle": "5-minute granularity: request count, avg/p95/p99 latency",
+                      "Dimensions": {
+                        "xAxis": {
+                          "name": "TimeGenerated",
+                          "type": "datetime"
+                        },
+                        "yAxis": [
+                          {
+                            "name": "RequestCount",
+                            "type": "long"
+                          },
+                          {
+                            "name": "AvgLatencyMs",
+                            "type": "real"
+                          },
+                          {
+                            "name": "P95LatencyMs",
+                            "type": "real"
+                          },
+                          {
+                            "name": "P99LatencyMs",
+                            "type": "real"
+                          }
+                        ]
+                      },
+                      "TimeRange": {
+                        "relative": {
+                          "duration": 86400000
+                        }
+                      },
+                      "resourceIds": [
+                        "[variables('logAnalyticsResourceId')]"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "position": {
+                  "x": 6,
+                  "y": 1,
+                  "colSpan": 3,
+                  "rowSpan": 2
+                },
+                "metadata": {
+                  "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart",
+                  "inputs": [
+                    {
+                      "name": "resourceTypeMode",
+                      "isOptional": true
+                    },
+                    {
+                      "name": "ComponentId",
+                      "isOptional": true
+                    }
+                  ],
+                  "settings": {
+                    "content": {
+                      "Query": "ContainerAppConsoleLogs_CL\n| where ContainerAppName_s =~ '{baseName}-api'\n| where Log_s has '/api/response' and Log_s has 'SOS'\n| where Log_s has 'responded 2'\n| where TimeGenerated > ago(24h)\n| summarize ActiveIncidents = dcount(extract(@'incident[/:]([a-f0-9-]+)', 1, Log_s))\n| extend Label = 'Active Incidents (24h)'",
+                      "ControlType": "AnalyticsChart",
+                      "SpecificChart": "UnstackedBar",
+                      "PartTitle": "Active Incidents",
+                      "PartSubTitle": "Distinct SOS incidents in the last 24 hours",
+                      "Dimensions": {
+                        "xAxis": {
+                          "name": "Label",
+                          "type": "string"
+                        },
+                        "yAxis": [
+                          {
+                            "name": "ActiveIncidents",
+                            "type": "long"
+                          }
+                        ]
+                      },
+                      "TimeRange": {
+                        "relative": {
+                          "duration": 86400000
+                        }
+                      },
+                      "resourceIds": [
+                        "[variables('logAnalyticsResourceId')]"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "position": {
+                  "x": 9,
+                  "y": 1,
+                  "colSpan": 3,
+                  "rowSpan": 2
+                },
+                "metadata": {
+                  "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart",
+                  "inputs": [
+                    {
+                      "name": "resourceTypeMode",
+                      "isOptional": true
+                    },
+                    {
+                      "name": "ComponentId",
+                      "isOptional": true
+                    }
+                  ],
+                  "settings": {
+                    "content": {
+                      "Query": "ContainerAppConsoleLogs_CL\n| where ContainerAppName_s =~ '{baseName}-api'\n| where Log_s has 'responder' and (Log_s has 'dispatched' or Log_s has 'accepted' or Log_s has 'en-route')\n| where TimeGenerated > ago(1h)\n| summarize\n    DispatchedCount = countif(Log_s has 'dispatched'),\n    AcceptedCount = countif(Log_s has 'accepted'),\n    EnRouteCount = countif(Log_s has 'en-route')\n| extend Label = 'Responders (Last Hour)'",
+                      "ControlType": "AnalyticsChart",
+                      "SpecificChart": "UnstackedBar",
+                      "PartTitle": "Responder Count",
+                      "PartSubTitle": "Dispatched, accepted, and en-route responders (last hour)",
+                      "Dimensions": {
+                        "xAxis": {
+                          "name": "Label",
+                          "type": "string"
+                        },
+                        "yAxis": [
+                          {
+                            "name": "DispatchedCount",
+                            "type": "long"
+                          },
+                          {
+                            "name": "AcceptedCount",
+                            "type": "long"
+                          },
+                          {
+                            "name": "EnRouteCount",
+                            "type": "long"
+                          }
+                        ]
+                      },
+                      "TimeRange": {
+                        "relative": {
+                          "duration": 3600000
+                        }
+                      },
+                      "resourceIds": [
+                        "[variables('logAnalyticsResourceId')]"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "position": {
+                  "x": 6,
+                  "y": 3,
+                  "colSpan": 6,
+                  "rowSpan": 4
+                },
+                "metadata": {
+                  "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart",
+                  "inputs": [
+                    {
+                      "name": "resourceTypeMode",
+                      "isOptional": true
+                    },
+                    {
+                      "name": "ComponentId",
+                      "isOptional": true
+                    }
+                  ],
+                  "settings": {
+                    "content": {
+                      "Query": "ContainerAppConsoleLogs_CL\n| where ContainerAppName_s =~ '{baseName}-api'\n| where Log_s has 'HTTP' and Log_s has 'responded'\n| extend StatusCode = toint(extract(@'responded (\\d{3})', 1, Log_s))\n| summarize\n    Total = count(),\n    Errors5xx = countif(StatusCode >= 500),\n    Errors4xx = countif(StatusCode >= 400 and StatusCode < 500)\n    by bin(TimeGenerated, 5m)\n| extend\n    ErrorRate5xx = round(toreal(Errors5xx) / toreal(Total) * 100, 2),\n    ErrorRate4xx = round(toreal(Errors4xx) / toreal(Total) * 100, 2)\n| project TimeGenerated, ErrorRate5xx, ErrorRate4xx\n| render timechart with (\n    title='Error Rates (5xx and 4xx)',\n    xtitle='Time',\n    ytitle='Error Rate %'\n  )",
+                      "ControlType": "AnalyticsChart",
+                      "SpecificChart": "Line",
+                      "PartTitle": "Error Rate",
+                      "PartSubTitle": "5xx (server) and 4xx (client) error rates as percentage of total requests",
+                      "Dimensions": {
+                        "xAxis": {
+                          "name": "TimeGenerated",
+                          "type": "datetime"
+                        },
+                        "yAxis": [
+                          {
+                            "name": "ErrorRate5xx",
+                            "type": "real"
+                          },
+                          {
+                            "name": "ErrorRate4xx",
+                            "type": "real"
+                          }
+                        ]
+                      },
+                      "TimeRange": {
+                        "relative": {
+                          "duration": 86400000
+                        }
+                      },
+                      "resourceIds": [
+                        "[variables('logAnalyticsResourceId')]"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "position": {
+                  "x": 0,
+                  "y": 5,
+                  "colSpan": 6,
+                  "rowSpan": 4
+                },
+                "metadata": {
+                  "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart",
+                  "inputs": [
+                    {
+                      "name": "resourceTypeMode",
+                      "isOptional": true
+                    },
+                    {
+                      "name": "ComponentId",
+                      "isOptional": true
+                    }
+                  ],
+                  "settings": {
+                    "content": {
+                      "Query": "ContainerAppSystemLogs_CL\n| where ContainerAppName_s startswith '{baseName}'\n| where TimeGenerated > ago(24h)\n| summarize\n    Restarts = countif(Reason_s has 'Restart'),\n    RunningEvents = countif(Reason_s == 'Started' or Reason_s == 'Running'),\n    FailedEvents = countif(Reason_s has 'Failed' or Reason_s has 'CrashLoop' or Reason_s has 'OOMKilled')\n    by ContainerAppName_s\n| extend HealthStatus = case(\n    FailedEvents > 0, 'Unhealthy',\n    Restarts > 3, 'Degraded',\n    'Healthy'\n  )\n| project\n    Container = ContainerAppName_s,\n    Status = HealthStatus,\n    Restarts,\n    Failures = FailedEvents,\n    StartEvents = RunningEvents",
+                      "ControlType": "AnalyticsGrid",
+                      "SpecificChart": null,
+                      "PartTitle": "Container Health Status",
+                      "PartSubTitle": "Health, restart count, and failure events for all TheWatch containers (24h)",
+                      "Dimensions": {},
+                      "TimeRange": {
+                        "relative": {
+                          "duration": 86400000
+                        }
+                      },
+                      "resourceIds": [
+                        "[variables('logAnalyticsResourceId')]"
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "metadata": {
+          "model": {
+            "timeRange": {
+              "value": {
+                "relative": {
+                  "duration": 24,
+                  "timeUnit": 1
+                }
+              },
+              "type": "MsPortalFx.Composition.Configuration.ValueTypes.TimeRange"
+            },
+            "filterLocale": {
+              "value": "en-us"
+            },
+            "filters": {
+              "value": {
+                "MsPortalFx_TimeRange": {
+                  "model": {
+                    "format": "utc",
+                    "granularity": "auto",
+                    "relative": "24h"
+                  },
+                  "displayCache": {
+                    "name": "UTC Time",
+                    "value": "Past 24 hours"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "dashboardResourceId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Portal/dashboards', variables('dashboardName'))]"
+    }
+  }
+}

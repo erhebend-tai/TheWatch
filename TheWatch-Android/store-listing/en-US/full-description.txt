@@ -1,0 +1,46 @@
+TheWatch is a life-safety application that connects people in distress with verified nearby volunteers in seconds. When every second counts, TheWatch bridges the gap between an emergency and help arriving.
+
+HOW IT WORKS
+
+Set a personal emergency phrase. If you speak it, TheWatch instantly detects it through on-device speech recognition, and dispatches 5-10 verified adult volunteers in your immediate vicinity to check on you. First responders are notified simultaneously (configurable). The entire process takes seconds, not minutes.
+
+KEY FEATURES
+
+Emergency Phrase Detection
+Set a custom phrase that triggers an SOS when spoken aloud. On-device speech-to-text means it works even with poor connectivity. Rapid-tap and movement-jerk detection provide additional trigger options when speaking is not possible.
+
+Volunteer Responder Network
+Volunteers over 18 are geohash-indexed and cached for instant lookup. When an SOS triggers, nearby volunteers receive real-time notifications with directions. They can submit check-in reports with text, photos, and video.
+
+Escalation Chain
+TheWatch follows a 4-stage escalation protocol: initial dispatch, widened scope, emergency contacts, then first responders. Each stage has configurable timeouts. Nothing falls through the cracks.
+
+Real-Time Situational Awareness
+Responders and the user's emergency contacts see live updates on a real-time dashboard: GPS tracking, sitreps, evidence submissions, and responder status. All powered by SignalR for instant updates.
+
+Watch Calls
+Request a community check-in without triggering a full emergency. Ideal for walking alone at night, arriving somewhere unfamiliar, or when something just does not feel right.
+
+Dwelling and Workplace Preparation
+Submit details about your home or workplace: floor plans, exit routes, hazardous materials, mobility requirements. This information is securely stored and shared with responders only during an active emergency to improve response effectiveness.
+
+Privacy and Security
+All data is encrypted in transit and at rest. Location data is shared only during active emergencies. Firebase Authentication with 2FA protects your account. You control exactly what information is shared and with whom.
+
+PERMISSIONS EXPLAINED
+
+Location (Always): Required to detect your position during emergencies, even when the screen is locked. This is a life-safety feature.
+Microphone: Required for emergency phrase detection via speech-to-text.
+Camera: Optional. Used to submit photo/video evidence during an active incident.
+Notifications: Required to receive dispatch alerts as a volunteer responder.
+Background Activity: Required to maintain emergency detection while the app is not in the foreground.
+
+VOLUNTEER PROGRAM
+
+Become a designated responder. Indicate your availability schedule, whether you have a vehicle, and your proximity preferences. TheWatch matches you with nearby check-in and emergency requests. You are never obligated to respond, but when you do, you could save a life.
+
+STANDARDS AND COMPLIANCE
+
+TheWatch is designed with reference to ISO 27001/27002 information security standards. Our escalation protocols are modeled on industry-standard emergency dispatch procedures used by alarm monitoring companies and emergency services.
+
+This app is free to use. TheWatch is built on the principle that personal safety should be accessible to everyone.
