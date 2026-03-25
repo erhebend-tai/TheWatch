@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.thewatch.app.data.model.MfaEnrollmentChallenge
 import com.thewatch.app.data.model.User
 import com.thewatch.app.data.repository.AuthRepository
 import kotlinx.coroutines.flow.Flow
@@ -143,4 +144,24 @@ class NativeAuthRepository(
         sharedPreferences.edit().putString("auth_user_password", newPassword).apply()
         return Result.success(true)
     }
+
+    // ── New interface methods (native stubs -- MFA and email verify require network) ──
+
+    override suspend fun sendEmailVerification(): Result<Unit> =
+        Result.failure(Exception("Email verification requires an internet connection."))
+
+    override suspend fun refreshToken(): Result<User> {
+        val user = currentUserFlow.value
+            ?: return Result.failure(Exception("No user session."))
+        return Result.success(user)
+    }
+
+    override suspend fun enrollMfa(method: String, phoneNumber: String?): Result<MfaEnrollmentChallenge> =
+        Result.failure(Exception("MFA enrollment requires an internet connection."))
+
+    override suspend fun confirmMfaEnrollment(sessionId: String, code: String): Result<Boolean> =
+        Result.failure(Exception("MFA enrollment confirmation requires an internet connection."))
+
+    override suspend fun verifyMfaCode(code: String, method: String): Result<Boolean> =
+        Result.failure(Exception("MFA verification requires an internet connection."))
 }

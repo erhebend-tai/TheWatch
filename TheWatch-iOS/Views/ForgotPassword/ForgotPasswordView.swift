@@ -6,6 +6,7 @@ struct ForgotPasswordView: View {
     @State private var showOTPEntry = false
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var navigateToReset = false
     @Environment(MockAuthService.self) var authService
     @Environment(\.dismiss) var dismiss
 
@@ -115,7 +116,8 @@ struct ForgotPasswordView: View {
                                     .accessibilityLabel("6-digit code")
 
                                 Button(action: {
-                                    // Navigate to reset password
+                                    guard otpCode.count == 6 else { return }
+                                    navigateToReset = true
                                 }) {
                                     if isLoading {
                                         HStack(spacing: 8) {
@@ -160,10 +162,15 @@ struct ForgotPasswordView: View {
                 }
             }
         }
+        .navigationDestination(isPresented: $navigateToReset) {
+            ResetPasswordView(email: emailOrPhone, otpCode: otpCode)
+        }
     }
 }
 
 #Preview {
-    ForgotPasswordView()
-        .environment(MockAuthService())
+    NavigationStack {
+        ForgotPasswordView()
+            .environment(MockAuthService())
+    }
 }

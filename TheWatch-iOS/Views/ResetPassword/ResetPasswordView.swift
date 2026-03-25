@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ResetPasswordView: View {
     let email: String
+    var otpCode: String = ""
     @State private var newPassword = ""
     @State private var confirmPassword = ""
     @State private var isLoading = false
@@ -123,7 +124,7 @@ struct ResetPasswordView: View {
                                     do {
                                         try await authService.resetPassword(
                                             emailOrPhone: email,
-                                            code: "123456",
+                                            code: otpCode,
                                             newPassword: newPassword
                                         )
                                         // Navigate back on success
@@ -189,6 +190,6 @@ struct ResetPasswordView: View {
 }
 
 #Preview {
-    ResetPasswordView(email: "alex@example.com")
+    ResetPasswordView(email: "alex@example.com", otpCode: "123456")
         .environment(MockAuthService())
 }

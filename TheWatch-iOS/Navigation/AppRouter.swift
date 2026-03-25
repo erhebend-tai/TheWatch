@@ -20,7 +20,10 @@ class AppRouter {
         case login
         case forgotPassword
         case resetPassword(String)
+        case resetPasswordWithCode(email: String, otpCode: String)
         case eula
+        case twoFactor
+        case emailVerification(email: String)
     }
     
     @ViewBuilder
@@ -56,8 +59,14 @@ class AppRouter {
             ForgotPasswordView()
         case .resetPassword(let email):
             ResetPasswordView(email: email)
+        case .resetPasswordWithCode(let email, let otpCode):
+            ResetPasswordView(email: email, otpCode: otpCode)
         case .eula:
             EULAView()
+        case .twoFactor:
+            TwoFactorView()
+        case .emailVerification(let email):
+            EmailVerifyView(email: email)
         }
     }
     

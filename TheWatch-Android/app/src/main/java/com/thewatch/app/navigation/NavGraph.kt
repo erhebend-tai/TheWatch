@@ -9,6 +9,8 @@ import com.thewatch.app.ui.screens.signup.SignUpScreen
 import com.thewatch.app.ui.screens.forgotpassword.ForgotPasswordScreen
 import com.thewatch.app.ui.screens.resetpassword.ResetPasswordScreen
 import com.thewatch.app.ui.screens.eula.EulaScreen
+import com.thewatch.app.ui.screens.twofactor.TwoFactorScreen
+import com.thewatch.app.ui.screens.emailverify.EmailVerifyScreen
 import com.thewatch.app.ui.screens.home.HomeScreen
 import com.thewatch.app.ui.screens.profile.ProfileScreen
 import com.thewatch.app.ui.screens.permissions.PermissionsScreen
@@ -36,6 +38,8 @@ sealed class NavRoute(val route: String) {
     object Evacuation : NavRoute("evacuation")
     object HealthDashboard : NavRoute("health_dashboard")
     object WearableManagement : NavRoute("wearable_management")
+    object TwoFactor : NavRoute("two_factor")
+    object EmailVerify : NavRoute("email_verify")
 
     object AuthGraph : NavRoute("auth_graph")
     object AppGraph : NavRoute("app_graph")
@@ -57,6 +61,12 @@ fun NavGraphBuilder.authGraph(navController: NavController) {
         }
         composable(NavRoute.Eula.route) {
             EulaScreen(navController = navController)
+        }
+        composable(NavRoute.TwoFactor.route) {
+            TwoFactorScreen(navController = navController)
+        }
+        composable(NavRoute.EmailVerify.route) {
+            EmailVerifyScreen(navController = navController)
         }
     }
 }

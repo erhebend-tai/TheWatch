@@ -1,5 +1,6 @@
 package com.thewatch.app.data.repository.mock
 
+import com.thewatch.app.data.model.MfaEnrollmentChallenge
 import com.thewatch.app.data.model.User
 import com.thewatch.app.data.repository.AuthRepository
 import kotlinx.coroutines.delay
@@ -75,6 +76,41 @@ class MockAuthRepository @Inject constructor() : AuthRepository {
     override suspend fun acceptEULA(userId: String): Result<Unit> {
         delay(500)
         return Result.success(Unit)
+    }
+
+    // ── New interface methods (mock stubs) ────────────────────────────
+
+    override suspend fun sendEmailVerification(): Result<Unit> {
+        delay(500)
+        return Result.success(Unit)
+    }
+
+    override suspend fun refreshToken(): Result<User> {
+        delay(500)
+        val user = currentUserFlow.value ?: return Result.failure(Exception("No user logged in"))
+        return Result.success(user)
+    }
+
+    override suspend fun enrollMfa(method: String, phoneNumber: String?): Result<MfaEnrollmentChallenge> {
+        delay(1000)
+        return Result.success(
+            MfaEnrollmentChallenge(
+                method = method,
+                challengeUri = "otpauth://totp/TheWatch:alex.rivera@example.com?secret=JBSWY3DPEHPK3PXP&issuer=TheWatch",
+                sessionId = "mock-session-${System.currentTimeMillis()}",
+                backupCodes = listOf("A1B2C3D4", "E5F6G7H8", "I9J0K1L2", "M3N4O5P6", "Q7R8S9T0")
+            )
+        )
+    }
+
+    override suspend fun confirmMfaEnrollment(sessionId: String, code: String): Result<Boolean> {
+        delay(800)
+        return Result.success(true)
+    }
+
+    override suspend fun verifyMfaCode(code: String, method: String): Result<Boolean> {
+        delay(800)
+        return Result.success(code == "123456")
     }
 
     private fun mockUserAlexRivera() = User(

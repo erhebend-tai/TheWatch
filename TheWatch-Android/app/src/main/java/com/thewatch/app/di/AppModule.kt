@@ -151,11 +151,14 @@ object AppModule {
     // ── Repositories (resolved through AdapterRegistry) ─────────
     @Singleton
     @Provides
-    fun provideAuthRepository(registry: AdapterRegistry): AuthRepository {
+    fun provideAuthRepository(
+        registry: AdapterRegistry,
+        @ApplicationContext context: Context
+    ): AuthRepository {
         return when (registry.getTier(AdapterSlot.Security)) {
             AdapterTier.Mock -> MockAuthRepository()
-            // AdapterTier.Native -> NativeAuthRepository()  // Keystore-backed
-            // AdapterTier.Live -> FirebaseAuthRepository()   // Firebase Auth
+            // AdapterTier.Native -> NativeAuthRepository(context)  // Keystore-backed
+            AdapterTier.Live -> com.thewatch.app.data.repository.firebase.FirebaseAuthRepository(context)
             else -> MockAuthRepository()
         }
     }
