@@ -81,6 +81,8 @@ public class CodeIntelligenceDbContext : DbContext
             e.Property(s => s.FullName).HasMaxLength(1024).IsRequired();
             e.Property(s => s.Signature).HasMaxLength(2048).IsRequired();
             e.Property(s => s.BodyHash).HasMaxLength(64);
+            e.Property(s => s.FullBodyHash).HasMaxLength(64);
+            e.Property(s => s.DocText).HasColumnType("nvarchar(max)");
             e.Property(s => s.IndexedAt).HasDefaultValueSql("SYSUTCDATETIME()");
 
             // Indexes for common query patterns

@@ -47,10 +47,20 @@ BEGIN
         [Signature]    NVARCHAR(2048)   NOT NULL,
         [Lines]        INT              NOT NULL DEFAULT 0,
         [BodyHash]     NVARCHAR(64)     NULL,
+        [FullBodyHash] NVARCHAR(64)     NULL,
+        [DocText]      NVARCHAR(MAX)    NULL,
         [IndexedAt]    DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
         CONSTRAINT [PK_symbols] PRIMARY KEY ([Id])
     ) AS NODE;
 END
+GO
+
+-- Add columns if upgrading from an earlier schema
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('symbols') AND name = 'FullBodyHash')
+    ALTER TABLE [dbo].[symbols] ADD [FullBodyHash] NVARCHAR(64) NULL;
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('symbols') AND name = 'DocText')
+    ALTER TABLE [dbo].[symbols] ADD [DocText] NVARCHAR(MAX) NULL;
 GO
 
 -- ── documents NODE ────────────────────────────────────────────────────────

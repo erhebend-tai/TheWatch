@@ -85,9 +85,17 @@ public class SymbolNode
     /// <summary>Number of lines spanned by this symbol.</summary>
     public int Lines { get; set; }
 
-    /// <summary>SHA-256 hash of the symbol body (for duplicate/drift detection). Null if not computed.</summary>
+    /// <summary>SHA-256 hash of the symbol body with comments stripped (structural dedup). Null if not computed.</summary>
     [MaxLength(64)]
     public string? BodyHash { get; set; }
+
+    /// <summary>SHA-256 hash of the full body including comments (content-level dedup).</summary>
+    [MaxLength(64)]
+    public string? FullBodyHash { get; set; }
+
+    /// <summary>Extracted doc comments / XML docs / WAL comments. Used for semantic embedding later.</summary>
+    [Column(TypeName = "nvarchar(max)")]
+    public string? DocText { get; set; }
 
     /// <summary>UTC timestamp when this symbol was indexed.</summary>
     public DateTime IndexedAt { get; set; } = DateTime.UtcNow;
