@@ -26,6 +26,9 @@
     <Project Path="TheWatch.Web/TheWatch.Web.csproj" />
     <Project Path="TheWatch.WorkerServices/TheWatch.WorkerServices.csproj" />
   </Folder>
+  <Folder Name="/XML/">
+    <Project Path="TheWatch.XML/TheWatch.XML.csproj" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path="firebaseinit.js" />
   </Folder>

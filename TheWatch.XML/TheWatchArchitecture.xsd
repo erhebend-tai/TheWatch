@@ -1,0 +1,1152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://thewatch.io/architecture/2026-03"
+           xmlns:twa="http://thewatch.io/architecture/2026-03"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified"
+           version="2.0">
+
+  <!-- ================================================================================== -->
+  <!-- ROOT ELEMENTS                                                                       -->
+  <!-- ================================================================================== -->
+
+  <!-- Full architecture document -->
+  <xs:element name="TheWatchProject" type="twa:TheWatchProjectType">
+    <xs:annotation>
+      <xs:documentation>Root element representing The Watch enterprise architecture document.</xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+  <!-- Functions-only manifest -->
+  <xs:element name="FunctionsManifest" type="twa:FunctionsManifestType">
+    <xs:annotation>
+      <xs:documentation>Standalone manifest of all behavioral elements: handlers, endpoints, jobs, services, domain events.</xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+  <!-- UI-only manifest -->
+  <xs:element name="UIManifest" type="twa:UIManifestType">
+    <xs:annotation>
+      <xs:documentation>Standalone manifest of all UI elements: XAML pages, Blazor components, MAUI controls, styles.</xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+  <!-- Structure-only manifest -->
+  <xs:element name="StructureManifest" type="twa:StructureManifestType">
+    <xs:annotation>
+      <xs:documentation>Standalone manifest of project structure: solutions, projects, dependencies, layer topology.</xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+  <!-- ================================================================================== -->
+  <!-- GENERATION METADATA (shared across all manifests)                                   -->
+  <!-- ================================================================================== -->
+
+  <xs:complexType name="GenerationMetadataType">
+    <xs:annotation>
+      <xs:documentation>Metadata about when and how this manifest was generated.</xs:documentation>
+    </xs:annotation>
+    <xs:attribute name="generator" type="xs:string" use="required"/>
+    <xs:attribute name="generatedAt" type="xs:dateTime" use="required"/>
+    <xs:attribute name="framework" type="xs:string" use="optional"/>
+    <xs:attribute name="sourceRoot" type="xs:string" use="optional"/>
+    <xs:attribute name="version" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <!-- ================================================================================== -->
+  <!-- FUNCTIONS MANIFEST TYPES                                                            -->
+  <!-- ================================================================================== -->
+
+  <xs:complexType name="FunctionsManifestType">
+    <xs:sequence>
+      <xs:element name="Metadata" type="twa:GenerationMetadataType" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="CommandHandlers" type="twa:HandlersContainerType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="QueryHandlers" type="twa:HandlersContainerType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="NotificationHandlers" type="twa:HandlersContainerType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="ApiEndpoints" type="twa:EndpointsContainerType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="GrpcServices" type="twa:GrpcServicesContainerType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="SignalRHubs" type="twa:SignalRHubsContainerType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="BackgroundJobs" type="twa:BackgroundJobsContainerType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="HostedServices" type="twa:HostedServicesContainerType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="AzureFunctions" type="twa:AzureFunctionsContainerType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="DomainEventHandlers" type="twa:HandlersContainerType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Validators" type="twa:ValidatorsContainerType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="PipelineBehaviors" type="twa:PipelineBehaviorsContainerType" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="totalFunctions" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="HandlersContainerType">
+    <xs:sequence>
+      <xs:element name="Handler" type="twa:HandlerType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="HandlerType">
+    <xs:sequence>
+      <xs:element name="Request" type="twa:TypeReferenceType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Response" type="twa:TypeReferenceType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Summary" type="xs:string" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="namespace" type="xs:string" use="optional"/>
+    <xs:attribute name="sourceFile" type="xs:string" use="optional"/>
+    <xs:attribute name="lineNumber" type="xs:integer" use="optional"/>
+    <xs:attribute name="project" type="xs:string" use="optional"/>
+    <xs:attribute name="layer" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="TypeReferenceType">
+    <xs:attribute name="type" type="xs:string" use="required"/>
+    <xs:attribute name="namespace" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="EndpointsContainerType">
+    <xs:sequence>
+      <xs:element name="EndpointGroup" type="twa:EndpointGroupType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Endpoint" type="twa:EndpointType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="EndpointGroupType">
+    <xs:sequence>
+      <xs:element name="Endpoint" type="twa:EndpointType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="prefix" type="xs:string" use="optional"/>
+    <xs:attribute name="sourceFile" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="EndpointType">
+    <xs:sequence>
+      <xs:element name="Summary" type="xs:string" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="method" type="twa:HttpMethodType" use="optional"/>
+    <xs:attribute name="route" type="xs:string" use="optional"/>
+    <xs:attribute name="handler" type="xs:string" use="optional"/>
+    <xs:attribute name="sourceFile" type="xs:string" use="optional"/>
+    <xs:attribute name="lineNumber" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="GrpcServicesContainerType">
+    <xs:sequence>
+      <xs:element name="GrpcService" type="twa:GrpcServiceType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="GrpcServiceType">
+    <xs:sequence>
+      <xs:element name="Method" type="twa:GrpcMethodType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="namespace" type="xs:string" use="optional"/>
+    <xs:attribute name="sourceFile" type="xs:string" use="optional"/>
+    <xs:attribute name="proto" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="GrpcMethodType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="type" type="twa:GrpcMethodKindType" use="optional"/>
+    <xs:attribute name="request" type="xs:string" use="optional"/>
+    <xs:attribute name="response" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="SignalRHubsContainerType">
+    <xs:sequence>
+      <xs:element name="Hub" type="twa:SignalRHubType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="SignalRHubType">
+    <xs:sequence>
+      <xs:element name="HubMethod" type="twa:HubMethodType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="route" type="xs:string" use="optional"/>
+    <xs:attribute name="namespace" type="xs:string" use="optional"/>
+    <xs:attribute name="sourceFile" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="HubMethodType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="returnType" type="xs:string" use="optional"/>
+    <xs:attribute name="lineNumber" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="BackgroundJobsContainerType">
+    <xs:sequence>
+      <xs:element name="Job" type="twa:BackgroundJobType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="BackgroundJobType">
+    <xs:sequence>
+      <xs:element name="Summary" type="xs:string" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="schedule" type="xs:string" use="optional"/>
+    <xs:attribute name="namespace" type="xs:string" use="optional"/>
+    <xs:attribute name="sourceFile" type="xs:string" use="optional"/>
+    <xs:attribute name="lineNumber" type="xs:integer" use="optional"/>
+    <xs:attribute name="project" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="HostedServicesContainerType">
+    <xs:sequence>
+      <xs:element name="HostedService" type="twa:HostedServiceType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="HostedServiceType">
+    <xs:sequence>
+      <xs:element name="Summary" type="xs:string" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="namespace" type="xs:string" use="optional"/>
+    <xs:attribute name="sourceFile" type="xs:string" use="optional"/>
+    <xs:attribute name="lineNumber" type="xs:integer" use="optional"/>
+    <xs:attribute name="project" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="AzureFunctionsContainerType">
+    <xs:sequence>
+      <xs:element name="Function" type="twa:AzureFunctionType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="AzureFunctionType">
+    <xs:sequence>
+      <xs:element name="Summary" type="xs:string" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="trigger" type="xs:string" use="optional"/>
+    <xs:attribute name="namespace" type="xs:string" use="optional"/>
+    <xs:attribute name="sourceFile" type="xs:string" use="optional"/>
+    <xs:attribute name="lineNumber" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="ValidatorsContainerType">
+    <xs:sequence>
+      <xs:element name="Validator" type="twa:ValidatorType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="ValidatorType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="validates" type="xs:string" use="optional"/>
+    <xs:attribute name="namespace" type="xs:string" use="optional"/>
+    <xs:attribute name="sourceFile" type="xs:string" use="optional"/>
+    <xs:attribute name="lineNumber" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="PipelineBehaviorsContainerType">
+    <xs:sequence>
+      <xs:element name="Behavior" type="twa:PipelineBehaviorType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="PipelineBehaviorType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="namespace" type="xs:string" use="optional"/>
+    <xs:attribute name="sourceFile" type="xs:string" use="optional"/>
+    <xs:attribute name="lineNumber" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <!-- ================================================================================== -->
+  <!-- UI MANIFEST TYPES                                                                   -->
+  <!-- ================================================================================== -->
+
+  <xs:complexType name="UIManifestType">
+    <xs:sequence>
+      <xs:element name="Metadata" type="twa:GenerationMetadataType" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="XamlPages" type="twa:XamlPagesContainerType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="XamlControls" type="twa:XamlControlsContainerType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="BlazorComponents" type="twa:BlazorComponentsContainerType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="BlazorPages" type="twa:BlazorPagesContainerType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="ComponentLibraries" type="twa:ComponentLibrariesContainerType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Styles" type="twa:StylesContainerType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="StaticAssets" type="twa:StaticAssetsContainerType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="ResourceDictionaries" type="twa:ResourceDictionariesContainerType" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="totalComponents" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="XamlPagesContainerType">
+    <xs:sequence>
+      <xs:element name="Page" type="twa:XamlPageType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="XamlPageType">
+    <xs:sequence>
+      <xs:element name="Bindings" type="twa:BindingsContainerType" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="xamlFile" type="xs:string" use="optional"/>
+    <xs:attribute name="codeBehind" type="xs:string" use="optional"/>
+    <xs:attribute name="pageType" type="twa:XamlPageKindType" use="optional"/>
+    <xs:attribute name="project" type="xs:string" use="optional"/>
+    <xs:attribute name="namespace" type="xs:string" use="optional"/>
+    <xs:attribute name="viewModel" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="XamlControlsContainerType">
+    <xs:sequence>
+      <xs:element name="Control" type="twa:XamlControlType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="XamlControlType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="xamlFile" type="xs:string" use="optional"/>
+    <xs:attribute name="codeBehind" type="xs:string" use="optional"/>
+    <xs:attribute name="baseType" type="xs:string" use="optional"/>
+    <xs:attribute name="project" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="BindingsContainerType">
+    <xs:sequence>
+      <xs:element name="Binding" type="twa:BindingType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="BindingType">
+    <xs:attribute name="property" type="xs:string" use="required"/>
+    <xs:attribute name="path" type="xs:string" use="optional"/>
+    <xs:attribute name="mode" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="BlazorComponentsContainerType">
+    <xs:sequence>
+      <xs:element name="Component" type="twa:BlazorComponentType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="BlazorComponentType">
+    <xs:sequence>
+      <xs:element name="Parameter" type="twa:ComponentParameterType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="razorFile" type="xs:string" use="optional"/>
+    <xs:attribute name="codeBehind" type="xs:string" use="optional"/>
+    <xs:attribute name="project" type="xs:string" use="optional"/>
+    <xs:attribute name="namespace" type="xs:string" use="optional"/>
+    <xs:attribute name="inherits" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="ComponentParameterType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="type" type="xs:string" use="optional"/>
+    <xs:attribute name="required" type="xs:boolean" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="BlazorPagesContainerType">
+    <xs:sequence>
+      <xs:element name="Page" type="twa:BlazorPageType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="BlazorPageType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="route" type="xs:string" use="optional"/>
+    <xs:attribute name="razorFile" type="xs:string" use="optional"/>
+    <xs:attribute name="layout" type="xs:string" use="optional"/>
+    <xs:attribute name="project" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="ComponentLibrariesContainerType">
+    <xs:sequence>
+      <xs:element name="Library" type="twa:ComponentLibraryType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="ComponentLibraryType">
+    <xs:sequence>
+      <xs:element name="Component" type="twa:BlazorComponentType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="technology" type="xs:string" use="optional"/>
+    <xs:attribute name="description" type="xs:string" use="optional"/>
+    <xs:attribute name="componentCount" type="xs:integer" use="optional"/>
+    <xs:attribute name="project" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="StylesContainerType">
+    <xs:sequence>
+      <xs:element name="StyleFile" type="twa:StyleFileType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="StyleFileType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="path" type="xs:string" use="optional"/>
+    <xs:attribute name="type" type="twa:StyleKindType" use="optional"/>
+    <xs:attribute name="project" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="StaticAssetsContainerType">
+    <xs:sequence>
+      <xs:element name="Asset" type="twa:StaticAssetType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="StaticAssetType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="path" type="xs:string" use="optional"/>
+    <xs:attribute name="type" type="xs:string" use="optional"/>
+    <xs:attribute name="sizeBytes" type="xs:long" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="ResourceDictionariesContainerType">
+    <xs:sequence>
+      <xs:element name="ResourceDictionary" type="twa:ResourceDictionaryType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="ResourceDictionaryType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="xamlFile" type="xs:string" use="optional"/>
+    <xs:attribute name="project" type="xs:string" use="optional"/>
+    <xs:attribute name="scope" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <!-- ================================================================================== -->
+  <!-- STRUCTURE MANIFEST TYPES                                                            -->
+  <!-- ================================================================================== -->
+
+  <xs:complexType name="StructureManifestType">
+    <xs:sequence>
+      <xs:element name="Metadata" type="twa:GenerationMetadataType" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="Solutions" type="twa:SolutionsContainerType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Layers" type="twa:StructureLayersContainerType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="DependencyGraph" type="twa:DependencyGraphType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="NuGetPackages" type="twa:NuGetPackagesContainerType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Frameworks" type="twa:FrameworksContainerType" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="totalProjects" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="SolutionsContainerType">
+    <xs:sequence>
+      <xs:element name="Solution" type="twa:SolutionType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="SolutionType">
+    <xs:sequence>
+      <xs:element name="ProjectRef" type="twa:SolutionProjectRefType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="path" type="xs:string" use="optional"/>
+    <xs:attribute name="type" type="twa:SolutionKindType" use="optional"/>
+    <xs:attribute name="projectCount" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="SolutionProjectRefType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="path" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="StructureLayersContainerType">
+    <xs:sequence>
+      <xs:element name="Layer" type="twa:StructureLayerType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="StructureLayerType">
+    <xs:sequence>
+      <xs:element name="Project" type="twa:StructureProjectType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="path" type="xs:string" use="optional"/>
+    <xs:attribute name="projectCount" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="StructureProjectType">
+    <xs:sequence>
+      <xs:element name="ProjectReference" type="twa:ProjectDependencyType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="PackageReference" type="twa:PackageDependencyType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="path" type="xs:string" use="optional"/>
+    <xs:attribute name="targetFramework" type="xs:string" use="optional"/>
+    <xs:attribute name="outputType" type="xs:string" use="optional"/>
+    <xs:attribute name="sdk" type="xs:string" use="optional"/>
+    <xs:attribute name="csFileCount" type="xs:integer" use="optional"/>
+    <xs:attribute name="razorFileCount" type="xs:integer" use="optional"/>
+    <xs:attribute name="xamlFileCount" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="ProjectDependencyType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="path" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="PackageDependencyType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="version" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="DependencyGraphType">
+    <xs:sequence>
+      <xs:element name="Edge" type="twa:DependencyEdgeType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="nodeCount" type="xs:integer" use="optional"/>
+    <xs:attribute name="edgeCount" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="DependencyEdgeType">
+    <xs:attribute name="from" type="xs:string" use="required"/>
+    <xs:attribute name="to" type="xs:string" use="required"/>
+    <xs:attribute name="type" type="twa:DependencyEdgeKindType" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="NuGetPackagesContainerType">
+    <xs:sequence>
+      <xs:element name="Package" type="twa:NuGetPackageType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="NuGetPackageType">
+    <xs:sequence>
+      <xs:element name="UsedBy" type="twa:PackageUsageType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="version" type="xs:string" use="optional"/>
+    <xs:attribute name="usageCount" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="PackageUsageType">
+    <xs:attribute name="project" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="FrameworksContainerType">
+    <xs:sequence>
+      <xs:element name="Framework" type="twa:FrameworkEntryType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="FrameworkEntryType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="projectCount" type="xs:integer" use="optional"/>
+  </xs:complexType>
+
+  <!-- ================================================================================== -->
+  <!-- FULL ARCHITECTURE TYPES (existing, expanded)                                        -->
+  <!-- ================================================================================== -->
+
+  <xs:complexType name="TheWatchProjectType">
+    <xs:sequence>
+      <xs:element name="SystemOverview" type="twa:SystemOverviewType" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="Orientation" type="twa:OrientationType" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="ProgrammingConcepts" type="twa:ProgrammingConceptsType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="VerificationAndQuality" type="twa:VerificationAndQualityType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="SecurityAndCompliance" type="twa:SecurityAndComplianceType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="DeploymentAndDevOps" type="twa:DeploymentAndDevOpsType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="OperationalCapabilities" type="twa:OperationalCapabilitiesType" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="version" type="xs:string" use="required"/>
+    <xs:attribute name="framework" type="xs:string" use="optional"/>
+    <xs:attribute name="runtime" type="xs:string" use="optional"/>
+    <xs:attribute name="snapshot" type="xs:string" use="optional"/>
+    <xs:attribute name="generated" type="xs:dateTime" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="SystemOverviewType">
+    <xs:sequence>
+      <xs:element name="Description" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Origin" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Philosophy" type="twa:PhilosophyType" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="PhilosophyType">
+    <xs:sequence>
+      <xs:element name="Principle" type="twa:PrincipleType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="PrincipleType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="value" type="xs:string" use="required"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="OrientationType">
+    <xs:sequence>
+      <xs:element name="DependencyInversion" type="twa:DependencyInversionType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Layers" type="twa:LayersContainerType" minOccurs="1" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="architectureStyle" type="xs:string" use="optional"/>
+    <xs:attribute name="methodology" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="DependencyInversionType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="rule" type="xs:string" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="LayersContainerType">
+    <xs:sequence>
+      <xs:element name="Layer" type="twa:LayerType" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="LayerType">
+    <xs:sequence>
+      <xs:element name="Patterns" type="twa:PatternsType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="SubDomain" type="twa:SubDomainType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Projects" type="twa:ProjectsContainerType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Adapters" type="twa:AdaptersType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Project" type="twa:ProjectType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Client" type="twa:ClientType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="LibraryGroup" type="twa:LibraryGroupType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="StandaloneServices" type="twa:StandaloneServicesType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Category" type="twa:ProjectCategoryType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="EntryPoints" type="twa:EntryPointsType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="PlatformTargets" type="twa:PlatformTargetsType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="AppServices" type="twa:AppServicesType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="AdditionalFolders" type="twa:AdditionalFoldersType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="SubFolders" type="twa:SubFoldersType" minOccurs="0" maxOccurs="1"/>
+      <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="description" type="xs:string" use="optional"/>
+    <xs:attribute name="pattern" type="xs:string" use="optional"/>
+    <xs:attribute name="orchestration" type="xs:string" use="optional"/>
+    <xs:attribute name="projectCount" type="xs:integer" use="optional"/>
+    <xs:attribute name="totalCsFiles" type="xs:integer" use="optional"/>
+    <xs:attribute name="multiPlatform" type="xs:boolean" use="optional"/>
+    <xs:attribute name="type" type="xs:string" use="optional"/>
+    <xs:attribute name="crossCloud" type="xs:string" use="optional"/>
+    <xs:attribute name="technology" type="xs:string" use="optional"/>
+    <xs:attribute name="csFiles" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <!-- Adapters -->
+  <xs:complexType name="AdaptersType">
+    <xs:sequence>
+      <xs:element name="Adapter" type="twa:AdapterType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="AdapterType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="type" type="xs:string" use="required"/>
+        <xs:attribute name="providers" type="xs:string" use="optional"/>
+        <xs:attribute name="technologies" type="xs:string" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Library groups -->
+  <xs:complexType name="LibraryGroupType">
+    <xs:sequence>
+      <xs:element name="Library" type="twa:LibraryType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="technology" type="xs:string" use="optional"/>
+    <xs:attribute name="count" type="xs:integer" use="optional"/>
+    <xs:attribute name="description" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="LibraryType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="description" type="xs:string" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Entry points (standalone app) -->
+  <xs:complexType name="EntryPointsType">
+    <xs:sequence>
+      <xs:element name="File" type="twa:FileRefType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="FileRefType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="path" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <!-- Platform targets -->
+  <xs:complexType name="PlatformTargetsType">
+    <xs:sequence>
+      <xs:element name="Platform" type="twa:PlatformType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="PlatformType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="files" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <!-- App services -->
+  <xs:complexType name="AppServicesType">
+    <xs:sequence>
+      <xs:element name="Service" type="twa:ServiceType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Additional/Sub folders -->
+  <xs:complexType name="AdditionalFoldersType">
+    <xs:sequence>
+      <xs:element name="Folder" type="twa:FolderRefType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="SubFoldersType">
+    <xs:sequence>
+      <xs:element name="Folder" type="twa:FolderRefType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="FolderRefType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="description" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <!-- Worker services container -->
+  <xs:complexType name="WorkerServicesType">
+    <xs:sequence>
+      <xs:element name="Service" type="twa:WorkerServiceRefType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="WorkerServiceRefType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Programming concepts -->
+  <xs:complexType name="ProgrammingConceptsType">
+    <xs:sequence>
+      <xs:element name="Concept" type="twa:ConceptType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="ConceptType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="description" type="xs:string" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Verification and quality -->
+  <xs:complexType name="VerificationAndQualityType">
+    <xs:sequence>
+      <xs:element name="TestingStrategy" type="twa:TestingStrategyType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Monitoring" type="twa:MonitoringType" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="TestingStrategyType">
+    <xs:sequence>
+      <xs:element name="TestType" type="twa:TestTypeEntryType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="TestTypeEntryType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="focus" type="xs:string" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="MonitoringType">
+    <xs:sequence>
+      <xs:element name="Tool" type="twa:MonitoringToolType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="MonitoringToolType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Security and compliance -->
+  <xs:complexType name="SecurityAndComplianceType">
+    <xs:sequence>
+      <xs:element name="Frameworks" type="twa:ComplianceFrameworksType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="SecurityServices" type="twa:SecurityServicesType" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="ComplianceFrameworksType">
+    <xs:sequence>
+      <xs:element name="Framework" type="twa:ComplianceFrameworkType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="ComplianceFrameworkType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="description" type="xs:string" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="SecurityServicesType">
+    <xs:sequence>
+      <xs:element name="Service" type="twa:SecurityServiceType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="SecurityServiceType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="technologies" type="xs:string" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Deployment and DevOps -->
+  <xs:complexType name="DeploymentAndDevOpsType">
+    <xs:sequence>
+      <xs:element name="InfrastructureAsCode" type="twa:IaCType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Containerization" type="twa:ContainerizationType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="ContinuousIntegration" type="twa:CIType" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="IaCType">
+    <xs:sequence>
+      <xs:element name="Tool" type="twa:NamedToolType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="ContainerizationType">
+    <xs:sequence>
+      <xs:element name="Technology" type="twa:NamedTechnologyType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="CIType">
+    <xs:sequence>
+      <xs:element name="Tool" type="twa:NamedToolType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="NamedToolType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="description" type="xs:string" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="NamedTechnologyType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Operational capabilities -->
+  <xs:complexType name="OperationalCapabilitiesType">
+    <xs:sequence>
+      <xs:element name="Capability" type="twa:CapabilityType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="CapabilityType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="features" type="xs:string" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Existing shared types -->
+  <xs:complexType name="PatternsType">
+    <xs:sequence>
+      <xs:element name="Pattern" type="twa:PatternType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="PatternType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="library" type="xs:string" use="optional"/>
+        <xs:attribute name="description" type="xs:string" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="SubDomainType">
+    <xs:sequence>
+      <xs:element name="Entities" type="twa:EntitiesType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="ValueObjects" type="twa:ValueObjectsType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="DomainEvents" type="twa:DomainEventsType" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="description" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="EntitiesType">
+    <xs:sequence>
+      <xs:element name="Entity" type="twa:EntityType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="EntityType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="description" type="xs:string" use="optional"/>
+        <xs:attribute name="namespace" type="xs:string" use="optional"/>
+        <xs:attribute name="sourceFile" type="xs:string" use="optional"/>
+        <xs:attribute name="lineNumber" type="xs:integer" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="ValueObjectsType">
+    <xs:sequence>
+      <xs:element name="ValueObject" type="twa:ValueObjectType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="ValueObjectType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="description" type="xs:string" use="optional"/>
+        <xs:attribute name="namespace" type="xs:string" use="optional"/>
+        <xs:attribute name="sourceFile" type="xs:string" use="optional"/>
+        <xs:attribute name="lineNumber" type="xs:integer" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="DomainEventsType">
+    <xs:sequence>
+      <xs:element name="Event" type="twa:DomainEventType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="DomainEventType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="trigger" type="xs:string" use="optional"/>
+        <xs:attribute name="namespace" type="xs:string" use="optional"/>
+        <xs:attribute name="sourceFile" type="xs:string" use="optional"/>
+        <xs:attribute name="lineNumber" type="xs:integer" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="ProjectsContainerType">
+    <xs:sequence>
+      <xs:element name="Category" type="twa:ProjectCategoryType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Project" type="twa:ProjectType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="ProjectCategoryType">
+    <xs:sequence>
+      <xs:element name="Project" type="twa:ProjectType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="threshold" type="xs:string" use="optional"/>
+    <xs:attribute name="note" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="ProjectType">
+    <xs:sequence>
+      <xs:element name="Jobs" type="twa:JobsType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="Services" type="twa:WorkerServicesType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="AnalyzerCategories" type="twa:AnalyzerCategoriesType" minOccurs="0" maxOccurs="1"/>
+      <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="description" type="xs:string" use="optional"/>
+    <xs:attribute name="csFiles" type="xs:string" use="optional"/>
+    <xs:attribute name="status" type="twa:ProjectStatusType" use="optional"/>
+    <xs:attribute name="namespace" type="xs:string" use="optional"/>
+    <xs:attribute name="sourceDirectory" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="JobsType">
+    <xs:sequence>
+      <xs:element name="Job" type="twa:JobType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="JobType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="description" type="xs:string" use="optional"/>
+        <xs:attribute name="schedule" type="xs:string" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="AnalyzerCategoriesType">
+    <xs:sequence>
+      <xs:element name="Category" type="twa:AnalyzerCategoryType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="AnalyzerCategoryType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="name" type="xs:string" use="optional"/>
+        <xs:attribute name="description" type="xs:string" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="ClientType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="project" type="xs:string" use="optional"/>
+        <xs:attribute name="technology" type="xs:string" use="optional"/>
+        <xs:attribute name="target" type="xs:string" use="optional"/>
+        <xs:attribute name="csFiles" type="xs:string" use="optional"/>
+        <xs:attribute name="features" type="xs:string" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="StandaloneServicesType">
+    <xs:sequence>
+      <xs:element name="Service" type="twa:ServiceType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="path" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="ServiceType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="description" type="xs:string" use="optional"/>
+        <xs:attribute name="namespace" type="xs:string" use="optional"/>
+        <xs:attribute name="sourceFile" type="xs:string" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- ================================================================================== -->
+  <!-- SIMPLE TYPES / ENUMERATIONS                                                         -->
+  <!-- ================================================================================== -->
+
+  <xs:simpleType name="ProjectStatusType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="stub"/>
+      <xs:enumeration value="light"/>
+      <xs:enumeration value="medium"/>
+      <xs:enumeration value="substantial"/>
+      <xs:enumeration value="production"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="HttpMethodType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="GET"/>
+      <xs:enumeration value="POST"/>
+      <xs:enumeration value="PUT"/>
+      <xs:enumeration value="PATCH"/>
+      <xs:enumeration value="DELETE"/>
+      <xs:enumeration value="HEAD"/>
+      <xs:enumeration value="OPTIONS"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="GrpcMethodKindType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Unary"/>
+      <xs:enumeration value="ServerStreaming"/>
+      <xs:enumeration value="ClientStreaming"/>
+      <xs:enumeration value="DuplexStreaming"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="XamlPageKindType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="ContentPage"/>
+      <xs:enumeration value="FlyoutPage"/>
+      <xs:enumeration value="TabbedPage"/>
+      <xs:enumeration value="NavigationPage"/>
+      <xs:enumeration value="Shell"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="StyleKindType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="css"/>
+      <xs:enumeration value="scss"/>
+      <xs:enumeration value="xaml"/>
+      <xs:enumeration value="razor.css"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="SolutionKindType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="sln"/>
+      <xs:enumeration value="slnf"/>
+      <xs:enumeration value="slnx"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="DependencyEdgeKindType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="ProjectReference"/>
+      <xs:enumeration value="PackageReference"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+</xs:schema>

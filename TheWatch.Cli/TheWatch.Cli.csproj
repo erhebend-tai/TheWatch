@@ -49,6 +49,9 @@
 
     <!-- Mock adapters — fallback when Azure OpenAI is not configured -->
     <ProjectReference Include="..\TheWatch.Adapters.Mock\TheWatch.Adapters.Mock.csproj" />
+
+    <!-- Architecture manifest — XML-based architecture metadata for code indexing enrichment -->
+    <ProjectReference Include="..\TheWatch.XML\TheWatch.XML.csproj" />
   </ItemGroup>
 
 </Project>

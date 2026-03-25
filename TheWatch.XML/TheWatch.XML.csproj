@@ -1,0 +1,24 @@
+<!--
+  TheWatch.XML — Architecture Manifest Class Library
+  ════════════════════════════════════════════════════════════════════════════════
+  Embeds TheWatchArchitecture.xml and .xsd as resources, provides C# APIs for
+  loading, querying, and validating the architecture manifest.
+
+  Usage:
+    var manifest = ArchitectureManifest.LoadFromEmbeddedResource();
+    var entities = manifest.GetAllEntities();
+    var stubs = manifest.GetProjectsByStatus("stub");
+
+  Write-ahead log:
+    - v1.0.0: Initial — embedded resources, ArchitectureManifest, ManifestValidator (2026-03-24)
+  ════════════════════════════════════════════════════════════════════════════════
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <!-- Embed the architecture XML and XSD as resources for runtime access -->
+    <EmbeddedResource Include="TheWatchArchitecture.xml" LogicalName="TheWatch.XML.TheWatchArchitecture.xml" />
+    <EmbeddedResource Include="TheWatchArchitecture.xsd" LogicalName="TheWatch.XML.TheWatchArchitecture.xsd" />
+  </ItemGroup>
+
+</Project>

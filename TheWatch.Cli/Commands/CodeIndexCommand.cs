@@ -5,12 +5,19 @@
 // enum, record, struct, and method, tags them by namespace/folder/naming convention,
 // and writes a CSV for review in Excel/Sheets.
 //
+// Enrichment via TheWatchArchitecture.xml:
+//   When the architecture manifest is available (embedded or via --xml-manifest),
+//   the indexer cross-references class names against XML entities, jobs, hosted
+//   services, and projects to add tags like #entity, #job, #hosted-service,
+//   #domain-layer, #xml-stub, etc.
+//
 // Subcommands:
 //   thewatch codeindex                     — Index the default solution (TheWatch.slnx)
 //   thewatch codeindex --solution path.slnx — Index a specific solution
 //   thewatch codeindex --output index.csv  — Output to specific file (default: code-index.csv)
 //   thewatch codeindex --include-bodies    — Include method body hashes for duplicate detection
 //   thewatch codeindex --external path/    — Also scan external .cs files from a directory
+//   thewatch codeindex --xml-manifest path/to/arch.xml — Use a custom XML manifest file
 //
 // Output CSV columns:
 //   repo, project, file, kind, name, signature, #tags, depends_on, lines, body_hash
@@ -20,13 +27,22 @@
 //   - Naming patterns → #port (IXxxPort), #adapter (XxxAdapter), #mock (MockXxx),
 //     #controller, #service, #model, #enum, #test
 //   - Folder path → #android, #ios, #functions, #dashboard, etc.
+//   - Architecture manifest → #entity, #job, #hosted-service, #domain-layer, #xml-stub
+//   - Domain keywords → #disaster, #triage, #drone, #mesh, #geofence, #marketplace,
+//     #training, #compliance, #analytics, #video, #voice, #wearable, #iot, #crypto,
+//     #cache, #search, #graph, #queue, #storage, #email, #sms
+//
+// After the CSV, a tag co-occurrence summary is printed showing the top 20 tag
+// pairs that most frequently appear together (helps spot domain clusters).
 //
 // Example:
 //   dotnet run --project TheWatch.Cli -- codeindex
 //   dotnet run --project TheWatch.Cli -- codeindex --output integration-review.csv
 //   dotnet run --project TheWatch.Cli -- codeindex --external ../ExternalApi/src/
+//   dotnet run --project TheWatch.Cli -- codeindex --xml-manifest ./TheWatch.XML/TheWatchArchitecture.xml
 //
 // WAL: Uses MSBuild.Locator to find the SDK, then Roslyn to parse without building.
+//      Architecture manifest enrichment is best-effort — missing XML = no enrichment, no crash.
 // =============================================================================
 
 using System.CommandLine;
@@ -37,11 +53,18 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.MSBuild;
+using TheWatch.XML;
 
 namespace TheWatch.Cli.Commands;
 
 public static class CodeIndexCommand
 {
+    // ── Manifest enrichment lookups (populated at startup) ────────────
+    private static HashSet<string> _entityNames = new(StringComparer.OrdinalIgnoreCase);
+    private static HashSet<string> _jobNames = new(StringComparer.OrdinalIgnoreCase);
+    private static HashSet<string> _serviceNames = new(StringComparer.OrdinalIgnoreCase);
+    private static Dictionary<string, ManifestProject> _projectLookup = new(StringComparer.OrdinalIgnoreCase);
+
     public static Command Build()
     {
         var solutionOption = new Option<string>("--solution")
@@ -67,12 +90,18 @@ public static class CodeIndexCommand
             Description = "Also scan .cs files from an external directory"
         };
 
+        var xmlManifestOption = new Option<string?>("--xml-manifest")
+        {
+            Description = "Path to a custom TheWatchArchitecture.xml file (default: use embedded resource)"
+        };
+
         var cmd = new Command("codeindex", "Scan solution code and emit a tagged CSV index")
         {
             solutionOption,
             outputOption,
             includeBodiesOption,
-            externalOption
+            externalOption,
+            xmlManifestOption
         };
 
         cmd.SetAction(async (parseResult) =>
@@ -81,17 +110,21 @@ public static class CodeIndexCommand
             var outputPath = parseResult.GetValue(outputOption)!;
             var includeBodies = parseResult.GetValue(includeBodiesOption);
             var externalDir = parseResult.GetValue(externalOption);
+            var xmlManifestPath = parseResult.GetValue(xmlManifestOption);
 
-            await RunAsync(solutionPath, outputPath, includeBodies, externalDir);
+            await RunAsync(solutionPath, outputPath, includeBodies, externalDir, xmlManifestPath);
         });
 
         return cmd;
     }
 
-    private static async Task RunAsync(string solutionPath, string outputPath, bool includeBodies, string? externalDir)
+    private static async Task RunAsync(string solutionPath, string outputPath, bool includeBodies, string? externalDir, string? xmlManifestPath)
     {
         Console.WriteLine($"[CODEINDEX] Scanning: {solutionPath}");
         Console.WriteLine($"[CODEINDEX] Output:   {outputPath}");
+
+        // ── Load architecture manifest for enrichment ─────────────────
+        LoadArchitectureManifest(xmlManifestPath);
 
         // Register MSBuild before using Roslyn workspaces
         if (!MSBuildLocator.IsRegistered)
@@ -189,8 +222,86 @@ public static class CodeIndexCommand
         foreach (var tag in tagCounts)
             Console.WriteLine($"  {tag.Key,-30} {tag.Count(),5} symbols");
 
+        // ── Tag Co-occurrence Summary ───────────────────────────────
+        PrintCooccurrenceSummary(rows);
+
         Console.WriteLine();
         Console.WriteLine($"[CODEINDEX] Done. {rows.Count} symbols indexed across {rows.Select(r => r.Project).Distinct().Count()} projects.");
+    }
+
+    // ── Architecture manifest loading ────────────────────────────────
+
+    private static void LoadArchitectureManifest(string? xmlManifestPath)
+    {
+        try
+        {
+            ArchitectureManifest manifest;
+
+            if (!string.IsNullOrEmpty(xmlManifestPath))
+            {
+                Console.WriteLine($"[CODEINDEX] Loading architecture manifest: {xmlManifestPath}");
+                manifest = ArchitectureManifest.LoadFromFile(xmlManifestPath);
+            }
+            else
+            {
+                Console.WriteLine("[CODEINDEX] Loading embedded architecture manifest...");
+                manifest = ArchitectureManifest.LoadFromEmbeddedResource();
+            }
+
+            _entityNames = manifest.GetEntityNameSet();
+            _jobNames = manifest.GetJobNameSet();
+            _serviceNames = manifest.GetServiceNameSet();
+            _projectLookup = manifest.GetProjectLookup();
+
+            Console.WriteLine($"[CODEINDEX] Manifest loaded: {_entityNames.Count} entities, {_jobNames.Count} jobs, {_serviceNames.Count} services, {_projectLookup.Count} projects");
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[CODEINDEX] Warning: Could not load architecture manifest: {ex.Message}");
+            Console.Error.WriteLine("[CODEINDEX] Continuing without manifest enrichment.");
+            _entityNames = new(StringComparer.OrdinalIgnoreCase);
+            _jobNames = new(StringComparer.OrdinalIgnoreCase);
+            _serviceNames = new(StringComparer.OrdinalIgnoreCase);
+            _projectLookup = new(StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
+    // ── Tag co-occurrence analysis ──────────────────────────────────
+
+    private static void PrintCooccurrenceSummary(List<CodeIndexRow> rows)
+    {
+        Console.WriteLine();
+        Console.WriteLine("[CODEINDEX] Tag co-occurrence (top 20 pairs):");
+
+        // Count how many symbols share each pair of tags
+        var pairCounts = new Dictionary<(string, string), int>();
+
+        foreach (var row in rows)
+        {
+            var tags = row.Tags.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .OrderBy(t => t)
+                .Distinct()
+                .ToArray();
+
+            for (var i = 0; i < tags.Length; i++)
+            {
+                for (var j = i + 1; j < tags.Length; j++)
+                {
+                    var pair = (tags[i], tags[j]);
+                    pairCounts.TryGetValue(pair, out var count);
+                    pairCounts[pair] = count + 1;
+                }
+            }
+        }
+
+        var topPairs = pairCounts
+            .OrderByDescending(kv => kv.Value)
+            .Take(20);
+
+        foreach (var kv in topPairs)
+        {
+            Console.WriteLine($"  {kv.Key.Item1} + {kv.Key.Item2}: {kv.Value} symbols");
+        }
     }
 
     // ── Roslyn Project Scanner ──────────────────────────────────────
@@ -389,6 +500,10 @@ public static class CodeIndexCommand
                 var nameTags = DeriveTagsFromName(fileName);
                 if (nameTags.Length > 0) tags += $" {nameTags}";
 
+                // Manifest enrichment for mobile files
+                var manifestTags = DeriveManifestTags(fileName, platform == "android" ? "TheWatch-Android" : "TheWatch-iOS");
+                if (manifestTags.Length > 0) tags += $" {manifestTags}";
+
                 rows.Add(new CodeIndexRow
                 {
                     Repo = "TheWatch",
@@ -468,10 +583,16 @@ public static class CodeIndexCommand
             if (nsLower.Contains("gdpr") || nsLower.Contains("consent") || nsLower.Contains("privacy")) tags.Add("#gdpr");
         }
 
-        // Name-derived domain tags
+        // Name-derived domain tags (includes new domain-specific tags)
         var nameTags = DeriveTagsFromName(name);
         if (nameTags.Length > 0)
             foreach (var t in nameTags.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                tags.Add(t);
+
+        // Architecture manifest enrichment tags
+        var manifestTags = DeriveManifestTags(name, projectName);
+        if (manifestTags.Length > 0)
+            foreach (var t in manifestTags.Split(' ', StringSplitOptions.RemoveEmptyEntries))
                 tags.Add(t);
 
         return string.Join(" ", tags.OrderBy(t => t));
@@ -482,6 +603,7 @@ public static class CodeIndexCommand
         var tags = new List<string>();
         var lower = name.ToLowerInvariant();
 
+        // ── Original tags ────────────────────────────────────────────
         if (lower.Contains("sos") || lower.Contains("emergency") || lower.Contains("dispatch")) tags.Add("#emergency");
         if (lower.Contains("auth") || lower.Contains("login") || lower.Contains("signup")) tags.Add("#auth");
         if (lower.Contains("audit")) tags.Add("#audit");
@@ -502,6 +624,93 @@ public static class CodeIndexCommand
         if (lower.Contains("signalr") || lower.Contains("hub")) tags.Add("#realtime");
         if (lower.Contains("rabbit") || lower.Contains("queue") || lower.Contains("message")) tags.Add("#messaging");
         if (lower.Contains("hangfire") || lower.Contains("job") || lower.Contains("schedule")) tags.Add("#scheduling");
+
+        // ── New domain-specific tags ─────────────────────────────────
+        if (lower.Contains("disaster") || lower.Contains("evacuation") || lower.Contains("hurricane")
+            || lower.Contains("wildfire") || lower.Contains("earthquake")) tags.Add("#disaster");
+        if (lower.Contains("triage") || lower.Contains("medical") || lower.Contains("vital")
+            || lower.Contains("health")) tags.Add("#triage");
+        if (lower.Contains("drone") || lower.Contains("fleet") || lower.Contains("telemetry")) tags.Add("#drone");
+        if (lower.Contains("mesh") || lower.Contains("offline") || lower.Contains("peer")) tags.Add("#mesh");
+        if (lower.Contains("geofence") || lower.Contains("boundary") || lower.Contains("zone")) tags.Add("#geofence");
+        if (lower.Contains("marketplace") || lower.Contains("payment") || lower.Contains("subscription")) tags.Add("#marketplace");
+        if (lower.Contains("training") || lower.Contains("certification") || lower.Contains("enrollment")) tags.Add("#training");
+        if (lower.Contains("compliance") || lower.Contains("cmmc") || lower.Contains("fedramp")
+            || lower.Contains("fisma") || lower.Contains("cjis") || lower.Contains("hipaa")
+            || lower.Contains("itar")) tags.Add("#compliance");
+        if (lower.Contains("analytics") || lower.Contains("prediction") || lower.Contains("scoring")
+            || lower.Contains("aggregation")) tags.Add("#analytics");
+        if (lower.Contains("video") || lower.Contains("stream") || lower.Contains("camera")
+            || lower.Contains("recording") || lower.Contains("footage")) tags.Add("#video");
+        if (lower.Contains("voice") || lower.Contains("speech") || lower.Contains("transcription")
+            || lower.Contains("stt") || lower.Contains("tts")) tags.Add("#voice");
+        if (lower.Contains("wearable") || lower.Contains("watch") || lower.Contains("fitbit")) tags.Add("#wearable");
+        if (lower.Contains("iot") || lower.Contains("mqtt") || lower.Contains("device")
+            || lower.Contains("sensor")) tags.Add("#iot");
+        if (lower.Contains("encrypt") || lower.Contains("decrypt") || lower.Contains("aes")
+            || lower.Contains("rsa") || lower.Contains("sha") || lower.Contains("hash")
+            || lower.Contains("certificate")) tags.Add("#crypto");
+        if (lower.Contains("cache") || lower.Contains("redis") || lower.Contains("distributed")) tags.Add("#cache");
+        if (lower.Contains("search") || lower.Contains("index") || lower.Contains("vector")
+            || lower.Contains("qdrant") || lower.Contains("embedding")) tags.Add("#search");
+        if (lower.Contains("graph") || lower.Contains("neo4j") || lower.Contains("relationship")
+            || lower.Contains("traversal")) tags.Add("#graph");
+        if (lower.Contains("queue") || lower.Contains("rabbitmq") || lower.Contains("servicebus")
+            || lower.Contains("kafka") || lower.Contains("eventhub")) tags.Add("#queue");
+        if (lower.Contains("blob") || lower.Contains("storage") || lower.Contains("s3")
+            || lower.Contains("gcs") || lower.Contains("bucket")) tags.Add("#storage");
+        if (lower.Contains("email") || lower.Contains("smtp") || lower.Contains("sendgrid")) tags.Add("#email");
+        if (lower.Contains("sms") || lower.Contains("twilio") || lower.Contains("telephony")) tags.Add("#sms");
+
+        return string.Join(" ", tags.Distinct());
+    }
+
+    /// <summary>
+    /// Derives tags from the architecture manifest by matching class/type names
+    /// against known entities, jobs, hosted services, and project metadata.
+    /// </summary>
+    private static string DeriveManifestTags(string name, string projectName)
+    {
+        var tags = new List<string>();
+
+        // Match class name against XML entities
+        if (_entityNames.Contains(name))
+            tags.Add("#entity");
+
+        // Match class name against XML jobs
+        if (_jobNames.Contains(name))
+            tags.Add("#job");
+
+        // Match class name against XML hosted services
+        if (_serviceNames.Contains(name))
+            tags.Add("#hosted-service");
+
+        // Match project name against XML project metadata
+        if (_projectLookup.TryGetValue(projectName, out var proj))
+        {
+            // Add layer tag
+            var layerTag = proj.Layer.ToLowerInvariant() switch
+            {
+                "domain" => "#domain-layer",
+                "application" => "#application-layer",
+                "infrastructure" => "#infra-layer",
+                "presentation" => "#presentation-layer",
+                "shared" => "#shared-layer",
+                "workers" => "#workers-layer",
+                "libraries" => "#libraries-layer",
+                "aspire" => "#aspire-layer",
+                "thewatch.standaloneapp" => "#standalone-layer",
+                _ => $"#{proj.Layer.ToLowerInvariant()}-layer"
+            };
+            tags.Add(layerTag);
+
+            // Add stub tag if project is listed as stub in XML
+            if (proj.Status.Equals("stub", StringComparison.OrdinalIgnoreCase)
+                || proj.Status.Equals("empty", StringComparison.OrdinalIgnoreCase))
+            {
+                tags.Add("#xml-stub");
+            }
+        }
 
         return string.Join(" ", tags.Distinct());
     }

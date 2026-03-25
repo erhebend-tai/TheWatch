@@ -1,0 +1,475 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TheWatchProject name="The Watch" version="Enterprise-Grade" framework=".NET 10" runtime="Microsoft Azure, .NET Aspire" snapshot="As-Is">
+  <SystemOverview>
+    <Description>Enterprise-grade platform for real-time emergency response, incident management, responder coordination, and situational awareness.</Description>
+    <Origin>SSgt Barton M. Mallory (Intelligence Officer, USAF) - (Note Reference Memorandum (2022)) - Watch Established 2018</Origin>
+    <Philosophy>
+      <Principle name="Deterrence first" value="Preventing violence through visible, coordinated community presence" />
+      <Principle name="Sub-second activation" value="Voice phrases, click sequences, and dial recognition trigger alerts in under 2 seconds" />
+      <Principle name="Nearby citizen response" value="The nearest 8-10 people (typically within 100 feet) are summoned instantly" />
+      <Principle name="Documentation over confrontation" value="Responders are trained to record, not engage" />
+      <Principle name="Constitutional framework" value="Governance modeled on Article 1, Section 8, Clause 15 of the U.S. Constitution" />
+      <Principle name="Data sovereignty" value="Publicly audited private organization holds citizen data" />
+    </Philosophy>
+  </SystemOverview>
+
+  <Orientation architectureStyle="Clean Architecture" methodology="Domain-Driven Design (DDD)">
+    <DependencyInversion rule="Inner layers never depend on outer layers" />
+    <Layers>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- DOMAIN LAYER                                                    -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <Layer name="Domain" description="The core business logic and state of the system">
+        <SubDomain name="Core">
+          <Entities>
+            <Entity name="Incident" description="Full lifecycle state machine for emergencies" />
+            <Entity name="Responder" description="Intelligent dispatch based on proximity, skill, and certification" />
+            <Entity name="Dispatch" description="The connection between an incident and a responder" />
+            <Entity name="DroneMission" description="Automated fleet telemetry and mission planning" />
+            <Entity name="DisasterEvent" description="Specialized disaster systems (earthquake, hurricane, wildfire, active shooter)" />
+            <Entity name="EvacuationRoute" description="Planned and active exit paths with capacity tracking" />
+            <Entity name="EvacuationCenter" description="Safe havens with resource and capacity management" />
+            <Entity name="Evidence" description="Digital chain of custody for emergency data" />
+            <Entity name="TriageAssessment" description="START triage and mass casualty operations" />
+            <Entity name="VitalSignsReading" description="Real-time health monitoring" />
+            <Entity name="WearableDevice" description="Integration with Apple Watch and Wear OS for SOS and health sync" />
+            <Entity name="Geofence" description="Virtual boundaries for responder coordination and safety" />
+            <Entity name="SarMission" description="Search and Rescue operations" />
+            <Entity name="CrimeAnalysisReport" description="Predictive analytics and threat assessment" />
+            <Entity name="MarketplaceItem" description="Safety-related equipment and services for community members" />
+            <Entity name="Pledge" description="Commitment by citizens to specific responder roles" />
+            <Entity name="CoverageZone" description="Assigned geographical area for a designated responder" />
+            <Entity name="MediaAsset" description="Encrypted video, audio, and image evidence" />
+            <Entity name="ResponderQuery" description="Context-aware interrogation/information collection from participants" />
+            <Entity name="MeshNode" description="Offline communication peer in the mesh network" />
+          </Entities>
+          <ValueObjects>
+            <ValueObject name="GeoCoordinate" description="High-precision 3D location data" />
+            <ValueObject name="Address" description="Physical location representation" />
+            <ValueObject name="HazardZone" description="Dynamic area of danger to be avoided" />
+            <ValueObject name="ResponderTier" description="Performance/Scoring level (fatigue, skill, reliability)" />
+            <ValueObject name="Priority" description="Incident severity level" />
+            <ValueObject name="ContactInfo" description="Communication details for responders and users" />
+            <ValueObject name="JurisdictionId" description="Legal and geographical boundary identifier" />
+            <ValueObject name="Geohash" description="Spatial cell identifier for efficient proximity queries" />
+            <ValueObject name="Isochrone" description="Time-based travel boundary" />
+            <ValueObject name="VoronoiCell" description="Geometric partition for response area optimization" />
+          </ValueObjects>
+          <DomainEvents>
+            <Event name="IncidentCreated" trigger="Panic Alert, SOS, or manual report" />
+            <Event name="PanicAlertTriggered" trigger="Sub-second activation mechanism" />
+            <Event name="DisasterDeclared" trigger="Official or automated threat detection" />
+            <Event name="EvacuationOrdered" trigger="Jurisdictional authority or AI threat threshold" />
+            <Event name="HandoverInitiated" trigger="Professional first responder arrival and scene contact" />
+            <Event name="ThreatDetected" trigger="AI computer vision or NLP sensors" />
+            <Event name="DispatchStatusChanged" trigger="Responder acceptance, arrival, or completion" />
+            <Event name="EvidenceCollected" trigger="Media capture or sensor recording" />
+            <Event name="PeerDiscovered" trigger="Mesh network peer detection" />
+            <Event name="AnomalyDetected" trigger="Wearable health sync or sensor deviation" />
+          </DomainEvents>
+        </SubDomain>
+        <SubDomain name="Marketplace" description="E-commerce for safety equipment and community services" />
+        <SubDomain name="DesignatedResponder" description="Program for pledged responders, pledges, coverage, and scoring" />
+        <SubDomain name="MediaAssets" description="Media domain: upload entities, metadata, and encryption" />
+        <SubDomain name="MeshNetwork" description="Mesh node domain: topology, peer discovery, and offline sync" />
+        <SubDomain name="Geohashing" description="Spatial cells and multi-level precision coordination" />
+        <SubDomain name="AdvancedMapping" description="Topological maps, 3D GPS, CCTV integration, and indoor routing" />
+      </Layer>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- APPLICATION LAYER — 15 projects                                -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <Layer name="Application" pattern="CQRS" orchestration="Mediator" projectCount="15">
+        <Patterns>
+          <Pattern name="Mediator" library="MediatR" description="Decouples request processing from request dispatching" />
+          <Pattern name="CQRS" description="Separation of Command (Writes) and Query (Reads)" />
+          <Pattern name="Validation" library="FluentValidation" description="Standardized validation of incoming commands and queries" />
+        </Patterns>
+        <Projects>
+          <Project name="TheWatch.Application" csFiles="234" status="substantial" description="Core application handlers, commands, queries, DTOs, and pipeline behaviors" />
+          <Project name="TheWatch.Emergency" csFiles="37" status="substantial" description="Emergency response application logic" />
+          <Project name="TheWatch.Evidence" csFiles="11" status="medium" description="Evidence chain-of-custody application services" />
+          <Project name="TheWatch.DisasterResponse" csFiles="11" status="medium" description="Large-scale crisis management handlers" />
+          <Project name="TheWatch.gRPCInterceptors" csFiles="10" status="medium" description="gRPC interceptor pipeline" />
+          <Project name="TheWatch.AudioIngestion" csFiles="5" status="light" description="Real-time speech processing for SOS activation" />
+          <Project name="TheWatch.LifeLoopLauncher" csFiles="4" status="light" description="Life-loop lifecycle launcher" />
+          <Project name="TheWatch.Data" csFiles="3" status="light" description="Application-level data abstractions" />
+          <Project name="TheWatch.VideoProcessing" csFiles="2" status="stub" description="Video pipeline application services" />
+          <Project name="TheWatch.LostAndFound" csFiles="2" status="stub" description="Missing persons and lost item tracking" />
+          <Project name="TheWatch.LibraryOfCongress" csFiles="2" status="stub" description="Library of Congress data integration" />
+          <Project name="TheWatch.CognitiveServices" csFiles="1" status="stub" description="AI cognitive services integration" />
+          <Project name="TheWatch.Application.Marketplace" csFiles="1" status="stub" description="Marketplace application handlers" />
+          <Project name="TheWatch.Application.BackgroundServices" csFiles="1" status="stub" description="Background service orchestration" />
+        </Projects>
+        <SubFolders>
+          <Folder name="aspire" description="Aspire-related application configuration" />
+        </SubFolders>
+      </Layer>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- INFRASTRUCTURE LAYER — 138 projects                            -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <Layer name="Infrastructure" type="Adapter Layer" crossCloud="Multi-Cloud (Azure, AWS)" projectCount="138">
+        <Adapters>
+          <Adapter type="CloudServices" providers="Microsoft Azure, Amazon Web Services (AWS)" />
+          <Adapter type="RealTimeCommunication" technologies="SignalR Hubs (10x), MQTT Bridge, gRPC, WebSockets" />
+          <Adapter type="DataStorage" technologies="SQL Server, PostgreSQL (PostGIS), CosmosDB, Firebase/Firestore, EventStore, Redis, Neo4j, MongoDB, MariaDB, QDrant" />
+          <Adapter type="AIServices" technologies="OpenAI, Azure OpenAI, HuggingFace, MistralAI, Azure Cognitive Services, Semantic Kernel, Autogen, ML.NET, Langgraph" />
+          <Adapter type="IoT" technologies="Drone Telemetry, Wearable Sync (Apple Watch/Wear OS), Mesh Networking (Offline Capability)" />
+          <Adapter type="Messaging" technologies="Azure Service Bus, AWS SQS, MediatR, RabbitMQ, Kafka, EventHub" />
+          <Adapter type="BackgroundProcessing" technologies="Hangfire, .NET BackgroundService, Azure Functions, Durable Task Scheduling" />
+          <Adapter type="Orchestration" technologies="Logic Apps, MCP Server, KM Functions" />
+        </Adapters>
+
+        <!-- Heavy Implementation (20+ .cs files) -->
+        <Category name="HeavyImplementation" threshold="20+ .cs files">
+          <Project name="TheWatch.Logging" csFiles="86" description="Structured logging, Serilog sinks, log aggregation" />
+          <Project name="TheWatch.Security" csFiles="72" description="Encryption, authorization, audit trail, compliance enforcement" />
+          <Project name="TheWatch.Persistence" csFiles="56" description="EF Core, repositories, unit of work, migrations" />
+          <Project name="TheWatch.ML" csFiles="45" description="ML.NET models, prediction pipelines, training jobs" />
+          <Project name="TheWatch.Speech" csFiles="29" description="Speech-to-text, voice activation, transcription" />
+          <Project name="TheWatch.Messaging" csFiles="25" description="Service Bus, RabbitMQ, message routing" />
+          <Project name="TheWatch.Realtime" csFiles="21" description="SignalR hubs, WebSocket management, live push" />
+          <Project name="TheWatch.Location" csFiles="21" description="GPS tracking, geofencing, proximity calculations" />
+          <Project name="TheWatch.AzureFunctions" csFiles="20" description="Serverless function triggers and bindings" />
+        </Category>
+
+        <!-- Medium Implementation (8-19 .cs files) -->
+        <Category name="MediumImplementation" threshold="8-19 .cs files">
+          <Project name="TheWatch.Notifications" csFiles="18" description="Push, SMS, email notification delivery" />
+          <Project name="TheWatch.Monitoring" csFiles="18" description="Health checks, telemetry, Application Insights" />
+          <Project name="TheWatch.Authentication" csFiles="18" description="Auth0, Firebase Auth, Azure AD, MFA, biometric" />
+          <Project name="TheWatch.BackgroundJobs" csFiles="14" description="Hangfire job scheduling and execution" />
+          <Project name="TheWatch.Firebase" csFiles="13" description="Firebase/Firestore data access and push" />
+          <Project name="TheWatch.WearableDevices" csFiles="12" description="Apple Watch/Wear OS data sync" />
+          <Project name="TheWatch.Caching" csFiles="12" description="Redis caching, distributed cache patterns" />
+          <Project name="TheWatch.WorkerServices" csFiles="11" description="Background worker service hosting" />
+          <Project name="TheWatch.KMFunctions" csFiles="11" description="Knowledge management function handlers" />
+          <Project name="TheWatch.Data" csFiles="11" description="Data access infrastructure, connection management" />
+          <Project name="TheWatch.AzureOpenAI" csFiles="11" description="Azure OpenAI service integration" />
+          <Project name="TheWatch.StackAdapters" csFiles="10" description="Multi-stack adapter pattern implementations" />
+          <Project name="TheWatch.EventHub" csFiles="10" description="Azure Event Hub ingestion and processing" />
+          <Project name="TheWatch.Wearables" csFiles="8" description="Wearable device abstraction layer" />
+          <Project name="TheWatch.Testing" csFiles="8" description="Test infrastructure, fakes, builders" />
+          <Project name="TheWatch.MongoDb" csFiles="8" description="MongoDB document store adapters" />
+          <Project name="TheWatch.Mocks" csFiles="8" description="Mock infrastructure for testing" />
+          <Project name="TheWatch.MariaDb" csFiles="8" description="MariaDB relational store adapters" />
+          <Project name="TheWatch.Infrastructure" csFiles="8" description="Core infrastructure cross-cutting concerns" />
+          <Project name="TheWatch.HuggingFace" csFiles="8" description="HuggingFace model inference integration" />
+          <Project name="TheWatch.HangfireJobs" csFiles="8" description="Hangfire job definitions and configuration" />
+        </Category>
+
+        <!-- Light Implementation (2-7 .cs files) -->
+        <Category name="LightImplementation" threshold="2-7 .cs files">
+          <Project name="TheWatch.AWSServices" csFiles="7" />
+          <Project name="TheWatch.GIS" csFiles="7" />
+          <Project name="TheWatch.OpenAI" csFiles="7" />
+          <Project name="TheWatch.Geospatial" csFiles="6" />
+          <Project name="TheWatch.ComputerVision" csFiles="6" />
+          <Project name="TheWatch.EventStore" csFiles="5" />
+          <Project name="TheWatch.Neo4j" csFiles="5" />
+          <Project name="TheWatch.Drone" csFiles="5" />
+          <Project name="TheWatch.Weather" csFiles="5" />
+          <Project name="TheWatch.ColdCases" csFiles="5" />
+          <Project name="TheWatch.VideoProcessing" csFiles="4" />
+          <Project name="TheWatch.EmailServices" csFiles="4" />
+          <Project name="TheWatch.MQTT" csFiles="4" />
+          <Project name="TheWatch.QDrant" csFiles="3" />
+          <Project name="TheWatch.Kafka" csFiles="3" />
+          <Project name="TheWatch.MistralAI" csFiles="3" />
+          <Project name="TheWatch.Autogen" csFiles="3" />
+          <Project name="TheWatch.SemanticKernel" csFiles="3" />
+          <Project name="TheWatch.SMS" csFiles="2" />
+          <Project name="TheWatch.DurableTasks" csFiles="2" />
+          <Project name="TheWatch.MCPServer" csFiles="2" />
+          <Project name="TheWatch.LogicApps" csFiles="2" />
+        </Category>
+
+        <!-- Scaffolded Stubs (1 .cs file — typically ServiceCollectionExtensions.cs only) -->
+        <Category name="ScaffoldedStubs" threshold="1 .cs file" note="Typically contains only ServiceCollectionExtensions.cs">
+          <Project name="TheWatch.ActiveShooter" csFiles="1" />
+          <Project name="TheWatch.Alerting" csFiles="1" />
+          <Project name="TheWatch.Analytics" csFiles="1" />
+          <Project name="TheWatch.AudioProcessing" csFiles="1" />
+          <Project name="TheWatch.BlobStorage" csFiles="1" />
+          <Project name="TheWatch.CBRN" csFiles="1" />
+          <Project name="TheWatch.CloudIntegration" csFiles="1" />
+          <Project name="TheWatch.CommunityFeatures" csFiles="1" />
+          <Project name="TheWatch.Compliance" csFiles="1" />
+          <Project name="TheWatch.Configuration" csFiles="1" />
+          <Project name="TheWatch.CosmosDb" csFiles="1" />
+          <Project name="TheWatch.CrimeAnalysis" csFiles="1" />
+          <Project name="TheWatch.DisasterRecovery" csFiles="1" />
+          <Project name="TheWatch.DocumentGeneration" csFiles="1" />
+          <Project name="TheWatch.Evidence" csFiles="1" />
+          <Project name="TheWatch.ExternalAPIs" csFiles="1" />
+          <Project name="TheWatch.FileStorage" csFiles="1" />
+          <Project name="TheWatch.FloodMonitoring" csFiles="1" />
+          <Project name="TheWatch.Geofencing" csFiles="1" />
+          <Project name="TheWatch.HealthMonitoring" csFiles="1" />
+          <Project name="TheWatch.HurricaneEvacuation" csFiles="1" />
+          <Project name="TheWatch.IdentityVerification" csFiles="1" />
+          <Project name="TheWatch.IncidentManagement" csFiles="1" />
+          <Project name="TheWatch.IoTDevices" csFiles="1" />
+          <Project name="TheWatch.LiveVideo" csFiles="1" />
+          <Project name="TheWatch.Mapping" csFiles="1" />
+          <Project name="TheWatch.Marketplace" csFiles="1" />
+          <Project name="TheWatch.MediaProcessing" csFiles="1" />
+          <Project name="TheWatch.MeshNetworking" csFiles="1" />
+          <Project name="TheWatch.MissingPersons" csFiles="1" />
+          <Project name="TheWatch.PaymentProcessing" csFiles="1" />
+          <Project name="TheWatch.PostgreSQL" csFiles="1" />
+          <Project name="TheWatch.PredictiveAnalytics" csFiles="1" />
+          <Project name="TheWatch.Redis" csFiles="1" />
+          <Project name="TheWatch.ReportGeneration" csFiles="1" />
+          <Project name="TheWatch.ResourceManagement" csFiles="1" />
+          <Project name="TheWatch.SAR" csFiles="1" />
+          <Project name="TheWatch.SchoolSafety" csFiles="1" />
+          <Project name="TheWatch.SignalR" csFiles="1" />
+          <Project name="TheWatch.SocialMedia" csFiles="1" />
+          <Project name="TheWatch.Streaming" csFiles="1" />
+          <Project name="TheWatch.Telephony" csFiles="1" />
+          <Project name="TheWatch.TextToSpeech" csFiles="1" />
+          <Project name="TheWatch.Training" csFiles="1" />
+          <Project name="TheWatch.Translation" csFiles="1" />
+          <Project name="TheWatch.Triage" csFiles="1" />
+          <Project name="TheWatch.Wearable" csFiles="1" />
+          <Project name="TheWatch.WebScraping" csFiles="1" />
+          <Project name="TheWatch.WildfireResponse" csFiles="1" />
+        </Category>
+
+        <!-- Empty/Placeholder (0 .cs files) -->
+        <Category name="EmptyPlaceholders" threshold="0 .cs files" note="Directory exists but no implementation">
+          <Project name="TheWatch.Langgraph" csFiles="0" />
+          <Project name="TheWatch.FirebaseFunctions" csFiles="0" />
+          <Project name="TheWatch.Cloudflare" csFiles="0" />
+          <Project name="TheWatch.AzureFunctionsTools" csFiles="0" />
+        </Category>
+
+        <!-- Standalone Infrastructure Services -->
+        <StandaloneServices path="Infrastructure/Services">
+          <Service name="AuditLoggingService.cs" description="Cross-cutting audit logging" />
+          <Service name="AuthorizationService.cs" description="Cross-cutting authorization enforcement" />
+          <Service name="BackupService.cs" description="Cross-cutting backup operations" />
+        </StandaloneServices>
+      </Layer>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- PRESENTATION LAYER — 4 projects                                -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <Layer name="Presentation" multiPlatform="True" projectCount="4" totalCsFiles="1212">
+        <Client name="MAUI" project="TheWatch.MAUI" technology=".NET MAUI" target="iOS, Android" csFiles="1113" features="Wearable Integration, Offline Mode, SOS Trigger, Full mobile client" />
+        <Client name="API" project="TheWatch.API" technology="ASP.NET Core Minimal APIs" target="Service-to-Service, External Integration" csFiles="58" features="Webhooks, gRPC Interceptors, REST endpoints" />
+        <Client name="Mobile" project="TheWatch.Mobile" technology=".NET MAUI" target="Cross-platform mobile" csFiles="26" features="Lightweight mobile entry point" />
+        <Client name="Web" project="TheWatch.Web" technology="Blazor, ASP.NET Core" target="Desktop, Browser" csFiles="15" features="Admin Dashboard, Situational Awareness" />
+      </Layer>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- SHARED LAYER — 2 projects                                      -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <Layer name="Shared" description="Cross-cutting shared code, analyzers, and constants" projectCount="2" totalCsFiles="63">
+        <Project name="TheWatch.Analyzers" csFiles="~61" description="39 custom Roslyn Analyzers (TW1001-TW6003) enforcing architecture rules at compile time">
+          <AnalyzerCategories>
+            <Category id="TW1xxx" name="Architecture" description="Clean Architecture dependency enforcement" />
+            <Category id="TW2xxx" name="Security" description="Encryption and authentication compliance" />
+            <Category id="TW3xxx" name="Performance" description="Async patterns and memory management" />
+            <Category id="TW4xxx" name="Domain" description="DDD pattern enforcement" />
+            <Category id="TW5xxx" name="Testing" description="Test coverage and quality gates" />
+            <Category id="TW6xxx" name="Operations" description="Logging and telemetry standards" />
+          </AnalyzerCategories>
+        </Project>
+        <Project name="TheWatch.Shared" csFiles="~2" description="Shared constants, enums, and cross-cutting utilities" />
+      </Layer>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- WORKERS LAYER — 2 projects                                     -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <Layer name="Workers" description="Background job definitions and hosted service implementations" projectCount="2" totalCsFiles="36">
+        <Project name="TheWatch.Worker.Jobs" csFiles="22" description="Scheduled and triggered background jobs">
+          <Jobs>
+            <Job name="AnalyticsAggregationJob" />
+            <Job name="AuditLogFlushJob" />
+            <Job name="CacheInvalidationJob" />
+            <Job name="CertificationExpiryNotifierJob" />
+            <Job name="CheckInMonitorJob" />
+            <Job name="DamageAssessmentAggregationJob" />
+            <Job name="DispatchAutoEscalationJob" />
+            <Job name="DispatchTimeoutJob" />
+            <Job name="DroneReturnMonitorJob" />
+            <Job name="FleetTelemetryJob" />
+            <Job name="GeofenceEvaluationJob" />
+            <Job name="GeofenceMonitorJob" />
+            <Job name="IncidentEscalationTimerJob" />
+            <Job name="LocationRetentionCleanupJob" />
+            <Job name="NotificationRetryJob" />
+            <Job name="SubscriptionExpiryJob" />
+            <Job name="ThreatScoringJob" />
+            <Job name="VitalSignMonitoringJob" />
+            <Job name="WeatherAlertPollingJob" />
+            <Job name="WebhookRetryJob" />
+          </Jobs>
+        </Project>
+        <Project name="TheWatch.Worker.Services" csFiles="14" description="Long-running hosted background services">
+          <Services>
+            <Service name="DisasterResponseCoordinatorService" />
+            <Service name="DispatchCoordinationService" />
+            <Service name="EventOutboxProcessorService" />
+            <Service name="HealthCheckAggregatorService" />
+            <Service name="JobSchedulerHostedService" />
+            <Service name="MLInferencePipelineService" />
+            <Service name="MqttBridgeHostedService" />
+            <Service name="NotificationDeliveryService" />
+            <Service name="SignalRBroadcastService" />
+            <Service name="VoiceTranscriptionPipelineService" />
+            <Service name="WearableDataIngestionService" />
+            <Service name="WeatherAlertPollingService" />
+          </Services>
+        </Project>
+      </Layer>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- LIBRARIES LAYER — 19 component libraries                       -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <Layer name="Libraries" description="Reusable UI component libraries for Blazor and MAUI" projectCount="19">
+        <LibraryGroup name="Blazor" technology="Blazor Components" count="10" description="Shared Blazor UI component libraries">
+          <Library name="TheWatch.UI.Charts" description="Data visualization components" />
+          <Library name="TheWatch.UI.Core" description="Core UI primitives and base components" />
+          <Library name="TheWatch.UI.DataGrid" description="Data grid and table components" />
+          <Library name="TheWatch.UI.Emergency" description="Emergency-specific UI (SOS buttons, alerts)" />
+          <Library name="TheWatch.UI.Forms" description="Form controls and validation" />
+          <Library name="TheWatch.UI.Layout" description="Page layout, navigation shells" />
+          <Library name="TheWatch.UI.Maps" description="Mapping and geospatial visualization" />
+          <Library name="TheWatch.UI.Media" description="Media playback and capture components" />
+          <Library name="TheWatch.UI.Navigation" description="Routing and navigation components" />
+          <Library name="TheWatch.UI.Notifications" description="Toast, banner, and push notification UI" />
+        </LibraryGroup>
+        <LibraryGroup name="Maui" technology=".NET MAUI Libraries" count="9" description="Shared MAUI native abstraction libraries">
+          <Library name="TheWatch.Maui.Auth" description="Authentication flows and biometric" />
+          <Library name="TheWatch.Maui.Camera" description="Camera capture and QR scanning" />
+          <Library name="TheWatch.Maui.Connectivity" description="Network state and mesh networking" />
+          <Library name="TheWatch.Maui.Core" description="Core MAUI platform abstractions" />
+          <Library name="TheWatch.Maui.Data" description="Local data storage and sync" />
+          <Library name="TheWatch.Maui.Location" description="GPS, geofencing, and location services" />
+          <Library name="TheWatch.Maui.Notifications" description="Local and push notification handling" />
+          <Library name="TheWatch.Maui.Sensors" description="Accelerometer, gyroscope, health sensors" />
+          <Library name="TheWatch.Maui.Storage" description="Secure storage and file management" />
+        </LibraryGroup>
+      </Layer>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- ASPIRE LAYER — Orchestration                                   -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <Layer name="Aspire" description=".NET Aspire orchestration, service defaults, and local dev experience" totalCsFiles="222">
+        <Project name="TheWatch.AppHost" description="Aspire AppHost — orchestrates all services for local development" />
+        <Project name="TheWatch.ServiceDefaults" description="Shared service configuration: OpenTelemetry, health checks, resilience" />
+        <Project name="aspire_samples.worktrees" description="Sample and worktree configurations" />
+      </Layer>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- STANDALONE MAUI APP — src/TheWatch                             -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <Layer name="TheWatch.StandaloneApp" description="Standalone .NET MAUI application entry point" technology=".NET MAUI" csFiles="11+">
+        <EntryPoints>
+          <File name="App.xaml.cs" />
+          <File name="MainPage.xaml.cs" />
+          <File name="MauiProgram.cs" />
+        </EntryPoints>
+        <PlatformTargets>
+          <Platform name="Android" files="MainActivity.cs, MainApplication.cs" />
+          <Platform name="iOS" files="AppDelegate.cs, Program.cs" />
+          <Platform name="MacCatalyst" files="AppDelegate.cs, Program.cs" />
+          <Platform name="Windows" files="App.xaml.cs" />
+        </PlatformTargets>
+        <AppServices>
+          <Service name="ApiClientOptions.cs" description="API client configuration" />
+          <Service name="AuthService.cs" description="Authentication service" />
+          <Service name="EmergencyService.cs" description="Emergency SOS service" />
+          <Service name="IncidentService.cs" description="Incident reporting service" />
+          <Service name="LocationService.cs" description="Location tracking service" />
+        </AppServices>
+        <AdditionalFolders>
+          <Folder name="Components" />
+          <Folder name="Resources" />
+          <Folder name="wwwroot" />
+        </AdditionalFolders>
+      </Layer>
+
+    </Layers>
+  </Orientation>
+
+  <ProgrammingConcepts>
+    <Concept name="Clean Architecture" description="Dependency rule where inner layers don't know about outer layers" />
+    <Concept name="Event Sourcing" description="Capturing all state changes as a sequence of events" />
+    <Concept name="CQRS / Mediator" description="Separating read and write operations, decoupled via MediatR" />
+    <Concept name="Solid Principles" description="Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, Dependency Inversion" />
+    <Concept name="Vertical Slice Architecture" description="Organizing code by feature rather than layer for specific modules" />
+    <Concept name="Multi-Tenancy" description="Supporting various jurisdictions and organizations with data isolation" />
+    <Concept name="Identity Management" description="Auth0, Firebase Auth, and Azure AD integration" />
+    <Concept name="Governance" description="Sarbanes-Oxley-grade public audits and elected Sheriff oversight" />
+    <Concept name="AI Ethics Governance" description="Framework for responsible AI application in public safety" />
+  </ProgrammingConcepts>
+
+  <VerificationAndQuality>
+    <TestingStrategy>
+      <TestType name="Unit" focus="Domain entities, Value Objects, and Business rules" />
+      <TestType name="Integration" focus="Application Handlers and Infrastructure Adapters" />
+      <TestType name="E2E" focus="User-to-Responder lifecycle across Mobile and API" />
+      <TestType name="Performance" focus="Sub-second activation SLAs and high-concurrency SignalR hubs" />
+    </TestingStrategy>
+    <Monitoring>
+      <Tool name="Azure Monitor" />
+      <Tool name="OpenTelemetry" />
+      <Tool name="Serilog (Structured Logging)" />
+      <Tool name="Application Insights" />
+    </Monitoring>
+  </VerificationAndQuality>
+
+  <SecurityAndCompliance>
+    <Frameworks>
+      <Framework name="CMMC" description="Cybersecurity Maturity Model Certification" />
+      <Framework name="FedRAMP" description="Federal Risk and Authorization Management Program" />
+      <Framework name="FISMA" description="Federal Information Security Management Act" />
+      <Framework name="CJIS" description="Criminal Justice Information Services" />
+      <Framework name="HIPAA" description="Health Insurance Portability and Accountability Act" />
+      <Framework name="GDPR" description="General Data Protection Regulation" />
+      <Framework name="ITAR/DFARS" description="International Traffic in Arms Regulations" />
+    </Frameworks>
+    <SecurityServices>
+      <Service name="Authentication" technologies="JWT, MFA, Biometric (FaceID/TouchID)" />
+      <Service name="Authorization" technologies="RBAC, Claims-based, Emergency Role Elevation" />
+      <Service name="Encryption" technologies="AES-256 (At Rest), RSA (Key Exchange), Field-level DB Encryption" />
+      <Service name="AuditTrail" technologies="Tamper-evident SHA-256 (Append-only)" />
+      <Service name="CompileTimeEnforcement" technologies="39 Custom Roslyn Analyzers (TW1001-TW6003)" />
+    </SecurityServices>
+  </SecurityAndCompliance>
+
+  <DeploymentAndDevOps>
+    <InfrastructureAsCode>
+      <Tool name="Terraform" description="Cross-cloud infrastructure provisioning" />
+      <Tool name="Bicep" description="Azure-native resource definitions" />
+    </InfrastructureAsCode>
+    <Containerization>
+      <Technology name="Docker" />
+      <Technology name="Kubernetes (AKS/EKS)" />
+    </Containerization>
+    <ContinuousIntegration>
+      <Tool name="GitHub Actions" description="14 automated workflows for build, test, and deploy" />
+    </ContinuousIntegration>
+  </DeploymentAndDevOps>
+
+  <OperationalCapabilities>
+    <Capability name="IncidentManagement" features="Auto-deduplication, Escalation timers, Evidence chain of custody" />
+    <Capability name="ResponderCoordination" features="Proximity dispatch (Haversine), Skill/Certification matching, Fatigue tracking" />
+    <Capability name="FirstContactProtocols" features="Scene handover, Professional credential verification, Incident brief automation" />
+    <Capability name="DisasterResponse" features="10 specialized systems (Earthquake, Wildfire, Active Shooter, etc.)" />
+    <Capability name="EvacuationManagement" features="Route optimization, Capacity tracking, Real-time hazard avoidance" />
+    <Capability name="ActiveThreatProtocols" features="DHS/ALERRT Run-Hide-Fight engine, CBRN response, School safety" />
+    <Capability name="MedicalAndTriage" features="START triage, Vital sign monitoring, Fall detection" />
+    <Capability name="GeospatialIntelligence" features="Geofencing, Isochrone analysis, Voronoi partitioning, 3D mapping" />
+    <Capability name="ColdCasesAndMissingPersons" features="Cold case analysis, Missing persons tracking, Library of Congress integration" />
+    <Capability name="VideoIntelligence" features="Live video streaming, Object detection, Footage collection, Text-to-speech narration" />
+    <Capability name="MeshCommunications" features="Offline mesh networking, Peer discovery, Message relay" />
+    <Capability name="WearableHealth" features="Apple Watch/Wear OS sync, Vital signs, Fall detection, SOS trigger" />
+  </OperationalCapabilities>
+</TheWatchProject>
