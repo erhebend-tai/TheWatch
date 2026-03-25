@@ -85,9 +85,10 @@ public static class CodeIndexCommand
             DefaultValueFactory = _ => false
         };
 
-        var externalOption = new Option<string?>("--external")
+        var externalOption = new Option<string[]>("--external")
         {
-            Description = "Also scan .cs files from an external directory"
+            Description = "Scan .cs files from external directories (can specify multiple)",
+            AllowMultipleArgumentsPerToken = true
         };
 
         var xmlManifestOption = new Option<string?>("--xml-manifest")
@@ -109,16 +110,16 @@ public static class CodeIndexCommand
             var solutionPath = parseResult.GetValue(solutionOption)!;
             var outputPath = parseResult.GetValue(outputOption)!;
             var includeBodies = parseResult.GetValue(includeBodiesOption);
-            var externalDir = parseResult.GetValue(externalOption);
+            var externalDirs = parseResult.GetValue(externalOption) ?? Array.Empty<string>();
             var xmlManifestPath = parseResult.GetValue(xmlManifestOption);
 
-            await RunAsync(solutionPath, outputPath, includeBodies, externalDir, xmlManifestPath);
+            await RunAsync(solutionPath, outputPath, includeBodies, externalDirs, xmlManifestPath);
         });
 
         return cmd;
     }
 
-    private static async Task RunAsync(string solutionPath, string outputPath, bool includeBodies, string? externalDir, string? xmlManifestPath)
+    private static async Task RunAsync(string solutionPath, string outputPath, bool includeBodies, string[] externalDirs, string? xmlManifestPath)
     {
         Console.WriteLine($"[CODEINDEX] Scanning: {solutionPath}");
         Console.WriteLine($"[CODEINDEX] Output:   {outputPath}");
@@ -194,12 +195,17 @@ public static class CodeIndexCommand
             }
         }
 
-        // ── Scan external directory ─────────────────────────────────
-        if (!string.IsNullOrEmpty(externalDir) && Directory.Exists(externalDir))
+        // ── Scan external directories ────────────────────────────────
+        foreach (var externalDir in externalDirs)
         {
+            if (string.IsNullOrEmpty(externalDir) || !Directory.Exists(externalDir)) continue;
             Console.WriteLine($"[CODEINDEX] Scanning external: {externalDir}");
             var externalName = Path.GetFileName(Path.GetFullPath(externalDir));
-            rows.AddRange(await ScanDirectoryAsync(externalDir, externalName, includeBodies));
+            var extRows = await ScanDirectoryAsync(externalDir, externalName, includeBodies);
+            // Set repo name to the external directory name
+            foreach (var row in extRows)
+                rows.Add(row with { Repo = externalName, Project = externalName });
+            Console.WriteLine($"  {externalName}... {extRows.Count} symbols");
         }
 
         // ── Also scan Kotlin and Swift files (tag-only, no Roslyn) ──
