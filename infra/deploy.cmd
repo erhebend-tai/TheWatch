@@ -12,6 +12,9 @@ REM   infra\deploy.cmd                                      uses defaults
 REM   infra\deploy.cmd -g MyResourceGroup                   custom resource group
 REM   infra\deploy.cmd -g MyRG -n myprefix                  custom RG + name prefix
 REM   infra\deploy.cmd --dry-run                            validate only
+REM   infra\deploy.cmd --environment staging                deploy to staging
+REM   infra\deploy.cmd --environment production             deploy to production
+REM   infra\deploy.cmd --containers                         build & push containers to ACR
 REM
 REM Prerequisites:
 REM   - az cli logged in (az login)
@@ -30,7 +33,10 @@ set "SQL_ADMIN_PASS="
 set "RABBIT_USER=thewatch"
 set "RABBIT_PASS="
 set "DRY_RUN=0"
+set "DEPLOY_CONTAINERS=0"
+set "ENVIRONMENT=dev"
 set "PARAMS_FILE=%SCRIPT_DIR%main.parameters.dev.json"
+set "ACR_LOGIN_SERVER="
 
 REM ── Parse Arguments ─────────────────────────────────────────────────────────
 :parse_args
@@ -42,6 +48,10 @@ if /i "%~1"=="--name"           ( set "BASE_NAME=%~2"      & shift & shift & got
 if /i "%~1"=="--sql-password"   ( set "SQL_ADMIN_PASS=%~2" & shift & shift & goto :parse_args )
 if /i "%~1"=="--rabbit-password"( set "RABBIT_PASS=%~2"    & shift & shift & goto :parse_args )
 if /i "%~1"=="--params"         ( set "PARAMS_FILE=%~2"    & shift & shift & goto :parse_args )
+if /i "%~1"=="--environment"    ( set "ENVIRONMENT=%~2"    & shift & shift & goto :parse_args )
+if /i "%~1"=="-e"               ( set "ENVIRONMENT=%~2"    & shift & shift & goto :parse_args )
+if /i "%~1"=="--containers"    ( set "DEPLOY_CONTAINERS=1" & shift          & goto :parse_args )
+if /i "%~1"=="--acr"           ( set "ACR_LOGIN_SERVER=%~2"& shift & shift & goto :parse_args )
 if /i "%~1"=="--dry-run"        ( set "DRY_RUN=1"          & shift          & goto :parse_args )
 if /i "%~1"=="-h"               ( goto :show_help )
 if /i "%~1"=="--help"           ( goto :show_help )
@@ -49,10 +59,21 @@ echo Unknown argument: %~1
 exit /b 1
 
 :show_help
-echo Usage: %~nx0 [-g resource-group] [-n base-name] [--sql-password pw] [--rabbit-password pw] [--dry-run]
+echo Usage: %~nx0 [-g resource-group] [-n base-name] [--environment staging^|production] [--containers] [--acr server] [--sql-password pw] [--rabbit-password pw] [--dry-run]
 exit /b 0
 
 :done_args
+
+REM ── Resolve environment-specific parameters file ──────────────────────────
+if not "!ENVIRONMENT!"=="dev" (
+    if exist "%SCRIPT_DIR%main.parameters.!ENVIRONMENT!.json" (
+        set "PARAMS_FILE=%SCRIPT_DIR%main.parameters.!ENVIRONMENT!.json"
+        echo Using environment-specific parameters: !PARAMS_FILE!
+    )
+)
+
+REM ── Resolve ACR login server ──────────────────────────────────────────────
+if "!ACR_LOGIN_SERVER!"=="" set "ACR_LOGIN_SERVER=!BASE_NAME!.azurecr.io"
 
 REM ── Prompt for secrets if not provided ──────────────────────────────────────
 if "!SQL_ADMIN_PASS!"=="" (
@@ -233,6 +254,61 @@ dotnet user-secrets set "Azure:SignalR:ConnectionString" "!SIGNALR_CONN!" 2>nul
 dotnet user-secrets set "ConnectionStrings:Redis" "!REDIS_CONN!" 2>nul
 popd
 
+REM ── Container Build ^& Push (optional) ──────────────────────────────────────
+if "!DEPLOY_CONTAINERS!"=="1" (
+    echo.
+    echo Building and pushing container images to ACR: !ACR_LOGIN_SERVER!
+
+    az acr login --name "!BASE_NAME!" 2>nul
+    if errorlevel 1 (
+        echo Warning: ACR login via az acr failed. Trying docker login...
+        for /f "usebackq delims=" %%A in (`az acr credential show --name "!BASE_NAME!" --query "passwords[0].value" -o tsv 2^>nul`) do set "ACR_PWD=%%A"
+        if not "!ACR_PWD!"=="" (
+            echo !ACR_PWD! | docker login "!ACR_LOGIN_SERVER!" --username "!BASE_NAME!" --password-stdin
+        ) else (
+            echo ERROR: Cannot authenticate to ACR. Skipping container deployment.
+            set "DEPLOY_CONTAINERS=0"
+        )
+    )
+)
+
+if "!DEPLOY_CONTAINERS!"=="1" (
+    for /f "usebackq delims=" %%A in (`git rev-parse --short HEAD 2^>nul`) do set "GIT_SHORT=%%A"
+    if "!GIT_SHORT!"=="" set "GIT_SHORT=local"
+    set "IMAGE_TAG=%date:~10,4%%date:~4,2%%date:~7,2%-!GIT_SHORT!"
+
+    echo Image tag: !IMAGE_TAG!
+
+    REM -- Build Dashboard.Api --
+    echo Building Dashboard.Api...
+    docker build -f "%PROJECT_ROOT%\TheWatch.Dashboard.Api\Dockerfile" ^
+        -t "!ACR_LOGIN_SERVER!/thewatch/dashboard-api:!IMAGE_TAG!" ^
+        -t "!ACR_LOGIN_SERVER!/thewatch/dashboard-api:!ENVIRONMENT!" ^
+        -t "!ACR_LOGIN_SERVER!/thewatch/dashboard-api:latest" ^
+        "%PROJECT_ROOT%"
+    docker push "!ACR_LOGIN_SERVER!/thewatch/dashboard-api" --all-tags
+
+    REM -- Build Functions --
+    echo Building Functions...
+    docker build -f "%PROJECT_ROOT%\TheWatch.Functions\Dockerfile" ^
+        -t "!ACR_LOGIN_SERVER!/thewatch/functions:!IMAGE_TAG!" ^
+        -t "!ACR_LOGIN_SERVER!/thewatch/functions:!ENVIRONMENT!" ^
+        -t "!ACR_LOGIN_SERVER!/thewatch/functions:latest" ^
+        "%PROJECT_ROOT%"
+    docker push "!ACR_LOGIN_SERVER!/thewatch/functions" --all-tags
+
+    REM -- Build WorkerServices --
+    echo Building WorkerServices...
+    docker build -f "%PROJECT_ROOT%\TheWatch.WorkerServices\Dockerfile" ^
+        -t "!ACR_LOGIN_SERVER!/thewatch/worker:!IMAGE_TAG!" ^
+        -t "!ACR_LOGIN_SERVER!/thewatch/worker:!ENVIRONMENT!" ^
+        -t "!ACR_LOGIN_SERVER!/thewatch/worker:latest" ^
+        "%PROJECT_ROOT%"
+    docker push "!ACR_LOGIN_SERVER!/thewatch/worker" --all-tags
+
+    echo All container images pushed to !ACR_LOGIN_SERVER!
+)
+
 REM ── Cleanup temp file ───────────────────────────────────────────────────────
 del "!DEPLOY_OUTPUT_FILE!" 2>nul
 
@@ -248,6 +324,11 @@ echo   SQL Server  : !SQL_FQDN!
 echo   OpenAI      : !OPENAI_ENDPOINT!
 echo   .env        : !ENV_FILE!
 echo   Secrets     : Dashboard.Api, Dashboard.Web
+echo   Environment : !ENVIRONMENT!
+if "!DEPLOY_CONTAINERS!"=="1" (
+echo   ACR         : !ACR_LOGIN_SERVER!
+echo   Containers  : dashboard-api, functions, worker
+)
 echo ══════════════════════════════════════════════════════════════
 
 endlocal

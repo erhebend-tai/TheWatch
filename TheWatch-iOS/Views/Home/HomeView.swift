@@ -52,6 +52,15 @@ struct HomeView: View {
                             .cornerRadius(4)
                             .shadow(radius: 1)
                         }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel({
+                            var label = "Responder \(responder.name.isEmpty ? responder.role.rawValue : responder.name), \(responder.distanceDisplay) away"
+                            if let eta = responder.responseTime {
+                                label += ", estimated arrival \(Int(eta / 60)) minutes"
+                            }
+                            if responder.hasVehicle { label += ", has vehicle" }
+                            return label
+                        }())
                     }
                 }
 
@@ -64,6 +73,7 @@ struct HomeView: View {
                             .background(Color.white)
                             .clipShape(Circle())
                             .shadow(radius: 2)
+                            .accessibilityLabel("Community alert at this location")
                     }
                 }
 
@@ -137,6 +147,7 @@ struct HomeView: View {
                             Text("Status: Safe")
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
+                                .accessibilityAddTraits(.isHeader)
                             Text("No active alerts")
                                 .font(.caption)
                                 .foregroundColor(.gray)

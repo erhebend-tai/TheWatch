@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -31,6 +32,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -75,7 +81,8 @@ fun LoginScreen(
             Box(
                 modifier = Modifier
                     .size(80.dp)
-                    .background(color = Navy, shape = RoundedCornerShape(16.dp)),
+                    .background(color = Navy, shape = RoundedCornerShape(16.dp))
+                    .semantics { contentDescription = "TheWatch app logo" },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -91,7 +98,9 @@ fun LoginScreen(
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = Navy,
-                modifier = Modifier.padding(top = 16.dp)
+                modifier = Modifier
+                    .padding(top = 16.dp)
+                    .semantics { heading() }
             )
 
             Text(
@@ -110,7 +119,9 @@ fun LoginScreen(
                     value = emailOrPhone,
                     onValueChange = { emailOrPhone = it },
                     label = { Text("Email or Phone") },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { contentDescription = "Email or phone number" },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     singleLine = true
                 )
@@ -127,7 +138,7 @@ fun LoginScreen(
                         IconButton(onClick = { showPassword = !showPassword }) {
                             Icon(
                                 imageVector = if (showPassword) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                contentDescription = "Toggle password visibility"
+                                contentDescription = if (showPassword) "Hide password" else "Show password"
                             )
                         }
                     },
@@ -147,11 +158,25 @@ fun LoginScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 24.dp),
+                        .padding(top = 24.dp)
+                        .defaultMinSize(minHeight = 48.dp)
+                        .semantics {
+                            contentDescription = if (isLoading) {
+                                "Logging in, please wait"
+                            } else if (emailOrPhone.isEmpty() || password.isEmpty()) {
+                                "Log in. Email and password are required."
+                            } else {
+                                "Log in"
+                            }
+                        },
                     enabled = emailOrPhone.isNotEmpty() && password.isNotEmpty() && !isLoading,
                     colors = ButtonDefaults.buttonColors(containerColor = RedPrimary)
                 ) {
-                    Text("Login", modifier = Modifier.padding(8.dp), fontSize = 16.sp)
+                    Text(
+                        if (isLoading) "Logging in..." else "Login",
+                        modifier = Modifier.padding(8.dp),
+                        fontSize = 16.sp
+                    )
                 }
 
                 Button(
@@ -178,6 +203,8 @@ fun LoginScreen(
                     modifier = Modifier
                         .clickable { navController.navigate(NavRoute.ForgotPassword.route) }
                         .padding(8.dp)
+                        .defaultMinSize(minHeight = 48.dp)
+                        .semantics { contentDescription = "Forgot password? Tap to reset." }
                 )
 
                 Text(
@@ -188,6 +215,8 @@ fun LoginScreen(
                     modifier = Modifier
                         .clickable { navController.navigate(NavRoute.SignUp.route) }
                         .padding(8.dp)
+                        .defaultMinSize(minHeight = 48.dp)
+                        .semantics { contentDescription = "Create new account" }
                 )
             }
         }

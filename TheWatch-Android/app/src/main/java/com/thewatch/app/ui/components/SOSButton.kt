@@ -21,6 +21,10 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -66,6 +70,16 @@ fun SOSButton(
                     color = if (isActive) Color(0xFF4CAF50) else RedPrimary,
                     shape = CircleShape
                 )
+                .semantics {
+                    contentDescription = if (isActive) {
+                        "SOS is active. Emergency response in progress."
+                    } else if (showCountdown) {
+                        "SOS activating in $countdownSeconds seconds. Tap to cancel."
+                    } else {
+                        "SOS emergency button. Tap to activate emergency response."
+                    }
+                    role = Role.Button
+                }
                 .clickable {
                     if (!showCountdown) {
                         isPressed = true

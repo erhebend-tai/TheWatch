@@ -1,0 +1,123 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# TheWatch Android — Fastlane Configuration
+# ═══════════════════════════════════════════════════════════════════════════════
+# Alternative to the GitHub Actions workflow for local or CI builds.
+#
+# Prerequisites:
+#   gem install fastlane
+#   fastlane supply init  (one-time setup for Play Store metadata)
+#
+# Environment variables required:
+#   ANDROID_KEYSTORE_PATH     — Path to release keystore .jks
+#   ANDROID_KEY_ALIAS         — Key alias
+#   ANDROID_KEY_PASSWORD      — Key password
+#   ANDROID_STORE_PASSWORD    — Keystore password
+#   SUPPLY_JSON_KEY           — Path to Google Play service account JSON
+#                               OR set SUPPLY_JSON_KEY_DATA with the JSON content
+#
+# Usage:
+#   cd TheWatch-Android
+#   fastlane internal                    # Build AAB → upload to internal track
+#   fastlane beta                        # Build AAB → upload to beta track
+#   fastlane build_only                  # Build AAB without uploading
+#   fastlane android internal            # Explicit platform prefix
+#
+# Example: CI one-liner
+#   SUPPLY_JSON_KEY_DATA="$(cat service-account.json)" fastlane internal
+# ═══════════════════════════════════════════════════════════════════════════════
+
+default_platform(:android)
+
+platform :android do
+
+  # ── Shared Build Step ─────────────────────────────────────────────────────
+  desc "Build a signed release AAB"
+  private_lane :build_release do |options|
+    # Increment version code based on the latest Play Store version
+    # or use an explicit override
+    version_code = options[:version_code] || (
+      google_play_track_version_codes(
+        package_name: "com.thewatch.app",
+        track: "internal",
+        json_key: ENV["SUPPLY_JSON_KEY"] || nil,
+        json_key_data: ENV["SUPPLY_JSON_KEY_DATA"] || nil
+      ).max.to_i + 1 rescue Time.now.strftime("%Y%m%d%H").to_i
+    )
+
+    UI.message("Building with versionCode: #{version_code}")
+
+    gradle(
+      task: "bundle",
+      build_type: "Release",
+      project_dir: ".",
+      properties: {
+        "versionCode" => version_code,
+        "android.injected.signing.store.file" => ENV["ANDROID_KEYSTORE_PATH"],
+        "android.injected.signing.store.password" => ENV["ANDROID_STORE_PASSWORD"],
+        "android.injected.signing.key.alias" => ENV["ANDROID_KEY_ALIAS"],
+        "android.injected.signing.key.password" => ENV["ANDROID_KEY_PASSWORD"]
+      }
+    )
+
+    version_code
+  end
+
+  # ── Internal Track ────────────────────────────────────────────────────────
+  desc "Build and upload to Play Store internal testing track"
+  lane :internal do |options|
+    build_release(options)
+
+    upload_to_play_store(
+      package_name: "com.thewatch.app",
+      track: "internal",
+      aab: lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
+      json_key: ENV["SUPPLY_JSON_KEY"] || nil,
+      json_key_data: ENV["SUPPLY_JSON_KEY_DATA"] || nil,
+      skip_upload_metadata: true,
+      skip_upload_changelogs: false,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+
+    UI.success("Successfully uploaded to internal track!")
+  end
+
+  # ── Beta Track ────────────────────────────────────────────────────────────
+  desc "Build and upload to Play Store beta (open testing) track"
+  lane :beta do |options|
+    build_release(options)
+
+    upload_to_play_store(
+      package_name: "com.thewatch.app",
+      track: "beta",
+      aab: lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
+      json_key: ENV["SUPPLY_JSON_KEY"] || nil,
+      json_key_data: ENV["SUPPLY_JSON_KEY_DATA"] || nil,
+      skip_upload_metadata: true,
+      skip_upload_changelogs: false,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+
+    UI.success("Successfully uploaded to beta track!")
+  end
+
+  # ── Build Only (no upload) ────────────────────────────────────────────────
+  desc "Build a signed release AAB without uploading"
+  lane :build_only do |options|
+    build_release(options)
+
+    aab_path = lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH]
+    UI.success("AAB built at: #{aab_path}")
+  end
+
+  # ── Tests ─────────────────────────────────────────────────────────────────
+  desc "Run unit tests"
+  lane :test do
+    gradle(
+      task: "test",
+      build_type: "Debug",
+      project_dir: "."
+    )
+  end
+end

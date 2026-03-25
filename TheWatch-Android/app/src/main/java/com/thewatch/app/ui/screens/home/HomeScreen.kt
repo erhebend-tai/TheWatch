@@ -29,6 +29,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -147,11 +150,11 @@ fun HomeScreen(
             ) {
                 IconButton(
                     onClick = { showNavigationDrawer = !showNavigationDrawer },
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Menu,
-                        contentDescription = "Menu",
+                        contentDescription = "Open navigation menu",
                         tint = White,
                         modifier = Modifier.size(24.dp)
                     )
@@ -167,11 +170,11 @@ fun HomeScreen(
                 Row {
                     IconButton(
                         onClick = {},
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(48.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Search,
-                            contentDescription = "Search",
+                            contentDescription = "Search locations",
                             tint = White,
                             modifier = Modifier.size(24.dp)
                         )
@@ -179,12 +182,20 @@ fun HomeScreen(
 
                     IconButton(
                         onClick = {},
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier
+                            .size(48.dp)
+                            .semantics {
+                                contentDescription = if (unreadNotifications > 0) {
+                                    "Notifications, $unreadNotifications unread"
+                                } else {
+                                    "Notifications, none unread"
+                                }
+                            }
                     ) {
                         Box {
                             Icon(
                                 imageVector = Icons.Filled.Notifications,
-                                contentDescription = "Notifications",
+                                contentDescription = null,
                                 tint = White,
                                 modifier = Modifier.size(24.dp)
                             )
@@ -238,7 +249,8 @@ fun HomeScreen(
                 text = "Status: Safe",
                 fontSize = 14.sp,
                 color = GreenSafe,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.semantics { heading() }
             )
 
             Text(
@@ -260,6 +272,7 @@ fun HomeScreen(
                         .background(Color(0xFFF5F5F5), RoundedCornerShape(8.dp))
                         .padding(12.dp)
                         .clickable { navController.navigate(NavRoute.Contacts.route) }
+                        .semantics { contentDescription = "Emergency contacts. Tap to view." }
                 ) {
                     Column {
                         Text("Emergency", fontSize = 10.sp, color = Color.Gray)
@@ -273,6 +286,7 @@ fun HomeScreen(
                         .background(Color(0xFFF5F5F5), RoundedCornerShape(8.dp))
                         .padding(12.dp)
                         .clickable { navController.navigate(NavRoute.History.route) }
+                        .semantics { contentDescription = "Recent activity. Tap to view history." }
                 ) {
                     Column {
                         Text("Recent", fontSize = 10.sp, color = Color.Gray)
@@ -286,6 +300,7 @@ fun HomeScreen(
                         .background(Color(0xFFF5F5F5), RoundedCornerShape(8.dp))
                         .padding(12.dp)
                         .clickable { navController.navigate(NavRoute.Evacuation.route) }
+                        .semantics { contentDescription = "Evacuation routes. Tap to view." }
                 ) {
                     Column {
                         Text("Evacuation", fontSize = 10.sp, color = Color.Gray)

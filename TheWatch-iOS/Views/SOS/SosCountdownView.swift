@@ -43,6 +43,7 @@
 // ============================================================================
 
 import SwiftUI
+import UIKit
 
 // MARK: - Color Palette
 
@@ -173,9 +174,16 @@ private struct CountdownContent: View {
                     }
                     .accessibilityLabel(
                         secondsRemaining > 0
-                        ? "\(secondsRemaining) seconds until SOS is sent"
+                        ? "\(secondsRemaining) seconds until SOS is sent. Tap cancel to stop."
                         : "Sending SOS now"
                     )
+                    .accessibilityAddTraits(.updatesFrequently)
+                    .onChange(of: secondsRemaining) { _, newValue in
+                        let announcement = newValue > 0
+                            ? "\(newValue) seconds"
+                            : "Sending SOS now"
+                        UIAccessibility.post(notification: .announcement, argument: announcement)
+                    }
 
                 Text("SOS will be sent in \(secondsRemaining)s")
                     .font(.system(size: 18, weight: .medium))
@@ -439,8 +447,13 @@ private struct ErrorContent: View {
                     .background(.white.opacity(0.2))
                     .clipShape(Capsule())
             }
+            .accessibilityLabel("Back to map")
             .padding(.bottom, 60)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(queuedOffline
+            ? "SOS error but queued offline. \(message). Your SOS has been saved and will retry automatically."
+            : "SOS error. \(message)")
     }
 }
 

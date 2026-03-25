@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  WRITE-AHEAD LOG | File: accessibility_strings.xml
+  Purpose: All accessibility-related string resources for TalkBack, content descriptions,
+           and screen reader announcements. Centralized here per Android best practices
+           to keep accessibility labels consistent and translatable.
+  Created: 2026-03-24 | Author: Claude | Deps: Android Resource System
+
+  Usage example:
+    Icon(
+        imageVector = Icons.Filled.Menu,
+        contentDescription = stringResource(R.string.a11y_menu_button)
+    )
+
+  WCAG: 1.1.1 Non-text Content, 4.1.2 Name/Role/Value
+-->
+<resources>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- Navigation & Common Actions                                        -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <string name="a11y_menu_button">Open navigation menu</string>
+    <string name="a11y_back_button">Go back</string>
+    <string name="a11y_close_button">Close</string>
+    <string name="a11y_search_button">Search</string>
+    <string name="a11y_settings_button">Settings</string>
+    <string name="a11y_notifications_button">Notifications</string>
+    <string name="a11y_notifications_badge">%d unread notifications</string>
+    <string name="a11y_notifications_none">No unread notifications</string>
+    <string name="a11y_refresh_button">Refresh</string>
+    <string name="a11y_more_options">More options</string>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- SOS & Emergency                                                    -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <string name="a11y_sos_button">SOS emergency button. Tap to activate emergency response.</string>
+    <string name="a11y_sos_button_active">SOS is active. Emergency response in progress.</string>
+    <string name="a11y_sos_screen">Emergency SOS screen</string>
+    <string name="a11y_sos_countdown">%d seconds until SOS is sent. Tap cancel to stop.</string>
+    <string name="a11y_sos_countdown_one">1 second until SOS is sent. Tap cancel to stop.</string>
+    <string name="a11y_sos_sending">Sending SOS now</string>
+    <string name="a11y_sos_cancel_button">Cancel SOS</string>
+    <string name="a11y_sos_cancel_hint">Double tap to cancel the emergency alert</string>
+    <string name="a11y_sos_dispatching">Contacting responders. Sending your location to nearby volunteers.</string>
+    <string name="a11y_sos_sent">SOS sent successfully</string>
+    <string name="a11y_sos_responders_notified">%d responders being notified</string>
+    <string name="a11y_sos_responders_searching">Notifying nearby volunteers</string>
+    <string name="a11y_sos_help_coming">Help is on the way. Stay where you are.</string>
+    <string name="a11y_sos_queued_offline">SOS queued offline. Will be sent automatically when you reconnect.</string>
+    <string name="a11y_sos_cancelled">SOS cancelled. No alert was sent.</string>
+    <string name="a11y_sos_error">SOS error. %s</string>
+    <string name="a11y_sos_error_queued">SOS error but queued. Your SOS has been saved and will retry automatically.</string>
+    <string name="a11y_back_to_map">Back to map</string>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- Login & Authentication                                             -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <string name="a11y_app_logo">TheWatch app logo</string>
+    <string name="a11y_email_field">Email or phone number</string>
+    <string name="a11y_email_field_hint">Enter your email address or phone number</string>
+    <string name="a11y_password_field">Password</string>
+    <string name="a11y_password_field_hint">Enter your password</string>
+    <string name="a11y_toggle_password_show">Show password</string>
+    <string name="a11y_toggle_password_hide">Hide password</string>
+    <string name="a11y_login_button">Log in</string>
+    <string name="a11y_login_button_disabled">Log in. Email and password are required.</string>
+    <string name="a11y_login_loading">Logging in, please wait</string>
+    <string name="a11y_biometric_login">Log in with biometric authentication</string>
+    <string name="a11y_forgot_password_link">Forgot password? Tap to reset.</string>
+    <string name="a11y_signup_link">Create new account</string>
+    <string name="a11y_hardware_sos_bypass">Hardware SOS bypass for testing</string>
+    <string name="a11y_login_error">Login error: %s</string>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- Home Screen & Map                                                  -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <string name="a11y_map_view">Map showing your location and nearby responders</string>
+    <string name="a11y_user_location_marker">Your current location</string>
+    <string name="a11y_responder_marker">Responder %1$s, %2$s away</string>
+    <string name="a11y_responder_marker_eta">Responder %1$s, %2$s away, estimated arrival %3$d minutes</string>
+    <string name="a11y_responder_marker_vehicle">Responder %1$s, %2$s away, has vehicle</string>
+    <string name="a11y_community_alert_marker">Community alert at this location</string>
+    <string name="a11y_status_safe">Status: Safe. All systems normal.</string>
+    <string name="a11y_status_alert_active">Active alert in progress. %d responders responding.</string>
+    <string name="a11y_emergency_contacts_card">Emergency contacts. Tap to view.</string>
+    <string name="a11y_recent_activity_card">Recent activity. Tap to view history.</string>
+    <string name="a11y_evacuation_routes_card">Evacuation routes. Tap to view.</string>
+    <string name="a11y_proximity_ring_checkin">Check-in scope ring, 1 kilometer radius</string>
+    <string name="a11y_proximity_ring_emergency">Emergency scope ring, 3 kilometer radius</string>
+    <string name="a11y_proximity_ring_community">Community watch scope ring, 10 kilometer radius</string>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- Profile & Volunteering                                             -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <string name="a11y_profile_photo">Profile photo</string>
+    <string name="a11y_volunteering_toggle">Volunteering status</string>
+    <string name="a11y_vehicle_toggle">Has vehicle available</string>
+    <string name="a11y_availability_toggle">Availability for responding</string>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- Evidence & Capture                                                 -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <string name="a11y_capture_photo">Take photo for evidence</string>
+    <string name="a11y_record_video">Record video for evidence</string>
+    <string name="a11y_record_audio">Record audio for evidence</string>
+    <string name="a11y_submit_sitrep">Submit situation report</string>
+    <string name="a11y_evidence_gallery">Evidence gallery. %d items.</string>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- Network & Status                                                   -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <string name="a11y_offline_banner">You are offline. Some features may be unavailable.</string>
+    <string name="a11y_online_restored">Connection restored.</string>
+    <string name="a11y_loading">Loading, please wait</string>
+    <string name="a11y_error_generic">An error occurred: %s</string>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- Check-In                                                           -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <string name="a11y_checkin_button">Check in. Tap to confirm you are safe.</string>
+    <string name="a11y_checkin_confirmed">Check-in confirmed. You are marked as safe.</string>
+    <string name="a11y_checkin_schedule">Check-in schedule. Next check-in at %s.</string>
+
+</resources>

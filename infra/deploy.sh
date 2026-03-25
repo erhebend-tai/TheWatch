@@ -11,6 +11,9 @@
 #   ./infra/deploy.sh -g MyResourceGroup       # custom resource group
 #   ./infra/deploy.sh -g MyRG -n myprefix      # custom RG + name prefix
 #   ./infra/deploy.sh --dry-run                # validate only, no deploy
+#   ./infra/deploy.sh --environment staging    # deploy to staging environment
+#   ./infra/deploy.sh --environment production # deploy to production environment
+#   ./infra/deploy.sh --containers             # build & push container images to ACR
 #
 # Prerequisites:
 #   - az cli logged in (az login)
@@ -29,7 +32,10 @@ SQL_ADMIN_PASS=""
 RABBIT_USER="thewatch"
 RABBIT_PASS=""
 DRY_RUN=false
+DEPLOY_CONTAINERS=false
+ENVIRONMENT="dev"
 PARAMS_FILE="$SCRIPT_DIR/main.parameters.dev.json"
+ACR_LOGIN_SERVER=""
 
 # ── Parse Arguments ───────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
@@ -39,13 +45,27 @@ while [[ $# -gt 0 ]]; do
     --sql-password)      SQL_ADMIN_PASS="$2"; shift 2;;
     --rabbit-password)   RABBIT_PASS="$2"; shift 2;;
     --params)            PARAMS_FILE="$2"; shift 2;;
+    --environment|-e)    ENVIRONMENT="$2"; shift 2;;
+    --containers)        DEPLOY_CONTAINERS=true; shift;;
+    --acr)               ACR_LOGIN_SERVER="$2"; shift 2;;
     --dry-run)           DRY_RUN=true; shift;;
     -h|--help)
-      echo "Usage: $0 [-g resource-group] [-n base-name] [--sql-password pw] [--rabbit-password pw] [--dry-run]"
+      echo "Usage: $0 [-g resource-group] [-n base-name] [--environment staging|production] [--containers] [--acr server] [--sql-password pw] [--rabbit-password pw] [--dry-run]"
       exit 0;;
     *) echo "Unknown arg: $1"; exit 1;;
   esac
 done
+
+# ── Resolve environment-specific parameters file ────────────────────────────
+if [[ "$ENVIRONMENT" != "dev" && -f "$SCRIPT_DIR/main.parameters.${ENVIRONMENT}.json" ]]; then
+  PARAMS_FILE="$SCRIPT_DIR/main.parameters.${ENVIRONMENT}.json"
+  echo "Using environment-specific parameters: $PARAMS_FILE"
+fi
+
+# ── Resolve ACR login server ────────────────────────────────────────────────
+if [[ -z "$ACR_LOGIN_SERVER" ]]; then
+  ACR_LOGIN_SERVER="${BASE_NAME}.azurecr.io"
+fi
 
 # ── Prompt for secrets if not provided ────────────────────────────────────────
 if [[ -z "$SQL_ADMIN_PASS" ]]; then
@@ -217,6 +237,152 @@ echo "Wiring dotnet user-secrets..."
 wire_secrets "$PROJECT_ROOT/TheWatch.Dashboard.Api"
 wire_secrets "$PROJECT_ROOT/TheWatch.Dashboard.Web"
 
+# ── Container Build & Push (optional) ─────────────────────────────────────────
+if $DEPLOY_CONTAINERS; then
+  echo ""
+  echo "Building and pushing container images to ACR: $ACR_LOGIN_SERVER"
+  echo ""
+
+  # Login to ACR
+  az acr login --name "${BASE_NAME}" 2>/dev/null || {
+    echo "::warning::ACR login failed. Ensure the ACR exists and you have push permissions."
+    echo "Trying docker login fallback..."
+    ACR_PASSWORD=$(az acr credential show --name "${BASE_NAME}" --query "passwords[0].value" -o tsv 2>/dev/null || echo "")
+    if [[ -n "$ACR_PASSWORD" ]]; then
+      echo "$ACR_PASSWORD" | docker login "$ACR_LOGIN_SERVER" --username "${BASE_NAME}" --password-stdin
+    else
+      echo "::error::Cannot authenticate to ACR. Skipping container deployment."
+      DEPLOY_CONTAINERS=false
+    fi
+  }
+
+  if $DEPLOY_CONTAINERS; then
+    IMAGE_TAG="$(date +%Y%m%d%H%M)-$(git rev-parse --short HEAD 2>/dev/null || echo 'local')"
+
+    echo "Image tag: $IMAGE_TAG"
+    echo "Environment: $ENVIRONMENT"
+
+    # Build and push Dashboard.Api
+    echo "Building Dashboard.Api..."
+    docker build \
+      -f "$PROJECT_ROOT/TheWatch.Dashboard.Api/Dockerfile" \
+      -t "${ACR_LOGIN_SERVER}/thewatch/dashboard-api:${IMAGE_TAG}" \
+      -t "${ACR_LOGIN_SERVER}/thewatch/dashboard-api:${ENVIRONMENT}" \
+      -t "${ACR_LOGIN_SERVER}/thewatch/dashboard-api:latest" \
+      "$PROJECT_ROOT"
+    docker push "${ACR_LOGIN_SERVER}/thewatch/dashboard-api" --all-tags
+
+    # Build and push Functions
+    echo "Building Functions..."
+    docker build \
+      -f "$PROJECT_ROOT/TheWatch.Functions/Dockerfile" \
+      -t "${ACR_LOGIN_SERVER}/thewatch/functions:${IMAGE_TAG}" \
+      -t "${ACR_LOGIN_SERVER}/thewatch/functions:${ENVIRONMENT}" \
+      -t "${ACR_LOGIN_SERVER}/thewatch/functions:latest" \
+      "$PROJECT_ROOT"
+    docker push "${ACR_LOGIN_SERVER}/thewatch/functions" --all-tags
+
+    # Build and push WorkerServices
+    echo "Building WorkerServices..."
+    docker build \
+      -f "$PROJECT_ROOT/TheWatch.WorkerServices/Dockerfile" \
+      -t "${ACR_LOGIN_SERVER}/thewatch/worker:${IMAGE_TAG}" \
+      -t "${ACR_LOGIN_SERVER}/thewatch/worker:${ENVIRONMENT}" \
+      -t "${ACR_LOGIN_SERVER}/thewatch/worker:latest" \
+      "$PROJECT_ROOT"
+    docker push "${ACR_LOGIN_SERVER}/thewatch/worker" --all-tags
+
+    echo "All container images pushed to ${ACR_LOGIN_SERVER}"
+
+    # Deploy to Container Apps if environment is staging or production
+    if [[ "$ENVIRONMENT" == "staging" || "$ENVIRONMENT" == "production" ]]; then
+      CONTAINER_ENV="${BASE_NAME}-cae"
+
+      echo "Deploying containers to Azure Container Apps (${ENVIRONMENT})..."
+
+      # Dashboard.Api — external ingress
+      az containerapp update \
+        --name "${BASE_NAME}-api" \
+        --resource-group "$RESOURCE_GROUP" \
+        --image "${ACR_LOGIN_SERVER}/thewatch/dashboard-api:${IMAGE_TAG}" \
+        --set-env-vars "ASPNETCORE_ENVIRONMENT=$(echo "$ENVIRONMENT" | sed 's/./\U&/' | sed 's/staging/Staging/;s/production/Production/')" \
+        2>/dev/null || \
+      az containerapp create \
+        --name "${BASE_NAME}-api" \
+        --resource-group "$RESOURCE_GROUP" \
+        --environment "$CONTAINER_ENV" \
+        --image "${ACR_LOGIN_SERVER}/thewatch/dashboard-api:${IMAGE_TAG}" \
+        --registry-server "$ACR_LOGIN_SERVER" \
+        --target-port 8080 \
+        --ingress external \
+        --min-replicas 1 \
+        --max-replicas 3 \
+        --cpu 0.5 \
+        --memory 1Gi \
+        --env-vars "ASPNETCORE_ENVIRONMENT=Staging" "ASPNETCORE_URLS=http://+:8080"
+
+      # Functions — internal ingress
+      az containerapp update \
+        --name "${BASE_NAME}-functions" \
+        --resource-group "$RESOURCE_GROUP" \
+        --image "${ACR_LOGIN_SERVER}/thewatch/functions:${IMAGE_TAG}" \
+        2>/dev/null || \
+      az containerapp create \
+        --name "${BASE_NAME}-functions" \
+        --resource-group "$RESOURCE_GROUP" \
+        --environment "$CONTAINER_ENV" \
+        --image "${ACR_LOGIN_SERVER}/thewatch/functions:${IMAGE_TAG}" \
+        --registry-server "$ACR_LOGIN_SERVER" \
+        --target-port 80 \
+        --ingress internal \
+        --min-replicas 1 \
+        --max-replicas 3 \
+        --cpu 0.5 \
+        --memory 1Gi
+
+      # WorkerServices — internal ingress
+      az containerapp update \
+        --name "${BASE_NAME}-worker" \
+        --resource-group "$RESOURCE_GROUP" \
+        --image "${ACR_LOGIN_SERVER}/thewatch/worker:${IMAGE_TAG}" \
+        2>/dev/null || \
+      az containerapp create \
+        --name "${BASE_NAME}-worker" \
+        --resource-group "$RESOURCE_GROUP" \
+        --environment "$CONTAINER_ENV" \
+        --image "${ACR_LOGIN_SERVER}/thewatch/worker:${IMAGE_TAG}" \
+        --registry-server "$ACR_LOGIN_SERVER" \
+        --target-port 8080 \
+        --ingress internal \
+        --min-replicas 1 \
+        --max-replicas 2 \
+        --cpu 0.5 \
+        --memory 1Gi
+
+      # Health check verification
+      API_FQDN=$(az containerapp show \
+        --name "${BASE_NAME}-api" \
+        --resource-group "$RESOURCE_GROUP" \
+        --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "")
+
+      if [[ -n "$API_FQDN" ]]; then
+        echo "Verifying health at https://${API_FQDN}/health ..."
+        for i in $(seq 1 10); do
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://${API_FQDN}/health" 2>/dev/null || echo "000")
+          if [[ "$HTTP_STATUS" == "200" ]]; then
+            echo "Health check passed (HTTP $HTTP_STATUS) on attempt $i."
+            break
+          fi
+          echo "Attempt $i/10: HTTP $HTTP_STATUS. Waiting 15s..."
+          sleep 15
+        done
+      fi
+
+      echo "Container Apps deployment complete for ${ENVIRONMENT}."
+    fi
+  fi
+fi
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo ""
 echo "══════════════════════════════════════════════════════════════"
@@ -229,4 +395,9 @@ echo "  SQL Server  : $SQL_FQDN"
 echo "  OpenAI      : $OPENAI_ENDPOINT"
 echo "  .env        : $ENV_FILE"
 echo "  Secrets     : Dashboard.Api, Dashboard.Web"
+echo "  Environment : $ENVIRONMENT"
+if $DEPLOY_CONTAINERS; then
+echo "  ACR         : $ACR_LOGIN_SERVER"
+echo "  Containers  : dashboard-api, functions, worker"
+fi
 echo "══════════════════════════════════════════════════════════════"

@@ -1,0 +1,349 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# TheWatch — iOS TestFlight Release (GitHub Actions)
+# ═══════════════════════════════════════════════════════════════════════════════
+# Archives an Xcode project, signs it with distribution credentials, and uploads
+# the IPA to Apple TestFlight for internal/external beta testing.
+#
+# Required GitHub Secrets:
+#   APPLE_CERTIFICATE_BASE64           — Base64-encoded .p12 distribution certificate
+#   APPLE_CERTIFICATE_PASSWORD         — Password for the .p12 certificate
+#   APPLE_PROVISIONING_PROFILE_BASE64  — Base64-encoded .mobileprovision file
+#   APPLE_TEAM_ID                      — Apple Developer Team ID (e.g., "A1B2C3D4E5")
+#   APPLE_API_KEY_ID                   — App Store Connect API Key ID
+#   APPLE_API_ISSUER_ID                — App Store Connect API Issuer ID
+#   APPLE_API_KEY_BASE64               — Base64-encoded .p8 API key file
+#
+# How to generate APPLE_CERTIFICATE_BASE64:
+#   1. Export your "Apple Distribution" certificate from Keychain Access as .p12
+#   2. base64 -i Certificates.p12 | pbcopy
+#   3. Paste into GitHub Secrets as APPLE_CERTIFICATE_BASE64
+#
+# How to generate APPLE_PROVISIONING_PROFILE_BASE64:
+#   1. Download the App Store provisioning profile from developer.apple.com
+#   2. base64 -i TheWatch_AppStore.mobileprovision | pbcopy
+#   3. Paste into GitHub Secrets
+#
+# How to create App Store Connect API Key:
+#   1. Go to App Store Connect → Users and Access → Integrations → App Store Connect API
+#   2. Generate a new key with "App Manager" role
+#   3. Download the .p8 file → base64 -i AuthKey_XXXX.p8 | pbcopy
+#   4. Note the Key ID and Issuer ID
+#
+# Self-hosted Mac Mini runners:
+#   If you have a self-hosted runner with Xcode pre-installed, change
+#   runs-on to your runner label (e.g., "self-hosted-mac") for faster builds
+#   and to avoid GitHub-hosted runner minute costs.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+name: iOS Release (TestFlight)
+
+on:
+  push:
+    branches:
+      - 'release/**'
+    paths:
+      - 'TheWatch-iOS/**'
+      - '.github/workflows/ios-release.yml'
+  workflow_dispatch:
+    inputs:
+      build_number_override:
+        description: 'Override CFBundleVersion (leave empty for auto from run number)'
+        type: string
+        default: ''
+      distribute_external:
+        description: 'Submit for external TestFlight review after upload'
+        type: boolean
+        default: false
+
+concurrency:
+  group: ios-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IOS_PROJECT_DIR: TheWatch-iOS
+  SCHEME: TheWatch
+  # The .xcodeproj or .xcworkspace name (adjust if using CocoaPods workspace)
+  XCODE_PROJECT: TheWatch-iOS/TheWatch.xcodeproj
+  # XCODE_WORKSPACE: TheWatch-iOS/TheWatch.xcworkspace  # Uncomment if using CocoaPods
+  BUNDLE_ID: com.thewatch.app
+  BUILD_NUMBER: ${{ github.event.inputs.build_number_override || github.run_number }}
+
+jobs:
+  # ── Build, Archive & Upload ─────────────────────────────────────────────────
+  build:
+    name: Archive & Upload to TestFlight
+    runs-on: macos-latest
+    timeout-minutes: 45
+
+    outputs:
+      version: ${{ steps.version.outputs.marketing_version }}
+      build_number: ${{ steps.version.outputs.build_number }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ── Select Xcode Version ──────────────────────────────────────
+      - name: Select Xcode
+        run: |
+          # Use the latest stable Xcode on the runner
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+          echo "Available SDKs:"
+          xcodebuild -showsdks | grep iphoneos
+
+      # ── Install Dependencies ──────────────────────────────────────
+      # Uncomment the CocoaPods block if your project uses Podfile
+      # - name: Cache CocoaPods
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: TheWatch-iOS/Pods
+      #     key: pods-${{ runner.os }}-${{ hashFiles('TheWatch-iOS/Podfile.lock') }}
+      #     restore-keys: pods-${{ runner.os }}-
+      #
+      # - name: Install CocoaPods
+      #   working-directory: ${{ env.IOS_PROJECT_DIR }}
+      #   run: pod install
+
+      # SPM packages are resolved automatically by xcodebuild
+      - name: Resolve Swift Package Manager dependencies
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project "${{ env.XCODE_PROJECT }}" \
+            -scheme "${{ env.SCHEME }}" \
+            -clonedSourcePackagesDirPath "${{ runner.temp }}/spm-cache" \
+            | xcpretty || true
+
+      # ── Cache SPM ──────────────────────────────────────────────────
+      - name: Cache SPM packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/spm-cache
+          key: spm-${{ runner.os }}-${{ hashFiles('TheWatch-iOS/**/Package.resolved') }}
+          restore-keys: spm-${{ runner.os }}-
+
+      # ── Extract Version ────────────────────────────────────────────
+      - name: Compute version
+        id: version
+        run: |
+          # Try to read MARKETING_VERSION from the project
+          MARKETING_VERSION=$(xcodebuild -project "${{ env.XCODE_PROJECT }}" \
+            -scheme "${{ env.SCHEME }}" \
+            -showBuildSettings 2>/dev/null \
+            | grep "MARKETING_VERSION" | head -1 | awk '{print $NF}') || true
+
+          if [ -z "$MARKETING_VERSION" ]; then
+            MARKETING_VERSION="1.0.0"
+          fi
+
+          echo "marketing_version=${MARKETING_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "build_number=${{ env.BUILD_NUMBER }}" >> "$GITHUB_OUTPUT"
+          echo "Version: ${MARKETING_VERSION} (Build ${{ env.BUILD_NUMBER }})"
+
+      # ── Install Apple Certificate ──────────────────────────────────
+      - name: Install Apple signing certificate
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          # Create a temporary keychain
+          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 16)"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Decode and import the certificate
+          CERT_PATH="$RUNNER_TEMP/certificate.p12"
+          echo "$CERTIFICATE_BASE64" | base64 --decode > "$CERT_PATH"
+
+          security import "$CERT_PATH" \
+            -P "$CERTIFICATE_PASSWORD" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k "$KEYCHAIN_PATH"
+
+          # Set key partition list to allow codesign access
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Add to keychain search list
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
+
+          echo "KEYCHAIN_PATH=${KEYCHAIN_PATH}" >> "$GITHUB_ENV"
+          echo "Certificate installed successfully."
+
+      # ── Install Provisioning Profile ────────────────────────────────
+      - name: Install provisioning profile
+        env:
+          PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          PROFILE_PATH="$RUNNER_TEMP/thewatch_appstore.mobileprovision"
+          echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
+
+          # Extract UUID from profile
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< \
+            "$(security cms -D -i "$PROFILE_PATH")")
+
+          # Install to the provisioning profiles directory
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp "$PROFILE_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/"${PROFILE_UUID}.mobileprovision"
+
+          echo "PROVISIONING_PROFILE_UUID=${PROFILE_UUID}" >> "$GITHUB_ENV"
+          echo "Provisioning profile installed: ${PROFILE_UUID}"
+
+      # ── Create ExportOptions.plist ──────────────────────────────────
+      - name: Create ExportOptions.plist
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" << 'PLISTEOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>app-store-connect</string>
+              <key>destination</key>
+              <string>upload</string>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>teamID</key>
+              <string>${{ secrets.APPLE_TEAM_ID }}</string>
+              <key>provisioningProfiles</key>
+              <dict>
+                  <key>${{ env.BUNDLE_ID }}</key>
+                  <string>${{ env.PROVISIONING_PROFILE_UUID }}</string>
+              </dict>
+              <key>uploadSymbols</key>
+              <true/>
+              <key>compileBitcode</key>
+              <false/>
+              <key>stripSwiftSymbols</key>
+              <true/>
+              <key>thinning</key>
+              <string>&lt;none&gt;</string>
+          </dict>
+          </plist>
+          PLISTEOF
+
+      # ── Archive ─────────────────────────────────────────────────────
+      - name: Archive
+        run: |
+          ARCHIVE_PATH="$RUNNER_TEMP/TheWatch.xcarchive"
+
+          xcodebuild archive \
+            -project "${{ env.XCODE_PROJECT }}" \
+            -scheme "${{ env.SCHEME }}" \
+            -sdk iphoneos \
+            -configuration Release \
+            -archivePath "$ARCHIVE_PATH" \
+            -clonedSourcePackagesDirPath "${{ runner.temp }}/spm-cache" \
+            CURRENT_PROJECT_VERSION=${{ env.BUILD_NUMBER }} \
+            MARKETING_VERSION=${{ steps.version.outputs.marketing_version }} \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
+            OTHER_CODE_SIGN_FLAGS="--keychain ${{ env.KEYCHAIN_PATH }}" \
+            -allowProvisioningUpdates \
+            | xcpretty
+
+          echo "ARCHIVE_PATH=${ARCHIVE_PATH}" >> "$GITHUB_ENV"
+
+          # Verify archive was created
+          if [ ! -d "$ARCHIVE_PATH" ]; then
+            echo "::error::Archive was not created at ${ARCHIVE_PATH}"
+            exit 1
+          fi
+          echo "Archive created successfully."
+
+      # ── Export IPA ──────────────────────────────────────────────────
+      - name: Export IPA
+        run: |
+          EXPORT_PATH="$RUNNER_TEMP/export"
+
+          xcodebuild -exportArchive \
+            -archivePath "${{ env.ARCHIVE_PATH }}" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$EXPORT_PATH" \
+            -allowProvisioningUpdates \
+            | xcpretty
+
+          IPA_PATH=$(find "$EXPORT_PATH" -name "*.ipa" | head -1)
+          if [ -z "$IPA_PATH" ]; then
+            echo "::error::No IPA found in export output"
+            exit 1
+          fi
+
+          echo "IPA_PATH=${IPA_PATH}" >> "$GITHUB_ENV"
+          echo "IPA exported: ${IPA_PATH}"
+          ls -lh "$IPA_PATH"
+
+      # ── Upload to TestFlight ────────────────────────────────────────
+      # Uses App Store Connect API key authentication (recommended over altool)
+      - name: Setup App Store Connect API key
+        env:
+          API_KEY_BASE64: ${{ secrets.APPLE_API_KEY_BASE64 }}
+          API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+        run: |
+          mkdir -p ~/private_keys
+          echo "$API_KEY_BASE64" | base64 --decode > ~/private_keys/AuthKey_${API_KEY_ID}.p8
+          echo "API key installed for key ID: ${API_KEY_ID}"
+
+      - name: Upload to TestFlight
+        run: |
+          xcrun notarytool submit "${{ env.IPA_PATH }}" 2>/dev/null || true
+
+          # Use altool for TestFlight upload (still supported, widely used)
+          xcrun altool --upload-app \
+            --type ios \
+            --file "${{ env.IPA_PATH }}" \
+            --apiKey "${{ secrets.APPLE_API_KEY_ID }}" \
+            --apiIssuer "${{ secrets.APPLE_API_ISSUER_ID }}" \
+            --verbose
+
+          echo "IPA uploaded to TestFlight successfully."
+          echo "Note: Processing may take 15-30 minutes before the build appears in TestFlight."
+
+      # ── Upload IPA as Artifact ──────────────────────────────────────
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: thewatch-ios-${{ steps.version.outputs.marketing_version }}-${{ env.BUILD_NUMBER }}
+          path: ${{ env.IPA_PATH }}
+          retention-days: 90
+          if-no-files-found: error
+
+      # ── Upload dSYM for crash symbolication ─────────────────────────
+      - name: Upload dSYM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: thewatch-ios-dsym-${{ steps.version.outputs.marketing_version }}-${{ env.BUILD_NUMBER }}
+          path: ${{ env.ARCHIVE_PATH }}/dSYMs/*.dSYM
+          retention-days: 180
+          if-no-files-found: warn
+
+      # ── Cleanup Keychain (security) ─────────────────────────────────
+      - name: Cleanup keychain and credentials
+        if: always()
+        run: |
+          security delete-keychain "${{ env.KEYCHAIN_PATH }}" 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/certificate.p12" 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/thewatch_appstore.mobileprovision" 2>/dev/null || true
+          rm -rf ~/private_keys 2>/dev/null || true
+          rm -rf ~/Library/MobileDevice/Provisioning\ Profiles/"${{ env.PROVISIONING_PROFILE_UUID }}.mobileprovision" 2>/dev/null || true
+
+      # ── Summary ─────────────────────────────────────────────────────
+      - name: Summary
+        run: |
+          echo "## iOS TestFlight Release" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Bundle ID | \`${{ env.BUNDLE_ID }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | ${{ steps.version.outputs.marketing_version }} (${{ env.BUILD_NUMBER }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Scheme | ${{ env.SCHEME }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Build uploaded to TestFlight. Processing may take 15-30 minutes." >> $GITHUB_STEP_SUMMARY

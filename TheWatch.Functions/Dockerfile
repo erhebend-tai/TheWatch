@@ -1,27 +1,26 @@
 # ═══════════════════════════════════════════════════════════════════════════════
-# TheWatch.WorkerServices — Multi-Stage Dockerfile
+# TheWatch.Functions — Multi-Stage Dockerfile (Azure Functions Isolated Worker)
 # ═══════════════════════════════════════════════════════════════════════════════
-# Background worker service for the TheWatch swarm infrastructure.
-# Runs scheduled Hangfire jobs: agent heartbeat (1m), escalation sweep (5m),
-# goal aggregation (10m), inventory refresh (15m).
+# Containerized Azure Functions host for timer triggers, RabbitMQ triggers,
+# and HTTP triggers used by the TheWatch swarm infrastructure.
 #
 # Build context must be the solution root so ProjectReferences resolve.
 #
 # Usage:
-#   docker build -f TheWatch.WorkerServices/Dockerfile -t thewatch-worker .
-#   docker run thewatch-worker
+#   docker build -f TheWatch.Functions/Dockerfile -t thewatch-functions .
+#   docker run -p 8081:80 thewatch-functions
 #
 # Environment variables at runtime:
-#   ConnectionStrings__Hangfire  — SQL Server connection for Hangfire persistence
-#   ConnectionStrings__Redis     — Redis connection for distributed caching
-#   RabbitMQ__Host               — RabbitMQ hostname for message consumption
-#   AZURE_OPENAI_ENDPOINT        — Azure OpenAI endpoint
-#   AZURE_OPENAI_API_KEY         — Azure OpenAI API key
+#   AzureWebJobsStorage            — Azure Storage connection (or "UseDevelopmentStorage=true")
+#   FUNCTIONS_WORKER_RUNTIME       — Set to "dotnet-isolated"
+#   AZURE_OPENAI_ENDPOINT          — Azure OpenAI endpoint
+#   AZURE_OPENAI_API_KEY           — Azure OpenAI API key
+#   RabbitMQ__Host                 — RabbitMQ hostname
+#   ConnectionStrings__Redis       — Redis connection string
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # ── Stage 1: Build ────────────────────────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/sdk:10.0-preview AS build
-ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
 # Copy solution-level files for restore caching
@@ -29,50 +28,44 @@ COPY Directory.Build.props Directory.Packages.props global.json TheWatch.slnx ./
 COPY *.props ./
 
 # Copy csproj files for restore layer caching
-COPY TheWatch.WorkerServices/TheWatch.WorkerServices.csproj TheWatch.WorkerServices/
+COPY TheWatch.Functions/TheWatch.Functions.csproj TheWatch.Functions/
+COPY TheWatch.Shared/TheWatch.Shared.csproj TheWatch.Shared/
+COPY TheWatch.Adapters.Mock/TheWatch.Adapters.Mock.csproj TheWatch.Adapters.Mock/
 COPY TheWatch.ServiceDefaults/TheWatch.ServiceDefaults.csproj TheWatch.ServiceDefaults/
 
 # Restore
-RUN dotnet restore TheWatch.WorkerServices/TheWatch.WorkerServices.csproj
+RUN dotnet restore TheWatch.Functions/TheWatch.Functions.csproj
 
 # Copy source
-COPY TheWatch.WorkerServices/ TheWatch.WorkerServices/
+COPY TheWatch.Functions/ TheWatch.Functions/
+COPY TheWatch.Shared/ TheWatch.Shared/
+COPY TheWatch.Adapters.Mock/ TheWatch.Adapters.Mock/
 COPY TheWatch.ServiceDefaults/ TheWatch.ServiceDefaults/
 
 # Build
-RUN dotnet build TheWatch.WorkerServices/TheWatch.WorkerServices.csproj \
-    -c $BUILD_CONFIGURATION \
+RUN dotnet build TheWatch.Functions/TheWatch.Functions.csproj \
+    -c Release \
     --no-restore
 
 # ── Stage 2: Publish ──────────────────────────────────────────────────────────
 FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish TheWatch.WorkerServices/TheWatch.WorkerServices.csproj \
-    -c $BUILD_CONFIGURATION \
+RUN dotnet publish TheWatch.Functions/TheWatch.Functions.csproj \
+    -c Release \
     --no-build \
     -o /app/publish \
     /p:UseAppHost=false
 
 # ── Stage 3: Runtime ──────────────────────────────────────────────────────────
-# See https://aka.ms/customizecontainer to learn how to customize your debug container
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview AS runtime
+# Azure Functions uses a custom base image with the Functions host runtime
+FROM mcr.microsoft.com/azure-functions/dotnet-isolated:4-dotnet-isolated10.0-preview AS runtime
 
-# Security: run as non-root user
-RUN groupadd -r thewatch && useradd -r -g thewatch -s /sbin/nologin thewatch
-
-WORKDIR /app
+WORKDIR /home/site/wwwroot
 COPY --from=publish /app/publish .
 
-# Worker services don't expose HTTP ports by default,
-# but we expose 8080 for health check probes from container orchestrators
-ENV ASPNETCORE_URLS=http://+:8080
-EXPOSE 8080
+ENV AzureFunctionsJobHost__Logging__Console__IsEnabled=true
+ENV FUNCTIONS_WORKER_RUNTIME=dotnet-isolated
 
-# Health check for Azure Container Apps / Kubernetes liveness probes
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -sf http://localhost:8080/health || exit 1
+EXPOSE 80
 
-# Run as non-root
-USER thewatch
-
-ENTRYPOINT ["dotnet", "TheWatch.WorkerServices.dll"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD curl -sf http://localhost:80/api/health || exit 1

@@ -84,6 +84,9 @@ public static class ServiceCollectionExtensions
         // Incident history: paginated history, timelines, HTML export, personal safety stats
         services.AddSingleton<IIncidentHistoryPort, MockIncidentHistoryAdapter>();
 
+        // GDPR data export/erasure/consent: mock adapter for dev/test
+        services.AddSingleton<IDataExportPort, MockDataExportAdapter>();
+
         return services;
     }
 }

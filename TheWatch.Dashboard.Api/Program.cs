@@ -29,6 +29,7 @@ using TheWatch.Data.Configuration;
 using TheWatch.Data.Context;
 using Microsoft.Extensions.Hosting;
 using TheWatch.Shared.Domain.Ports;
+using TheWatch.Dashboard.Api.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -110,17 +111,48 @@ builder.Services.AddAuthorizationBuilder()
 // ── 7. Controllers & API ──────────────────────────────────────────────────────────
 builder.Services.AddControllers();
 
-// CORS — allow web dashboard and MAUI clients
-builder.Services.AddCors(options =>
+// CORS — allow web dashboard and MAUI clients.
+// SECURITY: In production, restrict to known origins. AllowAnyOrigin is a security risk
+// that enables cross-site request attacks from any domain.
+// In development, allow any origin for convenience (localhost ports vary).
+if (builder.Environment.IsDevelopment())
 {
-    options.AddPolicy("DashboardClients", policy =>
+    builder.Services.AddCors(options =>
     {
-        policy
-            .AllowAnyOrigin()
-            .AllowAnyMethod()
-            .AllowAnyHeader();
+        options.AddPolicy("DashboardClients", policy =>
+        {
+            policy
+                .AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader();
+        });
     });
-});
+}
+else
+{
+    // Production: restrict to known domains. Add your actual domains here.
+    // SignalR requires AllowCredentials + specific origins (not AllowAnyOrigin).
+    var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+        ?? new[]
+        {
+            "https://thewatch.app",
+            "https://www.thewatch.app",
+            "https://dashboard.thewatch.app",
+            "https://api.thewatch.app"
+        };
+
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy("DashboardClients", policy =>
+        {
+            policy
+                .WithOrigins(allowedOrigins)
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .AllowCredentials(); // Required for SignalR WebSocket connections
+        });
+    });
+}
 
 // SOS bypass token service — short-lived HMAC tokens for emergency access without full auth
 builder.Services.AddSingleton<TheWatch.Dashboard.Api.Auth.SosBypassTokenService>();
@@ -168,6 +200,16 @@ var app = builder.Build();
 
 // ── Middleware Pipeline ───────────────────────────────────────────────────────────
 app.MapDefaultEndpoints();
+
+// Security headers — EARLY in pipeline so all responses get security headers,
+// including error responses, 404s, and middleware short-circuits.
+// Adds: X-Content-Type-Options, X-Frame-Options, HSTS, CSP, Referrer-Policy, etc.
+app.UseSecurityHeaders();
+
+// Rate limiting — BEFORE auth so auth endpoints (password-reset, MFA verify) are protected
+// against brute-force even for unauthenticated requests. SOS trigger has a generous limit
+// (10/min) to never block legitimate emergencies.
+app.UseRateLimiting();
 
 // OpenAPI spec endpoint — enabled in Development and Staging.
 // Spec available at: /openapi/v1.json

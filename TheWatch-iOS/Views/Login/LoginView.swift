@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import Network
 
 struct LoginView: View {
@@ -30,6 +31,7 @@ struct LoginView: View {
                                 Text("TheWatch")
                                     .font(.system(size: 28, weight: .bold))
                                     .foregroundColor(.white)
+                                    .accessibilityAddTraits(.isHeader)
 
                                 Text("Life-Safety Emergency Response")
                                     .font(.caption)
@@ -73,12 +75,13 @@ struct LoginView: View {
                                             Image(systemName: (viewModel?.showPassword ?? false) ? "eye.slash.fill" : "eye.fill")
                                                 .foregroundColor(.gray)
                                         }
-                                        .accessibilityLabel("Toggle password visibility")
+                                        .accessibilityLabel(viewModel?.showPassword == true ? "Hide password" : "Show password")
                                     }
                                     .padding(12)
                                     .background(Color.white)
                                     .cornerRadius(8)
                                     .accessibilityElement(children: .combine)
+                                    .accessibilityLabel("Password field")
                                 }
 
                                 // Error message
@@ -89,6 +92,11 @@ struct LoginView: View {
                                         .padding(12)
                                         .background(Color.red.opacity(0.1))
                                         .cornerRadius(8)
+                                        .accessibilityLabel("Login error: \(error)")
+                                        .accessibilityAddTraits(.updatesFrequently)
+                                        .onAppear {
+                                            UIAccessibility.post(notification: .announcement, argument: "Error: \(error)")
+                                        }
                                 }
                             }
                             .padding(.horizontal, 16)

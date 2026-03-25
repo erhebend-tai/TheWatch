@@ -2,7 +2,31 @@
 # TheWatch — Deploy Pipeline (GitHub Actions)
 # ═══════════════════════════════════════════════════════════════════════════════
 # Deploys to Azure after CI passes on master/main.
-# Can also be triggered manually for any environment.
+# Supports both Azure App Service (legacy) and Azure Container Apps (preferred).
+#
+# Flow:
+#   master push → CI passes → staging auto-deploy (Container Apps)
+#   manual dispatch → choose environment → deploy-infra → build containers → deploy
+#   production environment → requires GitHub environment approval
+#
+# Required GitHub Secrets:
+#   AZURE_CREDENTIALS              — Service principal JSON (az ad sp create-for-rbac)
+#   SQL_ADMIN_PASSWORD             — Azure SQL admin password
+#   RABBITMQ_PASSWORD              — RabbitMQ default password
+#
+# Required GitHub Variables:
+#   AZURE_RESOURCE_GROUP           — Target resource group (default: Watch-Init)
+#   AZURE_BASE_NAME                — Resource name prefix (default: thewatch)
+#   ACR_LOGIN_SERVER               — ACR login server (e.g., thewatch.azurecr.io)
+#   ACR_USERNAME                   — ACR admin username (or use managed identity)
+#   CONTAINER_APPS_ENVIRONMENT     — Container Apps Environment name
+#
+# Required GitHub Secrets (Container Apps):
+#   ACR_PASSWORD                   — ACR admin password
+#
+# Environment protection:
+#   production environment should have required reviewers configured in
+#   GitHub Settings → Environments → production → Protection rules
 # ═══════════════════════════════════════════════════════════════════════════════
 
 name: Deploy
@@ -17,21 +41,37 @@ on:
       environment:
         description: 'Target environment'
         type: choice
-        options: [dev, staging, production]
-        default: dev
+        options: [staging, production]
+        default: staging
+      deploy_infra:
+        description: 'Deploy infrastructure (Bicep)'
+        type: boolean
+        default: false
+      deploy_containers:
+        description: 'Build and deploy containers to Azure Container Apps'
+        type: boolean
+        default: true
 
 concurrency:
-  group: deploy-${{ github.event.inputs.environment || 'dev' }}
+  group: deploy-${{ github.event.inputs.environment || 'staging' }}
   cancel-in-progress: false
 
+env:
+  DOTNET_VERSION: '10.0.x'
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  ACR_LOGIN_SERVER: ${{ vars.ACR_LOGIN_SERVER || 'thewatch.azurecr.io' }}
+  IMAGE_TAG: ${{ github.sha }}
+
 jobs:
+  # ── Infrastructure (Bicep) ──────────────────────────────────────────────────
   deploy-infra:
     name: Deploy Infrastructure (Bicep)
     if: >
-      github.event_name == 'workflow_dispatch'
-      || github.event.workflow_run.conclusion == 'success'
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_infra == 'true')
+      || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment || 'dev' }}
+    environment: ${{ github.event.inputs.environment || 'staging' }}
 
     steps:
       - name: Checkout
@@ -53,11 +93,349 @@ jobs:
             rabbitPassword=${{ secrets.RABBITMQ_PASSWORD }}
           deploymentName: thewatch-${{ github.sha }}
 
-  deploy-apps:
-    name: Deploy Applications
+  # ── Build Container Images ─────────────────────────────────────────────────
+  build-containers:
+    name: Build & Push Container Images
+    if: >
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_containers == 'true')
+      || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+
+    outputs:
+      api_image: ${{ steps.tags.outputs.api_image }}
+      functions_image: ${{ steps.tags.outputs.functions_image }}
+      worker_image: ${{ steps.tags.outputs.worker_image }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compute image tags
+        id: tags
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | head -c 7)
+          ENV_TAG=${{ github.event.inputs.environment || 'staging' }}
+
+          API_IMAGE="${{ env.ACR_LOGIN_SERVER }}/thewatch/dashboard-api"
+          FUNC_IMAGE="${{ env.ACR_LOGIN_SERVER }}/thewatch/functions"
+          WORKER_IMAGE="${{ env.ACR_LOGIN_SERVER }}/thewatch/worker"
+
+          echo "api_image=${API_IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "functions_image=${FUNC_IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "worker_image=${WORKER_IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "env_tag=${ENV_TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to ACR
+        uses: azure/docker-login@v2
+        with:
+          login-server: ${{ env.ACR_LOGIN_SERVER }}
+          username: ${{ vars.ACR_USERNAME || '' }}
+          password: ${{ secrets.ACR_PASSWORD || '' }}
+
+      # ── Build Dashboard.Api ─────────────────────────────────────────
+      - name: Build & Push Dashboard.Api
+        run: |
+          docker build \
+            -f TheWatch.Dashboard.Api/Dockerfile \
+            -t "${{ steps.tags.outputs.api_image }}:${{ env.IMAGE_TAG }}" \
+            -t "${{ steps.tags.outputs.api_image }}:${{ steps.tags.outputs.short_sha }}" \
+            -t "${{ steps.tags.outputs.api_image }}:${{ steps.tags.outputs.env_tag }}" \
+            -t "${{ steps.tags.outputs.api_image }}:latest" \
+            --label "org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}" \
+            --label "org.opencontainers.image.revision=${{ github.sha }}" \
+            --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            .
+          docker push "${{ steps.tags.outputs.api_image }}" --all-tags
+
+      # ── Build Functions ─────────────────────────────────────────────
+      - name: Build & Push Functions
+        run: |
+          docker build \
+            -f TheWatch.Functions/Dockerfile \
+            -t "${{ steps.tags.outputs.functions_image }}:${{ env.IMAGE_TAG }}" \
+            -t "${{ steps.tags.outputs.functions_image }}:${{ steps.tags.outputs.short_sha }}" \
+            -t "${{ steps.tags.outputs.functions_image }}:${{ steps.tags.outputs.env_tag }}" \
+            -t "${{ steps.tags.outputs.functions_image }}:latest" \
+            --label "org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}" \
+            --label "org.opencontainers.image.revision=${{ github.sha }}" \
+            .
+          docker push "${{ steps.tags.outputs.functions_image }}" --all-tags
+
+      # ── Build WorkerServices ────────────────────────────────────────
+      - name: Build & Push WorkerServices
+        run: |
+          docker build \
+            -f TheWatch.WorkerServices/Dockerfile \
+            -t "${{ steps.tags.outputs.worker_image }}:${{ env.IMAGE_TAG }}" \
+            -t "${{ steps.tags.outputs.worker_image }}:${{ steps.tags.outputs.short_sha }}" \
+            -t "${{ steps.tags.outputs.worker_image }}:${{ steps.tags.outputs.env_tag }}" \
+            -t "${{ steps.tags.outputs.worker_image }}:latest" \
+            --label "org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}" \
+            --label "org.opencontainers.image.revision=${{ github.sha }}" \
+            .
+          docker push "${{ steps.tags.outputs.worker_image }}" --all-tags
+
+      - name: Image Summary
+        run: |
+          echo "## Container Images Built" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | Image | Tag |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|-------|-----|" >> $GITHUB_STEP_SUMMARY
+          echo "| Dashboard.Api | \`${{ steps.tags.outputs.api_image }}\` | \`${{ env.IMAGE_TAG }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Functions | \`${{ steps.tags.outputs.functions_image }}\` | \`${{ env.IMAGE_TAG }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| WorkerServices | \`${{ steps.tags.outputs.worker_image }}\` | \`${{ env.IMAGE_TAG }}\` |" >> $GITHUB_STEP_SUMMARY
+
+  # ── Deploy to Staging (auto) ────────────────────────────────────────────────
+  deploy-staging:
+    name: Deploy to Staging (Container Apps)
+    needs: build-containers
+    if: >
+      (github.event.inputs.environment || 'staging') == 'staging'
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # ── Deploy Dashboard.Api Container App ──────────────────────────
+      - name: Deploy Dashboard.Api to Container Apps
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          resourceGroup: ${{ vars.AZURE_RESOURCE_GROUP || 'Watch-Init' }}
+          containerAppName: ${{ vars.AZURE_BASE_NAME || 'thewatch' }}-api
+          containerAppEnvironment: ${{ vars.CONTAINER_APPS_ENVIRONMENT || format('{0}-cae', vars.AZURE_BASE_NAME || 'thewatch') }}
+          imageToDeploy: ${{ needs.build-containers.outputs.api_image }}:${{ env.IMAGE_TAG }}
+          registryUrl: ${{ env.ACR_LOGIN_SERVER }}
+          registryUsername: ${{ vars.ACR_USERNAME || '' }}
+          registryPassword: ${{ secrets.ACR_PASSWORD || '' }}
+          targetPort: 8080
+          ingress: external
+          environmentVariables: >
+            ASPNETCORE_ENVIRONMENT=Staging
+            ASPNETCORE_URLS=http://+:8080
+
+      # ── Deploy Functions Container App ──────────────────────────────
+      - name: Deploy Functions to Container Apps
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          resourceGroup: ${{ vars.AZURE_RESOURCE_GROUP || 'Watch-Init' }}
+          containerAppName: ${{ vars.AZURE_BASE_NAME || 'thewatch' }}-functions
+          containerAppEnvironment: ${{ vars.CONTAINER_APPS_ENVIRONMENT || format('{0}-cae', vars.AZURE_BASE_NAME || 'thewatch') }}
+          imageToDeploy: ${{ needs.build-containers.outputs.functions_image }}:${{ env.IMAGE_TAG }}
+          registryUrl: ${{ env.ACR_LOGIN_SERVER }}
+          registryUsername: ${{ vars.ACR_USERNAME || '' }}
+          registryPassword: ${{ secrets.ACR_PASSWORD || '' }}
+          targetPort: 80
+          ingress: internal
+          environmentVariables: >
+            FUNCTIONS_WORKER_RUNTIME=dotnet-isolated
+            AzureWebJobsStorage=${{ secrets.AZURE_WEBJOBS_STORAGE || 'UseDevelopmentStorage=true' }}
+
+      # ── Deploy WorkerServices Container App ─────────────────────────
+      - name: Deploy WorkerServices to Container Apps
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          resourceGroup: ${{ vars.AZURE_RESOURCE_GROUP || 'Watch-Init' }}
+          containerAppName: ${{ vars.AZURE_BASE_NAME || 'thewatch' }}-worker
+          containerAppEnvironment: ${{ vars.CONTAINER_APPS_ENVIRONMENT || format('{0}-cae', vars.AZURE_BASE_NAME || 'thewatch') }}
+          imageToDeploy: ${{ needs.build-containers.outputs.worker_image }}:${{ env.IMAGE_TAG }}
+          registryUrl: ${{ env.ACR_LOGIN_SERVER }}
+          registryUsername: ${{ vars.ACR_USERNAME || '' }}
+          registryPassword: ${{ secrets.ACR_PASSWORD || '' }}
+          targetPort: 8080
+          ingress: internal
+          environmentVariables: >
+            ASPNETCORE_ENVIRONMENT=Staging
+            ASPNETCORE_URLS=http://+:8080
+
+      # ── Verify Health ──────────────────────────────────────────────
+      - name: Verify Dashboard.Api health
+        run: |
+          # Get the FQDN of the deployed container app
+          API_FQDN=$(az containerapp show \
+            --name "${{ vars.AZURE_BASE_NAME || 'thewatch' }}-api" \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP || 'Watch-Init' }}" \
+            --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "")
+
+          if [ -z "$API_FQDN" ]; then
+            echo "::warning::Could not retrieve API FQDN. Skipping health check."
+            exit 0
+          fi
+
+          echo "Checking health at https://${API_FQDN}/health ..."
+
+          # Retry health check up to 10 times with 15s intervals (allow time for startup)
+          for i in $(seq 1 10); do
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://${API_FQDN}/health" 2>/dev/null || echo "000")
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "Health check passed (HTTP ${HTTP_STATUS}) on attempt ${i}."
+              exit 0
+            fi
+            echo "Attempt ${i}/10: HTTP ${HTTP_STATUS}. Waiting 15s..."
+            sleep 15
+          done
+
+          echo "::error::Health check failed after 10 attempts."
+          exit 1
+
+      - name: Staging deployment summary
+        run: |
+          API_FQDN=$(az containerapp show \
+            --name "${{ vars.AZURE_BASE_NAME || 'thewatch' }}-api" \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP || 'Watch-Init' }}" \
+            --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "unknown")
+
+          echo "## Staging Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | Status | URL |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|-----|" >> $GITHUB_STEP_SUMMARY
+          echo "| Dashboard.Api | Deployed | https://${API_FQDN} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Functions | Deployed | (internal) |" >> $GITHUB_STEP_SUMMARY
+          echo "| WorkerServices | Deployed | (internal) |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Image tag: \`${{ env.IMAGE_TAG }}\`" >> $GITHUB_STEP_SUMMARY
+
+  # ── Deploy to Production (requires approval) ───────────────────────────────
+  deploy-production:
+    name: Deploy to Production (Container Apps)
+    needs: build-containers
+    if: >
+      github.event.inputs.environment == 'production'
+    runs-on: ubuntu-latest
+    # Production environment MUST have required reviewers configured in GitHub Settings
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # ── Deploy Dashboard.Api ────────────────────────────────────────
+      - name: Deploy Dashboard.Api to Production
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          resourceGroup: ${{ vars.AZURE_RESOURCE_GROUP || 'Watch-Init' }}
+          containerAppName: ${{ vars.AZURE_BASE_NAME || 'thewatch' }}-api
+          containerAppEnvironment: ${{ vars.CONTAINER_APPS_ENVIRONMENT || format('{0}-cae', vars.AZURE_BASE_NAME || 'thewatch') }}
+          imageToDeploy: ${{ needs.build-containers.outputs.api_image }}:${{ env.IMAGE_TAG }}
+          registryUrl: ${{ env.ACR_LOGIN_SERVER }}
+          registryUsername: ${{ vars.ACR_USERNAME || '' }}
+          registryPassword: ${{ secrets.ACR_PASSWORD || '' }}
+          targetPort: 8080
+          ingress: external
+          environmentVariables: >
+            ASPNETCORE_ENVIRONMENT=Production
+            ASPNETCORE_URLS=http://+:8080
+
+      # ── Deploy Functions ────────────────────────────────────────────
+      - name: Deploy Functions to Production
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          resourceGroup: ${{ vars.AZURE_RESOURCE_GROUP || 'Watch-Init' }}
+          containerAppName: ${{ vars.AZURE_BASE_NAME || 'thewatch' }}-functions
+          containerAppEnvironment: ${{ vars.CONTAINER_APPS_ENVIRONMENT || format('{0}-cae', vars.AZURE_BASE_NAME || 'thewatch') }}
+          imageToDeploy: ${{ needs.build-containers.outputs.functions_image }}:${{ env.IMAGE_TAG }}
+          registryUrl: ${{ env.ACR_LOGIN_SERVER }}
+          registryUsername: ${{ vars.ACR_USERNAME || '' }}
+          registryPassword: ${{ secrets.ACR_PASSWORD || '' }}
+          targetPort: 80
+          ingress: internal
+          environmentVariables: >
+            FUNCTIONS_WORKER_RUNTIME=dotnet-isolated
+            AzureWebJobsStorage=${{ secrets.AZURE_WEBJOBS_STORAGE }}
+
+      # ── Deploy WorkerServices ───────────────────────────────────────
+      - name: Deploy WorkerServices to Production
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          resourceGroup: ${{ vars.AZURE_RESOURCE_GROUP || 'Watch-Init' }}
+          containerAppName: ${{ vars.AZURE_BASE_NAME || 'thewatch' }}-worker
+          containerAppEnvironment: ${{ vars.CONTAINER_APPS_ENVIRONMENT || format('{0}-cae', vars.AZURE_BASE_NAME || 'thewatch') }}
+          imageToDeploy: ${{ needs.build-containers.outputs.worker_image }}:${{ env.IMAGE_TAG }}
+          registryUrl: ${{ env.ACR_LOGIN_SERVER }}
+          registryUsername: ${{ vars.ACR_USERNAME || '' }}
+          registryPassword: ${{ secrets.ACR_PASSWORD || '' }}
+          targetPort: 8080
+          ingress: internal
+          environmentVariables: >
+            ASPNETCORE_ENVIRONMENT=Production
+            ASPNETCORE_URLS=http://+:8080
+
+      # ── Production Health Verification ──────────────────────────────
+      - name: Verify production health
+        run: |
+          API_FQDN=$(az containerapp show \
+            --name "${{ vars.AZURE_BASE_NAME || 'thewatch' }}-api" \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP || 'Watch-Init' }}" \
+            --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "")
+
+          if [ -z "$API_FQDN" ]; then
+            echo "::warning::Could not retrieve production API FQDN."
+            exit 0
+          fi
+
+          echo "Verifying production health at https://${API_FQDN}/health ..."
+
+          for i in $(seq 1 12); do
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://${API_FQDN}/health" 2>/dev/null || echo "000")
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "Production health check passed (HTTP ${HTTP_STATUS})."
+              exit 0
+            fi
+            echo "Attempt ${i}/12: HTTP ${HTTP_STATUS}. Waiting 15s..."
+            sleep 15
+          done
+
+          echo "::error::Production health check failed after 12 attempts. INVESTIGATE IMMEDIATELY."
+          exit 1
+
+      - name: Production deployment summary
+        run: |
+          API_FQDN=$(az containerapp show \
+            --name "${{ vars.AZURE_BASE_NAME || 'thewatch' }}-api" \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP || 'Watch-Init' }}" \
+            --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "unknown")
+
+          echo "## PRODUCTION Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | Status | URL |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|-----|" >> $GITHUB_STEP_SUMMARY
+          echo "| Dashboard.Api | Deployed | https://${API_FQDN} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Functions | Deployed | (internal) |" >> $GITHUB_STEP_SUMMARY
+          echo "| WorkerServices | Deployed | (internal) |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Image tag: \`${{ env.IMAGE_TAG }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Production deployment approved and completed.**" >> $GITHUB_STEP_SUMMARY
+
+  # ── Legacy App Service Deployment (fallback) ────────────────────────────────
+  # Retained for environments not yet migrated to Container Apps.
+  # Remove this job once all environments use containers.
+  deploy-app-service:
+    name: Deploy to App Service (Legacy)
+    if: >
+      github.event_name == 'workflow_dispatch'
+      && github.event.inputs.deploy_containers == 'false'
     needs: deploy-infra
     runs-on: windows-latest
-    environment: ${{ github.event.inputs.environment || 'dev' }}
+    environment: ${{ github.event.inputs.environment || 'staging' }}
 
     steps:
       - name: Checkout

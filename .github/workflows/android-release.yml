@@ -1,0 +1,241 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# TheWatch — Android Play Store Internal Track Release (GitHub Actions)
+# ═══════════════════════════════════════════════════════════════════════════════
+# Builds a signed AAB (Android App Bundle) and uploads it to the Google Play
+# Store internal testing track. Can also be triggered manually for ad-hoc builds.
+#
+# Required GitHub Secrets:
+#   ANDROID_KEYSTORE_BASE64       — Base64-encoded .jks/.keystore file
+#   ANDROID_KEY_ALIAS             — Key alias within the keystore
+#   ANDROID_KEY_PASSWORD          — Password for the key alias
+#   ANDROID_STORE_PASSWORD        — Password for the keystore file
+#   GOOGLE_PLAY_SERVICE_ACCOUNT_JSON — Service account JSON for Play Store API
+#
+# How to generate ANDROID_KEYSTORE_BASE64:
+#   base64 -w 0 my-release-key.jks | pbcopy   (macOS)
+#   base64 -w 0 my-release-key.jks > keystore.b64  (Linux)
+#   certutil -encode my-release-key.jks keystore.b64 && type keystore.b64 (Windows, strip header/footer)
+#
+# How to create a Google Play service account:
+#   1. Go to Google Cloud Console → IAM → Service Accounts
+#   2. Create service account with "Service Account User" role
+#   3. Generate JSON key and paste contents into GOOGLE_PLAY_SERVICE_ACCOUNT_JSON
+#   4. In Google Play Console → Settings → API access → Link the service account
+#   5. Grant "Release to internal testing" permission
+#
+# Fastlane alternative: see TheWatch-Android/fastlane/Fastfile
+# ═══════════════════════════════════════════════════════════════════════════════
+
+name: Android Release (Play Store Internal)
+
+on:
+  push:
+    branches:
+      - 'release/**'
+    paths:
+      - 'TheWatch-Android/**'
+      - '.github/workflows/android-release.yml'
+  workflow_dispatch:
+    inputs:
+      track:
+        description: 'Play Store track to publish to'
+        type: choice
+        options: [internal, alpha, beta, production]
+        default: internal
+      build_number_override:
+        description: 'Override versionCode (leave empty for auto-increment from run number)'
+        type: string
+        default: ''
+
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  JAVA_VERSION: '17'
+  ANDROID_PROJECT_DIR: TheWatch-Android
+  # Version code uses GitHub run number for monotonic increment
+  # Play Store requires each upload to have a strictly higher versionCode
+  VERSION_CODE: ${{ github.event.inputs.build_number_override || github.run_number }}
+
+jobs:
+  # ── Build & Sign ────────────────────────────────────────────────────────────
+  build:
+    name: Build Signed AAB
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    outputs:
+      aab_path: ${{ steps.find_aab.outputs.aab_path }}
+      version_name: ${{ steps.version.outputs.version_name }}
+      version_code: ${{ steps.version.outputs.version_code }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ── JDK Setup ────────────────────────────────────────────────
+      - name: Setup JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+
+      # ── Android SDK Setup ────────────────────────────────────────
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      # ── Gradle Cache ─────────────────────────────────────────────
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ${{ env.ANDROID_PROJECT_DIR }}/.gradle
+          key: gradle-${{ runner.os }}-${{ hashFiles('TheWatch-Android/**/*.gradle.kts', 'TheWatch-Android/**/libs.versions.toml', 'TheWatch-Android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      # ── Decode Keystore ──────────────────────────────────────────
+      - name: Decode Android keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > "${{ env.ANDROID_PROJECT_DIR }}/app/release-keystore.jks"
+          echo "Keystore decoded successfully."
+          ls -la "${{ env.ANDROID_PROJECT_DIR }}/app/release-keystore.jks"
+
+      # ── Compute Version ──────────────────────────────────────────
+      - name: Compute version
+        id: version
+        run: |
+          # Extract versionName from build.gradle.kts
+          VERSION_NAME=$(grep 'versionName' "${{ env.ANDROID_PROJECT_DIR }}/app/build.gradle.kts" | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          if [ -z "$VERSION_NAME" ]; then
+            VERSION_NAME="1.0.0"
+          fi
+          echo "version_name=${VERSION_NAME}" >> "$GITHUB_OUTPUT"
+          echo "version_code=${{ env.VERSION_CODE }}" >> "$GITHUB_OUTPUT"
+          echo "Building version ${VERSION_NAME} (${VERSION_CODE})"
+
+      # ── Build Release AAB ────────────────────────────────────────
+      - name: Build Release AAB
+        working-directory: ${{ env.ANDROID_PROJECT_DIR }}
+        env:
+          ANDROID_KEYSTORE_FILE: app/release-keystore.jks
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+        run: |
+          chmod +x ./gradlew
+
+          # Inject signing config via gradle properties
+          # These are read by the signingConfigs block in build.gradle.kts
+          cat >> gradle.properties << 'GRADLEEOF'
+          android.injected.signing.store.file=${{ github.workspace }}/TheWatch-Android/app/release-keystore.jks
+          android.injected.signing.store.password=${{ secrets.ANDROID_STORE_PASSWORD }}
+          android.injected.signing.key.alias=${{ secrets.ANDROID_KEY_ALIAS }}
+          android.injected.signing.key.password=${{ secrets.ANDROID_KEY_PASSWORD }}
+          GRADLEEOF
+
+          # Override versionCode via project property
+          ./gradlew bundleRelease \
+            -PversionCode=${{ env.VERSION_CODE }} \
+            --no-daemon \
+            --stacktrace
+
+      # ── Locate AAB ──────────────────────────────────────────────
+      - name: Find built AAB
+        id: find_aab
+        run: |
+          AAB_PATH=$(find "${{ env.ANDROID_PROJECT_DIR }}/app/build/outputs/bundle/release" -name "*.aab" | head -1)
+          if [ -z "$AAB_PATH" ]; then
+            echo "::error::No AAB file found in build outputs"
+            exit 1
+          fi
+          echo "aab_path=${AAB_PATH}" >> "$GITHUB_OUTPUT"
+          echo "Found AAB: ${AAB_PATH}"
+          ls -lh "$AAB_PATH"
+
+      # ── Clean up keystore (security) ────────────────────────────
+      - name: Remove keystore from runner
+        if: always()
+        run: |
+          rm -f "${{ env.ANDROID_PROJECT_DIR }}/app/release-keystore.jks"
+
+      # ── Upload AAB Artifact ─────────────────────────────────────
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: thewatch-android-${{ steps.version.outputs.version_name }}-${{ env.VERSION_CODE }}
+          path: ${{ steps.find_aab.outputs.aab_path }}
+          retention-days: 90
+          if-no-files-found: error
+
+      # ── Build APK (for sideloading / QA) ────────────────────────
+      - name: Build Release APK (sideload)
+        working-directory: ${{ env.ANDROID_PROJECT_DIR }}
+        run: |
+          ./gradlew assembleRelease \
+            -PversionCode=${{ env.VERSION_CODE }} \
+            --no-daemon
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: thewatch-android-apk-${{ steps.version.outputs.version_name }}-${{ env.VERSION_CODE }}
+          path: ${{ env.ANDROID_PROJECT_DIR }}/app/build/outputs/apk/release/*.apk
+          retention-days: 90
+
+  # ── Publish to Play Store ───────────────────────────────────────────────────
+  publish:
+    name: Upload to Play Store (${{ github.event.inputs.track || 'internal' }})
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Only publish from release branches or manual dispatch
+    if: >
+      github.event_name == 'workflow_dispatch'
+      || startsWith(github.ref, 'refs/heads/release/')
+
+    steps:
+      - name: Download AAB artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: thewatch-android-${{ needs.build.outputs.version_name }}-${{ env.VERSION_CODE }}
+          path: ./aab
+
+      - name: Find downloaded AAB
+        id: aab
+        run: |
+          AAB=$(find ./aab -name "*.aab" | head -1)
+          echo "file=${AAB}" >> "$GITHUB_OUTPUT"
+          echo "Publishing: ${AAB}"
+
+      # ── Upload to Google Play ────────────────────────────────────
+      # Uses r0adkll/upload-google-play — the standard GitHub Action for Play Store uploads
+      # Docs: https://github.com/r0adkll/upload-google-play
+      - name: Upload to Google Play
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.thewatch.app
+          releaseFiles: ${{ steps.aab.outputs.file }}
+          track: ${{ github.event.inputs.track || 'internal' }}
+          status: completed
+          # Attach release notes from the commit message or a changelog file
+          whatsNewDirectory: ${{ env.ANDROID_PROJECT_DIR }}/whatsnew
+          # mappingFile is optional — upload ProGuard/R8 mapping for crash deobfuscation
+          # mappingFile: TheWatch-Android/app/build/outputs/mapping/release/mapping.txt
+
+      - name: Summary
+        run: |
+          echo "## Android Release Published" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Package | \`com.thewatch.app\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | ${{ needs.build.outputs.version_name }} (${{ needs.build.outputs.version_code }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Track | ${{ github.event.inputs.track || 'internal' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY

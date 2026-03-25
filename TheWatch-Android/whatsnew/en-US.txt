@@ -1,0 +1,6 @@
+TheWatch - Personal Safety & Security
+- Real-time emergency phrase detection and automatic responder notification
+- Volunteer responder coordination with geohash-based proximity matching
+- Check-in request system for wellness verification
+- Evidence submission: photos, video, text sitreps
+- First responder integration with configurable auto-notification

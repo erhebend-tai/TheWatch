@@ -66,7 +66,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -262,10 +264,11 @@ private fun CountdownContent(
                         .scale(scale)
                         .semantics {
                             contentDescription = if (seconds > 0) {
-                                "$seconds seconds until SOS is sent"
+                                "$seconds seconds until SOS is sent. Tap cancel to stop."
                             } else {
                                 "Sending SOS now"
                             }
+                            liveRegion = LiveRegionMode.Assertive
                         }
                 )
             }
@@ -326,7 +329,11 @@ private fun CountdownContent(
 private fun DispatchingContent() {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier.semantics(mergeDescendants = true) {
+            contentDescription = "Contacting responders. Sending your location to nearby volunteers."
+            liveRegion = LiveRegionMode.Polite
+        }
     ) {
         CircularProgressIndicator(
             color = SosWhite,
@@ -365,7 +372,11 @@ private fun ActiveContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(32.dp),
+            .padding(32.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription = "SOS sent. $responderCount responders being notified. Help is on the way."
+                liveRegion = LiveRegionMode.Assertive
+            },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -457,13 +468,17 @@ private fun QueuedOfflineContent(onDismiss: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(32.dp),
+            .padding(32.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription = "SOS queued offline. Will be sent automatically when you reconnect."
+                liveRegion = LiveRegionMode.Assertive
+            },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
             imageVector = Icons.Filled.WifiOff,
-            contentDescription = null,
+            contentDescription = "No internet connection",
             tint = SosAmber,
             modifier = Modifier.size(64.dp)
         )
@@ -528,11 +543,15 @@ private fun QueuedOfflineContent(onDismiss: () -> Unit) {
 private fun CancelledContent() {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier.semantics(mergeDescendants = true) {
+            contentDescription = "SOS cancelled. No alert was sent."
+            liveRegion = LiveRegionMode.Polite
+        }
     ) {
         Icon(
             imageVector = Icons.Filled.Close,
-            contentDescription = null,
+            contentDescription = "Cancelled",
             tint = SosWhite.copy(alpha = 0.7f),
             modifier = Modifier.size(48.dp)
         )
