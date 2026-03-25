@@ -1,0 +1,99 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# TheWatch — Deploy Pipeline (GitHub Actions)
+# ═══════════════════════════════════════════════════════════════════════════════
+# Deploys to Azure after CI passes on master/main.
+# Can also be triggered manually for any environment.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [master, main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        type: choice
+        options: [dev, staging, production]
+        default: dev
+
+concurrency:
+  group: deploy-${{ github.event.inputs.environment || 'dev' }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-infra:
+    name: Deploy Infrastructure (Bicep)
+    if: >
+      github.event_name == 'workflow_dispatch'
+      || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy Bicep
+        uses: azure/arm-deploy@v2
+        with:
+          resourceGroupName: ${{ vars.AZURE_RESOURCE_GROUP || 'Watch-Init' }}
+          template: infra/main.bicep
+          parameters: >
+            baseName=${{ vars.AZURE_BASE_NAME || 'thewatch' }}
+            sqlAdminPassword=${{ secrets.SQL_ADMIN_PASSWORD }}
+            rabbitPassword=${{ secrets.RABBITMQ_PASSWORD }}
+          deploymentName: thewatch-${{ github.sha }}
+
+  deploy-apps:
+    name: Deploy Applications
+    needs: deploy-infra
+    runs-on: windows-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: preview
+
+      - name: Build & Publish
+        run: |
+          build.cmd restore
+          build.cmd build
+          build.cmd publish
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy Dashboard.Api
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_BASE_NAME || 'thewatch' }}-api
+          package: artifacts/Dashboard.Api
+
+      - name: Deploy Dashboard.Web
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_BASE_NAME || 'thewatch' }}-web
+          package: artifacts/Dashboard.Web
+
+      - name: Deploy Azure Functions
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ vars.AZURE_BASE_NAME || 'thewatch' }}-functions
+          package: artifacts/Functions

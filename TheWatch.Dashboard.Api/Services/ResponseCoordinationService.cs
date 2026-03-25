@@ -27,6 +27,7 @@ public class ResponseCoordinationService : IResponseCoordinationService
     private readonly IEscalationPort _escalationPort;
     private readonly IParticipationPort _participationPort;
     private readonly INavigationPort _navigationPort;
+    private readonly IResponderCommunicationPort _communicationPort;
     private readonly IHubContext<DashboardHub> _hubContext;
     private readonly IBackgroundJobClient _hangfireClient;
     private readonly ILogger<ResponseCoordinationService> _logger;
@@ -38,6 +39,7 @@ public class ResponseCoordinationService : IResponseCoordinationService
         IEscalationPort escalationPort,
         IParticipationPort participationPort,
         INavigationPort navigationPort,
+        IResponderCommunicationPort communicationPort,
         IHubContext<DashboardHub> hubContext,
         IBackgroundJobClient hangfireClient,
         ILogger<ResponseCoordinationService> logger)
@@ -48,6 +50,7 @@ public class ResponseCoordinationService : IResponseCoordinationService
         _escalationPort = escalationPort;
         _participationPort = participationPort;
         _navigationPort = navigationPort;
+        _communicationPort = communicationPort;
         _hubContext = hubContext;
         _hangfireClient = hangfireClient;
         _logger = logger;
@@ -311,4 +314,79 @@ public class ResponseCoordinationService : IResponseCoordinationService
     {
         return await _requestPort.GetActiveRequestsAsync(userId, ct);
     }
+
+    // ── Responder Communication ────────────────────────────────────
+
+    public async Task<(ResponderMessage Message, GuardrailsResult Guardrails)> SendResponderMessageAsync(
+        string requestId,
+        string senderId,
+        string senderName,
+        string? senderRole,
+        ResponderMessageType messageType,
+        string content,
+        double? latitude = null,
+        double? longitude = null,
+        string? quickResponseCode = null,
+        CancellationToken ct = default)
+    {
+        var message = new ResponderMessage(
+            MessageId: Guid.NewGuid().ToString("N")[..12],
+            RequestId: requestId,
+            SenderId: senderId,
+            SenderName: senderName,
+            SenderRole: senderRole,
+            MessageType: messageType,
+            Content: content,
+            Latitude: latitude,
+            Longitude: longitude,
+            QuickResponseCode: quickResponseCode,
+            Verdict: GuardrailsVerdict.Approved, // Placeholder — overwritten by port
+            GuardrailsNote: null,
+            RedactedContent: null,
+            SentAt: DateTime.UtcNow
+        );
+
+        var (processed, guardrails) = await _communicationPort.SendMessageAsync(message, ct);
+
+        // Broadcast to the incident's response group if message was approved or redacted
+        if (guardrails.Verdict is GuardrailsVerdict.Approved or GuardrailsVerdict.Redacted)
+        {
+            // Use the redacted content if PII was found, otherwise original
+            var deliveredContent = guardrails.Verdict == GuardrailsVerdict.Redacted
+                ? guardrails.RedactedContent ?? content
+                : content;
+
+            await _hubContext.Clients.Group($"response-{requestId}").SendAsync("ResponderMessage", new
+            {
+                processed.MessageId,
+                processed.RequestId,
+                processed.SenderId,
+                processed.SenderName,
+                processed.SenderRole,
+                MessageType = processed.MessageType.ToString(),
+                Content = deliveredContent,
+                processed.Latitude,
+                processed.Longitude,
+                processed.QuickResponseCode,
+                Verdict = processed.Verdict.ToString(),
+                processed.SentAt
+            }, ct);
+
+            _logger.LogInformation(
+                "Responder message delivered: {MessageId} from {SenderName} in {RequestId} ({Verdict})",
+                processed.MessageId, processed.SenderName, requestId, guardrails.Verdict);
+        }
+
+        return (processed, guardrails);
+    }
+
+    public async Task<IReadOnlyList<ResponderMessage>> GetResponderMessagesAsync(
+        string requestId, int limit = 100, DateTime? since = null,
+        CancellationToken ct = default)
+    {
+        return await _communicationPort.GetMessagesAsync(requestId, limit, since, ct);
+    }
+
+    public IReadOnlyList<(string Code, string DisplayText, string Category)> GetQuickResponses()
+        => _communicationPort.GetQuickResponses();
 }

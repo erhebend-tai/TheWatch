@@ -262,9 +262,16 @@ public static class SwarmPresets
                     You coordinate responder dispatch based on threat assessment and location data.
                     1. Select appropriate dispatch strategy (NearestN, RadiusBroadcast, TrustedContactsOnly, etc.)
                     2. Determine responder count based on severity
-                    3. Issue dispatch notifications
-                    4. If 911 is required, trigger first responder notification
-                    5. Hand off to reviewer with dispatch summary
+                    3. Issue dispatch notifications via dispatch_responders tool
+                    4. If 911 is required (threat level >= 4, or requires_911 was true from threat assessment),
+                       ALWAYS call the initiate_911_call tool to notify emergency services on behalf of the user.
+                       This triggers a Twilio voice call to the local PSAP with TTS context summary,
+                       and pushes GPS coordinates to RapidSOS for the dispatcher's map.
+                    5. Hand off to reviewer with dispatch summary including whether 911 was contacted
+
+                    CRITICAL: When the threat assessment says requires_911=true, you MUST call initiate_911_call.
+                    The user has opted in to automatic 911 notification at signup. Failing to call 911 when
+                    required could result in delayed emergency response.
                     """,
                 HandoffTargets = ["reviewer"],
                 Tools =
@@ -285,6 +292,28 @@ public static class SwarmPresets
                                 "urgency": { "type": "string", "enum": ["low", "medium", "high", "critical"] }
                             },
                             "required": ["strategy", "responder_count", "notify_911"]
+                        }
+                        """
+                    },
+                    new SwarmToolDefinition
+                    {
+                        Name = "initiate_911_call",
+                        Description = "Initiate a 911 emergency call on behalf of the user via Twilio/RapidSOS. Places a voice call to the local PSAP with TTS context and pushes GPS to the dispatcher's map. Only call when threat assessment indicates 911 is needed.",
+                        ParametersJson = """
+                        {
+                            "type": "object",
+                            "properties": {
+                                "service_type": { "type": "string", "enum": ["Police", "Fire", "Ems", "All"], "description": "Which emergency service to request" },
+                                "latitude": { "type": "number", "description": "User's GPS latitude" },
+                                "longitude": { "type": "number", "description": "User's GPS longitude" },
+                                "context_summary": { "type": "string", "description": "Brief summary for the 911 dispatcher TTS relay (what happened, who needs help, any injuries)" },
+                                "user_name": { "type": "string", "description": "User's name for the dispatcher" },
+                                "user_phone": { "type": "string", "description": "User's callback number" },
+                                "medical_info": { "type": "string", "description": "Relevant medical conditions, allergies, medications" },
+                                "volunteers_en_route": { "type": "integer", "description": "How many volunteer responders are already dispatched" },
+                                "access_instructions": { "type": "string", "description": "Gate code, lock box, floor number, or other access info for first responders" }
+                            },
+                            "required": ["service_type", "latitude", "longitude", "context_summary", "user_name", "user_phone"]
                         }
                         """
                     }
@@ -459,7 +488,14 @@ public static class SwarmPresets
                 Name = "Notification Agent",
                 Role = SwarmRole.Specialist,
                 Temperature = 0.1f,
-                Instructions = "Send notifications to all allocated responders via push notification, SMS, and in-app alert. Notify 911 if flagged. Produce a dispatch confirmation summary.",
+                Instructions = """
+                    Send notifications to all allocated responders via push notification, SMS, and in-app alert.
+                    If the threat assessment flagged requires_911=true or threat_level >= 4,
+                    you MUST also call initiate_911_call to contact emergency services on the user's behalf.
+                    This places a Twilio voice call to the local PSAP with a TTS context summary and
+                    pushes GPS coordinates to RapidSOS for the dispatcher's map display.
+                    Produce a dispatch confirmation summary including whether 911 was notified.
+                    """,
                 HandoffTargets = ["ed-supervisor"],
                 Tools =
                 [
@@ -468,6 +504,12 @@ public static class SwarmPresets
                         Name = "send_notification",
                         Description = "Send a notification through specified channels",
                         ParametersJson = """{"type":"object","properties":{"recipient_id":{"type":"string"},"channels":{"type":"array","items":{"type":"string","enum":["push","sms","in_app","voice_call"]}},"message":{"type":"string"},"priority":{"type":"string","enum":["normal","high","critical"]}},"required":["recipient_id","channels","message"]}"""
+                    },
+                    new SwarmToolDefinition
+                    {
+                        Name = "initiate_911_call",
+                        Description = "Initiate a 911 emergency call on behalf of the user via Twilio/RapidSOS. Places a voice call to the local PSAP with TTS context and pushes GPS to the dispatcher's map.",
+                        ParametersJson = """{"type":"object","properties":{"service_type":{"type":"string","enum":["Police","Fire","Ems","All"]},"latitude":{"type":"number"},"longitude":{"type":"number"},"context_summary":{"type":"string","description":"Brief summary for the 911 dispatcher"},"user_name":{"type":"string"},"user_phone":{"type":"string"},"medical_info":{"type":"string"},"volunteers_en_route":{"type":"integer"},"access_instructions":{"type":"string"}},"required":["service_type","latitude","longitude","context_summary","user_name","user_phone"]}"""
                     }
                 ]
             },

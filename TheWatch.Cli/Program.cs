@@ -36,6 +36,7 @@ using System.CommandLine;
 using System.CommandLine.Parsing;
 using Microsoft.Extensions.Logging;
 using TheWatch.Adapters.Azure;
+using TheWatch.Adapters.Mock;
 using TheWatch.Cli.App;
 using TheWatch.Cli.Commands;
 using TheWatch.Shared.Domain.Ports;
@@ -108,9 +109,42 @@ ISwarmPort? CreateSwarmPort()
     return _cachedSwarmPort;
 }
 
+// ── Swarm Agent Port Factory ──────────────────────────────────────
+// Creates the interactive swarm agent that prompts users for their request.
+// Uses Azure OpenAI when configured, falls back to mock adapter.
+
+ISwarmAgentPort? _cachedAgentPort = null;
+
+ISwarmAgentPort CreateSwarmAgentPort()
+{
+    if (_cachedAgentPort is not null) return _cachedAgentPort;
+
+    var endpoint = rootCommand.Parse(args).GetValue(aoaiEndpointOption)
+        ?? Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT");
+    var key = rootCommand.Parse(args).GetValue(aoaiKeyOption)
+        ?? Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY");
+
+    var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
+
+    if (!string.IsNullOrEmpty(endpoint) && !string.IsNullOrEmpty(key))
+    {
+        var logger = loggerFactory.CreateLogger<TheWatch.Adapters.Azure.AzureOpenAISwarmAgentAdapter>();
+        _cachedAgentPort = new TheWatch.Adapters.Azure.AzureOpenAISwarmAgentAdapter(endpoint, key, logger);
+    }
+    else
+    {
+        var logger = loggerFactory.CreateLogger<TheWatch.Adapters.Mock.MockSwarmAgentAdapter>();
+        _cachedAgentPort = new TheWatch.Adapters.Mock.MockSwarmAgentAdapter(logger);
+    }
+
+    return _cachedAgentPort;
+}
+
 // ── Register Subcommands ────────────────────────────────────────────
 
-rootCommand.Add(SwarmCommand.Build(CreateSwarmPort));
+rootCommand.Add(SwarmCommand.Build(CreateSwarmPort, CreateSwarmAgentPort));
+rootCommand.Add(PlanCommand.Build(CreateSwarmPort));
+rootCommand.Add(CodeGenCommand.Build());
 
 // ── Default Handler (TUI Dashboard) ─────────────────────────────────
 

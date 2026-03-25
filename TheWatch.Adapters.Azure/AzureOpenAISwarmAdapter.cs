@@ -223,8 +223,12 @@ public class AzureOpenAISwarmAdapter : ISwarmPort
                     onMessage?.Invoke(assistantMsg);
 
                     // Process each tool call
-                    foreach (var toolCall in completion.ToolCalls)
+                    var handoffOccurred = false;
+                    var allToolCalls = completion.ToolCalls.ToList();
+
+                    for (var i = 0; i < allToolCalls.Count; i++)
                     {
+                        var toolCall = allToolCalls[i];
                         var swarmToolCall = new SwarmToolCall
                         {
                             Id = toolCall.Id,
@@ -243,7 +247,6 @@ public class AzureOpenAISwarmAdapter : ISwarmPort
                             var targetAgent = swarm.GetAgent(handoffTool.HandoffTargetAgentId);
                             if (targetAgent is null)
                             {
-                                // Add tool response indicating failure
                                 task.Messages.Add(new SwarmMessage
                                 {
                                     Role = "tool",
@@ -285,11 +288,26 @@ public class AzureOpenAISwarmAdapter : ISwarmPort
                                 Timestamp = DateTime.UtcNow
                             });
 
+                            // Add dummy responses for any remaining tool calls in this batch
+                            // (API requires every tool_call_id to have a response)
+                            for (var j = i + 1; j < allToolCalls.Count; j++)
+                            {
+                                task.Messages.Add(new SwarmMessage
+                                {
+                                    Role = "tool",
+                                    Content = $"Skipped: task transferred to {targetAgent.Name}.",
+                                    ToolCallId = allToolCalls[j].Id,
+                                    AgentId = currentAgent.AgentId,
+                                    Timestamp = DateTime.UtcNow
+                                });
+                            }
+
                             _logger.LogInformation("Handoff: {From} → {To} (reason: {Reason})",
                                 currentAgent.AgentId, targetAgent.AgentId, reason);
 
                             currentAgent = targetAgent;
                             task.CurrentAgentId = currentAgent.AgentId;
+                            handoffOccurred = true;
                             break; // Restart the agent loop with the new agent
                         }
                         else
@@ -308,6 +326,8 @@ public class AzureOpenAISwarmAdapter : ISwarmPort
                             });
                         }
                     }
+
+                    if (handoffOccurred) continue;
                 }
                 else
                 {
@@ -495,7 +515,6 @@ public class AzureOpenAISwarmAdapter : ISwarmPort
         {
             MaxOutputTokenCount = agent.MaxTokens,
             Temperature = agent.Temperature,
-            AllowParallelToolCalls = agent.ParallelToolCalls
         };
 
         foreach (var tool in agent.Tools)
@@ -504,6 +523,12 @@ public class AzureOpenAISwarmAdapter : ISwarmPort
                 tool.Name,
                 tool.Description,
                 BinaryData.FromString(tool.ParametersJson)));
+        }
+
+        // Only set parallel_tool_calls when tools are present (API rejects it otherwise)
+        if (options.Tools.Count > 0)
+        {
+            options.AllowParallelToolCalls = agent.ParallelToolCalls;
         }
 
         return options;

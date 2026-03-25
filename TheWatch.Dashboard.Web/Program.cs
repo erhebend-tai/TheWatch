@@ -11,11 +11,14 @@
 // WAL: Blazor SSR renders on the server. Interactive components use SignalR.
 // =============================================================================
 
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor.Services;
 using Serilog;
 using TheWatch.Dashboard.Web.Components;
 using TheWatch.Dashboard.Web.Services;
+using TheWatch.Data.Configuration;
 using Microsoft.Extensions.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -33,6 +36,31 @@ builder.Services.AddMudServices(config =>
     config.SnackbarConfiguration.PreventDuplicates = true;
     config.SnackbarConfiguration.ShowCloseIcon = true;
 });
+
+// ── Authentication (Firebase Auth → cookie session) ──────────
+// Cookie auth stores the validated Firebase claims server-side.
+// In development, MockAuthAdapter accepts any token.
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/signin";
+        options.LogoutPath = "/auth/signout";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = true;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    });
+builder.Services.AddAuthorization();
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddScoped<AuthenticationStateProvider, FirebaseAuthStateProvider>();
+builder.Services.AddHttpContextAccessor();
+
+// ── Auth Port (Firebase in production, Mock in development) ──
+builder.Services.AddAuthPort(builder.Configuration);
+
+// ── Controllers (for AuthController session endpoint) ────────
+builder.Services.AddControllers();
 
 // ── Swarm Inventory (Firestore-backed with static fallback) ──
 builder.Services.AddScoped<SwarmInventoryService>();
@@ -79,8 +107,13 @@ app.UseSerilogRequestLogging(options =>
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
 app.UseOutputCache();
+
+// Auth controller (session create/destroy)
+app.MapControllers();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

@@ -59,24 +59,50 @@ Version 1.0 — March 2026
 - 1 CSV with condition/result mappings: Topic, Subtopic, If_Condition, Then_Result, Example
 - 1 XLSX file (60K) — structured workbook
 
-**Mobile App Scaffolds (just generated)**
+**Mobile App Scaffolds**
 
 - Android: 55 Kotlin files, ~6,200 lines — Jetpack Compose, Hilt DI, Room DB, Navigation Compose, Material 3
 - iOS: 49 Swift files, ~7,400 lines — SwiftUI, @Observable, SwiftData, NavigationStack, MapKit
 
-### What We Don't Have Yet
+**Backend (.NET 10 / Aspire — built since initial plan)**
 
-- GitHub Enterprise account and repository
-- CI/CD pipelines
-- Real backend API layer (Azure Functions / ASP.NET Web API)
-- Azure Service Bus event infrastructure
-- MSAL/Entra ID tenant configuration
-- Real authentication flow (currently mocked)
+- .NET Aspire orchestration with service discovery and container resources
+- Hexagonal architecture with 30+ port interfaces and mock + production adapters
+- Blazor SSR dashboard with MudBlazor 8.6.0, Firebase Auth (Google/GitHub sign-in)
+- Azure OpenAI integration (GPT-4.1, GPT-4o, GPT-4o-mini, text-embedding-3-large)
+- Qdrant vector search with gRPC client
+- Firestore swarm inventory with emulator support
+- SignalR hub for real-time coordination (response groups, evidence notifications, watch calls, WebRTC signaling)
+- Guard reporting with escalation to SOS dispatch
+- CCTV integration port (RTSP/ONVIF/WebRTC/HLS/CloudAPI)
+- Watch Call system with live video, enrollment, mock training, and AI scene narration
+- Responder communication with server-side guardrails (PII, profanity, threat, rate-limit)
+- Evidence pipeline (photo/video/audio/sitrep with processing and moderation)
+- Container Apps Bicep deployment template
+- Alexa Skills + Google Home Actions integrations
+- CLI dashboard with Terminal.Gui TUI
+
+**Provisioned Azure Resources**
+
+- Azure SignalR Service (Free, East US 2)
+- Azure Cache for Redis (Basic C0, East US 2)
+- RabbitMQ as Container App (East US 2)
+- SQL Server (Basic, Central US)
+- Azure OpenAI with 4 model deployments (East US 2)
+- Firebase Auth + Firestore (project: gen-lang-client-0590872284)
+
+### What We Still Need
+
+- Azure Container Registry (required before first deployment)
+- CI/CD pipelines (GitHub Actions)
+- PostgreSQL / PostGIS for production spatial queries
+- Cosmos DB for DiskANN vector store
 - Push notification infrastructure (APNs + FCM)
 - SMS gateway integration (Twilio or equivalent)
 - NG911 API integration
+- Cloudflare TURN server for Watch Call WebRTC NAT traversal
+- Anthropic, Gemini, VoyageAI API keys (empty in production config)
 - Unit and integration test suites
-- A consolidated, single-source-of-truth for all research data
 - App Store / Play Store listings and provisioning profiles
 
 ---

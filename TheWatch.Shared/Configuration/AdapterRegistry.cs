@@ -72,6 +72,18 @@ public class AdapterRegistry
     public string IoTAlert { get; set; } = "Mock";
     public string IoTWebhook { get; set; } = "Mock";
 
+    // Watch Call adapters — live video watch calls with enrollment and mock training.
+    // "Mock" (in-memory), "Firestore" (production, enrollment + call state in Firestore)
+    public string WatchCall { get; set; } = "Mock";
+
+    // Scene Narration adapters — AI vision for neutral scene description during calls.
+    // "Mock" (pre-scripted), "AzureOpenAI" (GPT-4o vision), "Gemini" (Gemini Pro Vision)
+    public string SceneNarration { get; set; } = "Mock";
+
+    // Swarm Agent adapters — interactive conversational agent for CLI swarm guidance.
+    // "Mock" (canned responses), "AzureOpenAI" (GPT-4o chat completions)
+    public string SwarmAgent { get; set; } = "Mock";
+
     public bool IsEnabled(string provider) =>
         provider.ToLowerInvariant() switch
         {

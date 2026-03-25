@@ -26,7 +26,14 @@
     <Project Path="TheWatch.Web/TheWatch.Web.csproj" />
     <Project Path="TheWatch.WorkerServices/TheWatch.WorkerServices.csproj" />
   </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="firebaseinit.js" />
+  </Folder>
   <Folder Name="/Tests/">
+    <Project Path="TheWatch.Adapters.Mock.Tests/TheWatch.Adapters.Mock.Tests.csproj" />
+    <Project Path="TheWatch.Dashboard.Api.Tests/TheWatch.Dashboard.Api.Tests.csproj" />
+    <Project Path="TheWatch.Data.Tests/TheWatch.Data.Tests.csproj" />
+    <Project Path="TheWatch.Functions.Tests/TheWatch.Functions.Tests.csproj" />
     <Project Path="TheWatch.Shared.Tests/TheWatch.Shared.Tests.csproj" />
     <Project Path="TheWatch.Tests/TheWatch.Tests.csproj" />
   </Folder>

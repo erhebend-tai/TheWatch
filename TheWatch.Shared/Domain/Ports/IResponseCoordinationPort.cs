@@ -509,3 +509,184 @@ public interface INavigationPort
     /// </summary>
     bool ShouldExcludeFromDispatch(double distanceMeters, bool hasVehicle);
 }
+
+// ═══════════════════════════════════════════════════════════════
+// Responder Communication (Incident-Scoped Chat with Guardrails)
+// ═══════════════════════════════════════════════════════════════
+
+// All responder messages route through the server for guardrails filtering.
+// The server inspects every message BEFORE delivery. This prevents:
+//   - PII leakage (SSN, phone numbers, addresses beyond what's needed)
+//   - Profanity / abusive language between responders
+//   - Off-topic content during an active emergency
+//   - Sharing of victim photos outside the incident scope
+//   - Impersonation of first responders or officials
+//
+// Example flow:
+//   Responder sends "I'm at 123 Oak St, victim is conscious" →
+//   Server guardrails check → PASS (operational info) → delivered to all responders
+//
+//   Responder sends "This [expletive] person..." →
+//   Server guardrails check → FILTERED → sender sees warning, message not delivered
+//
+// The guardrails pipeline is:
+//   1. PII scan (regex + pattern match for SSN, credit cards, phone numbers)
+//   2. Profanity filter (blocklist + fuzzy match)
+//   3. Threat detection (violence, harassment)
+//   4. Content classification (operational vs off-topic)
+//   5. Rate limiting (max 30 messages/min per responder)
+
+/// <summary>
+/// Types of messages responders can send within an incident channel.
+/// </summary>
+public enum ResponderMessageType
+{
+    /// <summary>Free-text chat message.</summary>
+    Text,
+
+    /// <summary>Responder shares their current location with the group.</summary>
+    LocationShare,
+
+    /// <summary>Status update: "arrived", "need backup", "all clear", etc.</summary>
+    StatusUpdate,
+
+    /// <summary>Image attachment (photo of scene, map screenshot, etc.).</summary>
+    Image,
+
+    /// <summary>Pre-defined quick response ("On my way", "Need medical", "All clear").</summary>
+    QuickResponse
+}
+
+/// <summary>
+/// Result of the server-side guardrails check on a responder message.
+/// </summary>
+public enum GuardrailsVerdict
+{
+    /// <summary>Message passed all checks — deliver to recipients.</summary>
+    Approved,
+
+    /// <summary>Message contained PII that was redacted — deliver redacted version.</summary>
+    Redacted,
+
+    /// <summary>Message blocked entirely — do not deliver, notify sender.</summary>
+    Blocked,
+
+    /// <summary>Rate limit exceeded — do not deliver, notify sender to slow down.</summary>
+    RateLimited
+}
+
+/// <summary>
+/// A message sent by a responder within an incident communication channel.
+/// Every message is scoped to a RequestId — only acknowledged responders
+/// for that request can send or receive messages.
+/// </summary>
+public record ResponderMessage(
+    string MessageId,
+    string RequestId,       // Scopes this message to a specific incident
+    string SenderId,        // Must be an acknowledged responder for this RequestId
+    string SenderName,
+    string? SenderRole,     // "EMT", "VOLUNTEER", etc.
+
+    ResponderMessageType MessageType,
+    string Content,         // Text content, or description for image/location shares
+
+    // Location share fields (populated when MessageType == LocationShare)
+    double? Latitude,
+    double? Longitude,
+
+    // Quick response identifier (populated when MessageType == QuickResponse)
+    string? QuickResponseCode,  // "ON_MY_WAY", "NEED_MEDICAL", "NEED_BACKUP", "ALL_CLEAR",
+                                // "SCENE_SECURED", "VICTIM_CONSCIOUS", "VICTIM_UNCONSCIOUS"
+
+    // Guardrails result (set by server after filtering)
+    GuardrailsVerdict Verdict,
+    string? GuardrailsNote,     // Why it was blocked/redacted, null if approved
+    string? RedactedContent,    // Redacted version of content (if verdict == Redacted)
+
+    DateTime SentAt
+);
+
+/// <summary>
+/// Detailed result from the guardrails pipeline for a single message.
+/// Returned to the sender so they know what happened to their message.
+///
+/// Example:
+///   { Verdict: Redacted, RedactedContent: "Victim's SSN is [REDACTED]",
+///     PiiDetected: true, PiiTypes: ["SSN"], ... }
+/// </summary>
+public record GuardrailsResult(
+    GuardrailsVerdict Verdict,
+    string? Reason,             // Human-readable reason for block/redaction
+    string? RedactedContent,    // null if Approved or Blocked
+    bool PiiDetected,
+    string[]? PiiTypes,         // "SSN", "PHONE", "EMAIL", "CREDIT_CARD", "ADDRESS"
+    bool ProfanityDetected,
+    bool ThreatDetected,
+    bool RateLimited,
+    int MessagesSentInWindow,   // How many messages this sender has sent in the rate window
+    int RateLimitMax            // Max messages per window (default: 30/min)
+);
+
+/// <summary>
+/// Port for incident-scoped responder communication.
+/// All messages are server-mediated — the guardrails pipeline runs on every
+/// message BEFORE it is delivered to other responders.
+/// </summary>
+public interface IResponderCommunicationPort
+{
+    /// <summary>
+    /// Send a message in an incident channel. The message passes through the
+    /// guardrails pipeline before delivery. Returns the message with its verdict.
+    ///
+    /// Example:
+    ///   var msg = await SendMessageAsync(new ResponderMessage(...));
+    ///   if (msg.Verdict == GuardrailsVerdict.Blocked)
+    ///       ShowWarning(msg.GuardrailsNote);
+    /// </summary>
+    Task<(ResponderMessage Message, GuardrailsResult Guardrails)> SendMessageAsync(
+        ResponderMessage message, CancellationToken ct = default);
+
+    /// <summary>
+    /// Get message history for an incident. Only returns messages that passed
+    /// guardrails (Approved or Redacted, not Blocked).
+    /// </summary>
+    Task<IReadOnlyList<ResponderMessage>> GetMessagesAsync(
+        string requestId, int limit = 100, DateTime? since = null,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Validate that a user is an acknowledged responder for the given request
+    /// and therefore authorized to send/receive messages.
+    /// </summary>
+    Task<bool> IsAuthorizedResponderAsync(
+        string requestId, string userId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Get available quick responses. These are pre-defined messages that
+    /// bypass the profanity filter (they're known-safe) but still go through
+    /// PII and rate-limit checks.
+    /// </summary>
+    IReadOnlyList<(string Code, string DisplayText, string Category)> GetQuickResponses();
+}
+
+/// <summary>
+/// Port for the guardrails filtering pipeline itself.
+/// Separated from the communication port so guardrails logic can be
+/// swapped independently (e.g., local regex vs cloud AI moderation).
+/// </summary>
+public interface IMessageGuardrailsPort
+{
+    /// <summary>
+    /// Run the full guardrails pipeline on a message.
+    /// Returns the verdict and optionally a redacted version of the content.
+    ///
+    /// Pipeline stages (in order):
+    ///   1. Rate limiting (30 msg/min per sender)
+    ///   2. PII detection and redaction (SSN, phone, credit card, email patterns)
+    ///   3. Profanity filter (blocklist + Levenshtein fuzzy match)
+    ///   4. Threat/harassment detection
+    ///   5. Content classification (operational relevance)
+    /// </summary>
+    Task<GuardrailsResult> EvaluateAsync(
+        ResponderMessage message, CancellationToken ct = default);
+}

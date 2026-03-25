@@ -1,0 +1,69 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "primaryLocation": {
+      "value": "eastus2"
+    },
+    "aiLocation": {
+      "value": "eastus"
+    },
+    "sqlLocation": {
+      "value": "centralus"
+    },
+    "baseName": {
+      "value": "thewatch"
+    },
+    "sqlAdminUser": {
+      "value": "watchadmin"
+    },
+    "sqlAdminPassword": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/20e5a3a1-bb38-47a2-85df-a4b5ea26f41c/resourceGroups/Watch-Init/providers/Microsoft.KeyVault/vaults/thewatch-kv"
+        },
+        "secretName": "sql-admin-password"
+      }
+    },
+    "rabbitUser": {
+      "value": "thewatch"
+    },
+    "rabbitPassword": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/20e5a3a1-bb38-47a2-85df-a4b5ea26f41c/resourceGroups/Watch-Init/providers/Microsoft.KeyVault/vaults/thewatch-kv"
+        },
+        "secretName": "rabbitmq-password"
+      }
+    },
+    "gpt41Capacity": {
+      "value": 30
+    },
+    "gpt4oCapacity": {
+      "value": 30
+    },
+    "gpt4oMiniCapacity": {
+      "value": 30
+    },
+    "embeddingCapacity": {
+      "value": 30
+    },
+    "redisSku": {
+      "value": "Basic"
+    },
+    "redisSize": {
+      "value": "C0"
+    },
+    "sqlDbServiceObjective": {
+      "value": "Basic"
+    },
+    "tags": {
+      "value": {
+        "project": "TheWatch",
+        "component": "swarm-infra",
+        "managedBy": "bicep",
+        "environment": "dev"
+      }
+    }
+  }
+}

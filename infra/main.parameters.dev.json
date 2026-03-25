@@ -1,0 +1,52 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "_comment": "Dev parameters — passwords passed inline. For CI/CD, use the Key Vault-backed main.parameters.json instead.",
+  "parameters": {
+    "primaryLocation": {
+      "value": "eastus2"
+    },
+    "aiLocation": {
+      "value": "eastus"
+    },
+    "sqlLocation": {
+      "value": "centralus"
+    },
+    "baseName": {
+      "value": "thewatch"
+    },
+    "sqlAdminUser": {
+      "value": "watchadmin"
+    },
+    "sqlAdminPassword": {
+      "value": "REPLACE_ME"
+    },
+    "rabbitUser": {
+      "value": "thewatch"
+    },
+    "rabbitPassword": {
+      "value": "REPLACE_ME"
+    },
+    "gpt41Capacity": {
+      "value": 30
+    },
+    "gpt4oCapacity": {
+      "value": 30
+    },
+    "gpt4oMiniCapacity": {
+      "value": 30
+    },
+    "embeddingCapacity": {
+      "value": 30
+    },
+    "redisSku": {
+      "value": "Basic"
+    },
+    "redisSize": {
+      "value": "C0"
+    },
+    "sqlDbServiceObjective": {
+      "value": "Basic"
+    }
+  }
+}

@@ -43,8 +43,25 @@ builder.AddSqlServerDbContext<TheWatchDbContext>("thewatch-sqlserver");
 
 // Redis — distributed cache + SignalR backplane
 builder.AddRedisDistributedCache("thewatch-redis");
-builder.Services.AddSignalR()
-    .AddStackExchangeRedis("thewatch-redis");
+
+// SignalR — Azure SignalR Service in production, Redis backplane in development.
+// When Azure:SignalR:ConnectionString is set, uses managed Azure SignalR Service.
+// Otherwise falls back to self-hosted SignalR with Redis as the backplane.
+var azureSignalRConnStr = builder.Configuration["Azure:SignalR:ConnectionString"];
+if (!string.IsNullOrEmpty(azureSignalRConnStr))
+{
+    builder.Services.AddSignalR()
+        .AddAzureSignalR(options =>
+        {
+            options.ConnectionString = azureSignalRConnStr;
+            options.ServerStickyMode = Microsoft.Azure.SignalR.ServerStickyMode.Required;
+        });
+}
+else
+{
+    builder.Services.AddSignalR()
+        .AddStackExchangeRedis("thewatch-redis");
+}
 
 // ── 3. RabbitMQ — message broker for response dispatch fan-out ─────────────────────
 builder.AddRabbitMQClient("thewatch-rabbitmq");
@@ -68,6 +85,10 @@ builder.Services.AddTheWatchDataLayer(builder.Configuration);
 // ── 5a. Firestore — Swarm Inventory persistence ──────────────────────────────────
 // Uses emulator in Development (set via AppHost env vars), real Firestore in Production.
 builder.Services.AddSwarmInventoryFirestore(builder.Configuration);
+
+// ── 5b. Auth Port — Firebase Auth token validation ───────────────────────────────
+// Firebase in production (validates ID tokens server-side), Mock in development.
+builder.Services.AddAuthPort(builder.Configuration);
 
 // ── 6. Controllers & API ──────────────────────────────────────────────────────────
 builder.Services.AddControllers();

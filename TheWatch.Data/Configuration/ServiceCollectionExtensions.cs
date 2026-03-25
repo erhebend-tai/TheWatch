@@ -34,11 +34,16 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 // Microsoft.Extensions.Http provides AddHttpClient() extension methods via package reference
+using Azure;
+using Azure.AI.OpenAI;
+using Qdrant.Client;
+using TheWatch.Data.Adapters.AzureOpenAI;
 using TheWatch.Data.Adapters.CosmosDb;
 using TheWatch.Data.Adapters.Firebase;
 using TheWatch.Data.Adapters.Firestore;
 using TheWatch.Data.Adapters.Mock;
 using TheWatch.Data.Adapters.PostgreSql;
+using TheWatch.Data.Adapters.Qdrant;
 using TheWatch.Data.Adapters.Sqlite;
 using TheWatch.Data.Adapters.SqlServer;
 using TheWatch.Data.Context;
@@ -180,41 +185,71 @@ public static class ServiceCollectionExtensions
         }
 
         // --- IEmbeddingPort ---
-        // In Live mode, register multiple embedding ports for multi-provider fan-out:
-        //   "AzureOpenAI" → AzureOpenAIEmbeddingAdapter (text-embedding-3-large, 3072 dims)
-        //   "Gemini"      → GeminiEmbeddingAdapter (text-embedding-004, 768 dims)
-        //   "VoyageAI"    → VoyageAIEmbeddingAdapter (voyage-3, 1024 dims)
-        //   "All"         → Register all three for full multi-provider RAG
+        // Multi-provider fan-out: each embedding provider pairs with a native vector store.
+        //   "AzureOpenAI" → text-embedding-3-large (3072 dims) → CosmosDB DiskANN
+        //   "Gemini"      → text-embedding-004 (768 dims) → Firestore KNN [future]
+        //   "VoyageAI"    → voyage-3 (1024 dims) → Qdrant HNSW [future]
+        //   "All"         → Register all providers for full multi-provider RAG
         switch (registry.Embedding)
         {
-            // Future: case "AzureOpenAI": services.AddSingleton<IEmbeddingPort, AzureOpenAIEmbeddingAdapter>(); break;
-            // Future: case "Gemini": services.AddSingleton<IEmbeddingPort, GeminiEmbeddingAdapter>(); break;
-            // Future: case "VoyageAI": services.AddSingleton<IEmbeddingPort, VoyageAIEmbeddingAdapter>(); break;
+            case "AzureOpenAI":
+                EnsureAzureOpenAIEmbedding(services, configuration);
+                break;
+            // Future: case "Gemini": EnsureGeminiEmbedding(services, configuration); break;
+            // Future: case "VoyageAI": EnsureVoyageAIEmbedding(services, configuration); break;
             // Future: case "All":
-            //     services.AddSingleton<IEmbeddingPort, AzureOpenAIEmbeddingAdapter>();
-            //     services.AddSingleton<IEmbeddingPort, GeminiEmbeddingAdapter>();
-            //     services.AddSingleton<IEmbeddingPort, VoyageAIEmbeddingAdapter>();
+            //     EnsureAzureOpenAIEmbedding(services, configuration);
+            //     EnsureGeminiEmbedding(services, configuration);
+            //     EnsureVoyageAIEmbedding(services, configuration);
             //     break;
             default: // "Mock"
                 services.AddSingleton<IEmbeddingPort, MockEmbeddingAdapter>();
                 break;
         }
 
+        // --- IWatchCallPort ---
+        switch (registry.WatchCall)
+        {
+            // Future: case "Firestore": EnsureFirestore(services, dbSettings);
+            //     services.AddScoped<IWatchCallPort, FirestoreWatchCallAdapter>(); break;
+            default: // "Mock" — registered by TheWatch.Adapters.Mock.AddMockAdapters()
+                break;
+        }
+
+        // --- ISceneNarrationPort ---
+        switch (registry.SceneNarration)
+        {
+            // Future: case "AzureOpenAI": EnsureAzureOpenAISceneNarration(services, configuration); break;
+            // Future: case "Gemini": EnsureGeminiSceneNarration(services, configuration); break;
+            default: // "Mock" — registered by TheWatch.Adapters.Mock.AddMockAdapters()
+                break;
+        }
+
+        // --- ISwarmAgentPort ---
+        switch (registry.SwarmAgent)
+        {
+            // Future: case "AzureOpenAI": EnsureAzureOpenAISwarmAgent(services, configuration); break;
+            default: // "Mock" — registered by TheWatch.Adapters.Mock.AddMockAdapters()
+                break;
+        }
+
         // --- IVectorSearchPort ---
-        // In Live mode, register multiple vector stores for multi-provider fan-out:
-        //   "CosmosDB"   → CosmosDB DiskANN vector index (paired with Azure OpenAI)
-        //   "Firestore"  → Firestore KNN vector search (paired with Gemini)
+        // Multi-provider vector stores, each paired with its embedding provider:
+        //   "CosmosDB"   → CosmosDB DiskANN vector index (paired with Azure OpenAI) [future]
+        //   "Firestore"  → Firestore KNN vector search (paired with Gemini) [future]
         //   "Qdrant"     → Qdrant HNSW vector search (paired with VoyageAI/Claude)
         //   "All"        → Register all three for full multi-provider RAG
         switch (registry.VectorSearch)
         {
-            // Future: case "CosmosDB": services.AddSingleton<IVectorSearchPort, CosmosDBVectorAdapter>(); break;
-            // Future: case "Firestore": services.AddSingleton<IVectorSearchPort, FirestoreVectorAdapter>(); break;
-            // Future: case "Qdrant": services.AddSingleton<IVectorSearchPort, QdrantVectorAdapter>(); break;
+            // Future: case "CosmosDB": EnsureCosmosDBVector(services, cosmosConnStr); break;
+            // Future: case "Firestore": EnsureFirestoreVector(services, dbSettings); break;
+            case "Qdrant":
+                EnsureQdrantVector(services, configuration);
+                break;
             // Future: case "All":
-            //     services.AddSingleton<IVectorSearchPort, CosmosDBVectorAdapter>();
-            //     services.AddSingleton<IVectorSearchPort, FirestoreVectorAdapter>();
-            //     services.AddSingleton<IVectorSearchPort, QdrantVectorAdapter>();
+            //     EnsureCosmosDBVector(services, cosmosConnStr);
+            //     EnsureFirestoreVector(services, dbSettings);
+            //     EnsureQdrantVector(services, configuration);
             //     break;
             default: // "Mock"
                 services.AddSingleton<IVectorSearchPort, MockVectorSearchAdapter>();
@@ -285,6 +320,72 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
+    /// Registers the Azure OpenAI embedding adapter using AIProviders:AzureOpenAI config.
+    /// Creates and registers AzureOpenAIClient singleton if not already present.
+    /// </summary>
+    private static void EnsureAzureOpenAIEmbedding(IServiceCollection services, IConfiguration configuration)
+    {
+        if (services.Any(s => s.ServiceType == typeof(IEmbeddingPort) &&
+            s.ImplementationType == typeof(AzureOpenAIEmbeddingAdapter)))
+            return;
+
+        // Register AzureOpenAIClient singleton (shared by embedding + chat)
+        if (!services.Any(s => s.ServiceType == typeof(AzureOpenAIClient)))
+        {
+            var endpoint = configuration["AIProviders:AzureOpenAI:Endpoint"];
+            var apiKey = configuration["AIProviders:AzureOpenAI:ApiKey"];
+
+            if (!string.IsNullOrEmpty(endpoint) && !string.IsNullOrEmpty(apiKey))
+            {
+                services.AddSingleton(new AzureOpenAIClient(
+                    new Uri(endpoint),
+                    new AzureKeyCredential(apiKey)));
+            }
+        }
+
+        var deploymentName = configuration["AIProviders:AzureOpenAI:EmbeddingModel"] ?? "text-embedding-3-large";
+        var dims = int.TryParse(configuration["AIProviders:AzureOpenAI:EmbeddingDimensions"], out var d) ? d : 3072;
+
+        services.AddSingleton<IEmbeddingPort>(sp =>
+            new AzureOpenAIEmbeddingAdapter(
+                sp.GetRequiredService<AzureOpenAIClient>(),
+                deploymentName,
+                dims,
+                sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<AzureOpenAIEmbeddingAdapter>>()));
+    }
+
+    /// <summary>
+    /// Registers the Qdrant vector search adapter using AIProviders:Qdrant config.
+    /// Creates QdrantClient singleton if not already present.
+    /// </summary>
+    private static void EnsureQdrantVector(IServiceCollection services, IConfiguration configuration)
+    {
+        if (services.Any(s => s.ServiceType == typeof(IVectorSearchPort) &&
+            s.ImplementationType == typeof(QdrantVectorAdapter)))
+            return;
+
+        // Register QdrantClient singleton
+        if (!services.Any(s => s.ServiceType == typeof(QdrantClient)))
+        {
+            var endpoint = configuration["AIProviders:Qdrant:Endpoint"] ?? "http://localhost:6333";
+            var grpcEndpoint = configuration["AIProviders:Qdrant:GrpcEndpoint"] ?? "http://localhost:6334";
+
+            // QdrantClient uses gRPC by default
+            var uri = new Uri(grpcEndpoint);
+            services.AddSingleton(new QdrantClient(uri.Host, uri.Port));
+        }
+
+        var collectionName = configuration["AIProviders:Qdrant:CollectionName"] ?? "thewatch-vectors";
+
+        services.AddSingleton<IVectorSearchPort>(sp =>
+            new QdrantVectorAdapter(
+                sp.GetRequiredService<QdrantClient>(),
+                sp.GetRequiredService<IEmbeddingPort>(),
+                collectionName,
+                sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<QdrantVectorAdapter>>()));
+    }
+
+    /// <summary>
     /// Registers the Firestore-backed ISwarmInventoryPort adapter.
     /// Call this in addition to AddTheWatchDataLayer when the swarm dashboard is enabled.
     /// Works with both emulator and production Firestore (uses the same FirestoreDb singleton).
@@ -300,5 +401,63 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISwarmInventoryPort, TheWatch.Data.Adapters.Firestore.FirestoreSwarmInventoryAdapter>();
 
         return services;
+    }
+
+    /// <summary>
+    /// Registers IAuthPort — Firebase in production, Mock in development.
+    /// Firebase Auth uses the same FirebaseApp as Firestore (shared credential).
+    /// The AdapterRegistry doesn't yet have an "Auth" field, so we check Firebase config directly.
+    /// </summary>
+    public static IServiceCollection AddAuthPort(this IServiceCollection services, IConfiguration configuration)
+    {
+        var dbSettings = new DatabaseSettings();
+        configuration.GetSection("DatabaseSettings").Bind(dbSettings);
+
+        // If we have a Firebase/Firestore project configured and we're NOT on the emulator,
+        // use real Firebase Auth. Otherwise, use Mock.
+        if (!dbSettings.UseFirestoreEmulator && !string.IsNullOrEmpty(dbSettings.FirestoreProjectId)
+            && dbSettings.FirestoreProjectId != "thewatch-dev")
+        {
+            EnsureFirebaseApp(services, dbSettings);
+            services.AddSingleton<IAuthPort, TheWatch.Data.Adapters.Firebase.FirebaseAuthAdapter>();
+        }
+        else
+        {
+            services.AddSingleton<IAuthPort, TheWatch.Data.Adapters.Mock.MockAuthAdapter>();
+        }
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers FirebaseApp singleton (shared between Auth and other Firebase services).
+    /// Uses GOOGLE_APPLICATION_CREDENTIALS env var or the credential file from config.
+    /// </summary>
+    private static void EnsureFirebaseApp(IServiceCollection services, DatabaseSettings dbSettings)
+    {
+        if (services.Any(s => s.ServiceType == typeof(FirebaseAdmin.FirebaseApp)))
+            return;
+
+        FirebaseAdmin.FirebaseApp app;
+
+        if (!string.IsNullOrEmpty(dbSettings.FirestoreCredentialPath)
+            && System.IO.File.Exists(dbSettings.FirestoreCredentialPath))
+        {
+            app = FirebaseAdmin.FirebaseApp.Create(new FirebaseAdmin.AppOptions
+            {
+                Credential = Google.Apis.Auth.OAuth2.GoogleCredential.FromFile(dbSettings.FirestoreCredentialPath),
+                ProjectId = dbSettings.FirestoreProjectId
+            });
+        }
+        else
+        {
+            // Falls back to GOOGLE_APPLICATION_CREDENTIALS env var or default credentials
+            app = FirebaseAdmin.FirebaseApp.Create(new FirebaseAdmin.AppOptions
+            {
+                ProjectId = dbSettings.FirestoreProjectId
+            });
+        }
+
+        services.AddSingleton(app);
     }
 }

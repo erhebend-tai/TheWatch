@@ -254,6 +254,111 @@ public class ResponseController : ControllerBase
 
         return Ok(new { userId, request.IsAvailable, request.Duration });
     }
+
+    // ─────────────────────────────────────────────────────────────
+    // Responder Communication
+    // ─────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Send a message in an incident's responder channel.
+    /// Messages are filtered through server-side guardrails before delivery.
+    /// Only acknowledged responders for this incident can send messages.
+    ///
+    /// Guardrails pipeline:
+    ///   1. Rate limit (30 msg/min)
+    ///   2. PII detection → auto-redact SSN, phone, email, credit card
+    ///   3. Profanity filter → block
+    ///   4. Threat detection → block
+    /// </summary>
+    [HttpPost("{requestId}/messages")]
+    public async Task<IActionResult> SendMessage(
+        string requestId,
+        [FromBody] SendMessageRequest request,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(request.SenderId))
+            return BadRequest(new { error = "SenderId is required" });
+        if (string.IsNullOrWhiteSpace(request.Content) && request.MessageType != ResponderMessageType.LocationShare)
+            return BadRequest(new { error = "Content is required" });
+
+        var (message, guardrails) = await _coordinationService.SendResponderMessageAsync(
+            requestId,
+            request.SenderId,
+            request.SenderName ?? "Unknown",
+            request.SenderRole,
+            request.MessageType,
+            request.Content ?? "",
+            request.Latitude,
+            request.Longitude,
+            request.QuickResponseCode,
+            ct);
+
+        // Return the guardrails verdict to the sender so they can show appropriate UI
+        return Ok(new
+        {
+            message.MessageId,
+            message.RequestId,
+            message.SenderId,
+            MessageType = message.MessageType.ToString(),
+            Verdict = guardrails.Verdict.ToString(),
+            guardrails.Reason,
+            guardrails.RedactedContent,
+            guardrails.PiiDetected,
+            guardrails.PiiTypes,
+            guardrails.ProfanityDetected,
+            guardrails.ThreatDetected,
+            guardrails.RateLimited,
+            guardrails.MessagesSentInWindow,
+            guardrails.RateLimitMax,
+            message.SentAt
+        });
+    }
+
+    /// <summary>
+    /// Get message history for an incident's responder channel.
+    /// Only returns messages that passed guardrails (Approved or Redacted).
+    /// </summary>
+    [HttpGet("{requestId}/messages")]
+    public async Task<IActionResult> GetMessages(
+        string requestId,
+        [FromQuery] int limit = 100,
+        [FromQuery] DateTime? since = null,
+        CancellationToken ct = default)
+    {
+        var messages = await _coordinationService.GetResponderMessagesAsync(requestId, limit, since, ct);
+        return Ok(messages.Select(m => new
+        {
+            m.MessageId,
+            m.RequestId,
+            m.SenderId,
+            m.SenderName,
+            m.SenderRole,
+            MessageType = m.MessageType.ToString(),
+            // Serve redacted content if the message was redacted, original otherwise
+            Content = m.Verdict == GuardrailsVerdict.Redacted ? m.RedactedContent ?? m.Content : m.Content,
+            m.Latitude,
+            m.Longitude,
+            m.QuickResponseCode,
+            Verdict = m.Verdict.ToString(),
+            m.SentAt
+        }));
+    }
+
+    /// <summary>
+    /// Get available quick responses — pre-defined safe messages that responders
+    /// can send with one tap (e.g., "On my way", "Need medical", "All clear").
+    /// </summary>
+    [HttpGet("quick-responses")]
+    public IActionResult GetQuickResponses()
+    {
+        var responses = _coordinationService.GetQuickResponses();
+        return Ok(responses.Select(r => new
+        {
+            r.Code,
+            r.DisplayText,
+            r.Category
+        }));
+    }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -283,3 +388,14 @@ public record AcknowledgeRequest(
 public record CancelRequest(string? Reason = null);
 public record ResolveRequest(string? ResolvedBy = null);
 public record AvailabilityRequest(bool IsAvailable, TimeSpan? Duration = null);
+
+public record SendMessageRequest(
+    string SenderId,
+    string? SenderName = null,
+    string? SenderRole = null,
+    ResponderMessageType MessageType = ResponderMessageType.Text,
+    string? Content = null,
+    double? Latitude = null,
+    double? Longitude = null,
+    string? QuickResponseCode = null  // "ON_MY_WAY", "NEED_MEDICAL", "ALL_CLEAR", etc.
+);

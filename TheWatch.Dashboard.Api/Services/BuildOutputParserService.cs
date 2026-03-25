@@ -20,7 +20,7 @@ public static class BuildOutputParserService
 {
     // Pattern: Controllers/EvidenceController.cs(42,13): error CS1002: ; expected [TheWatch.Dashboard.Api.csproj]
     private static readonly Regex MsBuildDiagnosticPattern = new(
-        @"^(?<file>[^(]+)\((?<line>\d+),(?<col>\d+)\):\s+(?<severity>error|warning)\s+(?<code>\w+):\s+(?<message>.+?)(?:\s+\[(?<project>[^\]]+)\])?$",
+        @"^(?<file>[^(\r\n]+)\((?<line>\d+),(?<col>\d+)\):\s+(?<severity>error|warning)\s+(?<code>\w+):\s+(?<message>.+?)(?:\s+\[(?<project>[^\]]+)\])?$",
         RegexOptions.Compiled | RegexOptions.Multiline);
 
     // Pattern: MSBUILD : error MSB1009: Project file does not exist.

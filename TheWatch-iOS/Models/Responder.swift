@@ -98,3 +98,105 @@ enum AvailabilityStatus: String, Codable, CaseIterable {
     case unavailable = "Unavailable"
     case busy = "Busy"
 }
+
+// ═══════════════════════════════════════════════════════════════
+// Responder Communication Models
+// ═══════════════════════════════════════════════════════════════
+
+/// Message types for incident-scoped responder communication.
+enum ResponderMessageType: String, Codable, CaseIterable {
+    case text = "Text"
+    case locationShare = "LocationShare"
+    case statusUpdate = "StatusUpdate"
+    case image = "Image"
+    case quickResponse = "QuickResponse"
+}
+
+/// Server-side guardrails verdict applied to each message.
+/// All messages route through the server for safety filtering before delivery.
+enum GuardrailsVerdict: String, Codable, CaseIterable {
+    case approved = "Approved"       // Message delivered as-is
+    case redacted = "Redacted"       // PII was removed, redacted version delivered
+    case blocked = "Blocked"         // Message not delivered (profanity, threats)
+    case rateLimited = "RateLimited" // Too many messages, try again later
+}
+
+/// A message in an incident's responder communication channel.
+/// Every message passes through server guardrails before delivery.
+///
+/// Example usage:
+///   let result = try await commService.sendMessage(
+///       requestId: incidentId,
+///       content: "Approaching from the north entrance"
+///   )
+///   switch result.verdict {
+///   case .approved: break // delivered
+///   case .blocked: showWarning(result.reason)
+///   case .redacted: showInfo("Some info was redacted for privacy")
+///   case .rateLimited: showInfo("Slow down")
+///   }
+struct ResponderChatMessage: Codable, Hashable, Identifiable {
+    let id: String
+    let requestId: String
+    let senderId: String
+    let senderName: String
+    let senderRole: String?
+    let messageType: ResponderMessageType
+    let content: String
+    let latitude: Double?
+    let longitude: Double?
+    let quickResponseCode: String?
+    let verdict: GuardrailsVerdict
+    let sentAt: Date
+
+    init(
+        id: String = UUID().uuidString,
+        requestId: String = "",
+        senderId: String = "",
+        senderName: String = "",
+        senderRole: String? = nil,
+        messageType: ResponderMessageType = .text,
+        content: String = "",
+        latitude: Double? = nil,
+        longitude: Double? = nil,
+        quickResponseCode: String? = nil,
+        verdict: GuardrailsVerdict = .approved,
+        sentAt: Date = Date()
+    ) {
+        self.id = id
+        self.requestId = requestId
+        self.senderId = senderId
+        self.senderName = senderName
+        self.senderRole = senderRole
+        self.messageType = messageType
+        self.content = content
+        self.latitude = latitude
+        self.longitude = longitude
+        self.quickResponseCode = quickResponseCode
+        self.verdict = verdict
+        self.sentAt = sentAt
+    }
+}
+
+/// Result from sending a message, including the guardrails verdict.
+struct SendMessageResult: Codable, Hashable {
+    let messageId: String
+    let verdict: GuardrailsVerdict
+    let reason: String?
+    let redactedContent: String?
+    let piiDetected: Bool
+    let piiTypes: [String]?
+    let profanityDetected: Bool
+    let threatDetected: Bool
+    let rateLimited: Bool
+    let messagesSentInWindow: Int
+    let rateLimitMax: Int
+}
+
+/// A pre-defined quick response that responders can send with one tap.
+struct QuickResponse: Codable, Hashable, Identifiable {
+    var id: String { code }
+    let code: String          // e.g., "ON_MY_WAY", "NEED_MEDICAL", "ALL_CLEAR"
+    let displayText: String   // e.g., "I'm on my way"
+    let category: String      // e.g., "Movement", "Request", "Status", "Medical"
+}

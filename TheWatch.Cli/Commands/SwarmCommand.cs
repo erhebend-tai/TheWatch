@@ -45,11 +45,21 @@ public static class SwarmCommand
 {
     /// <summary>
     /// Build the `swarm` command tree. Call from Program.cs:
-    ///   rootCommand.AddCommand(SwarmCommand.Build(swarmPort));
+    ///   rootCommand.AddCommand(SwarmCommand.Build(swarmPort, agentPort));
+    ///
+    /// When `swarm` is invoked without a subcommand, the interactive Azure OpenAI
+    /// agent session starts — prompting the user for their request and guiding
+    /// them through swarm creation, execution, and management.
     /// </summary>
-    public static Command Build(Func<ISwarmPort?> getSwarmPort)
+    public static Command Build(Func<ISwarmPort?> getSwarmPort, Func<ISwarmAgentPort> getSwarmAgentPort)
     {
         var swarmCmd = new Command("swarm", "Manage Azure OpenAI multi-agent swarms");
+
+        // Default handler: interactive agent prompt when no subcommand is given
+        swarmCmd.SetAction(async (parseResult) =>
+        {
+            await RunInteractiveAgentAsync(getSwarmAgentPort);
+        });
 
         swarmCmd.Subcommands.Add(BuildListCommand(getSwarmPort));
         swarmCmd.Subcommands.Add(BuildPresetsCommand());
@@ -64,6 +74,105 @@ public static class SwarmCommand
         swarmCmd.Subcommands.Add(BuildRemoveAgentCommand(getSwarmPort));
 
         return swarmCmd;
+    }
+
+    // ── Interactive Agent Session ────────────────────────────────────
+    // Runs a conversational loop: agent greeting → user input → agent response → repeat.
+    // The agent is powered by Azure OpenAI (or mock fallback) and guides the user
+    // through swarm operations.
+
+    private static async Task RunInteractiveAgentAsync(Func<ISwarmAgentPort> getSwarmAgentPort)
+    {
+        var agentPort = getSwarmAgentPort();
+
+        // Display greeting
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine(new string('═', 70));
+        Console.WriteLine($"  TheWatch Swarm Agent ({agentPort.ProviderName})");
+        Console.WriteLine(new string('═', 70));
+        Console.ResetColor();
+        Console.WriteLine();
+
+        var greeting = await agentPort.GetGreetingAsync();
+        Console.WriteLine(greeting);
+        Console.WriteLine();
+
+        // Conversation loop
+        var history = new List<SwarmAgentMessage>();
+        var cts = new CancellationTokenSource();
+
+        // Handle Ctrl+C gracefully
+        Console.CancelKeyPress += (_, e) =>
+        {
+            e.Cancel = true;
+            cts.Cancel();
+        };
+
+        while (!cts.Token.IsCancellationRequested)
+        {
+            // Prompt for input
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write("you › ");
+            Console.ResetColor();
+
+            string? input;
+            try
+            {
+                input = Console.ReadLine();
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+
+            if (input is null) break; // EOF / pipe closed
+            input = input.Trim();
+            if (string.IsNullOrEmpty(input)) continue;
+
+            // Exit commands
+            if (input.Equals("exit", StringComparison.OrdinalIgnoreCase) ||
+                input.Equals("quit", StringComparison.OrdinalIgnoreCase) ||
+                input.Equals("q", StringComparison.OrdinalIgnoreCase))
+            {
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+                Console.WriteLine("Exiting swarm agent.");
+                Console.ResetColor();
+                break;
+            }
+
+            // Send to agent
+            try
+            {
+                var response = await agentPort.SendMessageAsync(input, history, cts.Token);
+
+                // Add to history
+                history.Add(new SwarmAgentMessage("user", input));
+                history.Add(new SwarmAgentMessage("assistant", response.Content));
+
+                // Display response
+                Console.WriteLine();
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.WriteLine(response.Content);
+                Console.ResetColor();
+                Console.WriteLine();
+
+                // If the agent suggests a command, highlight it
+                if (response.SuggestedCommand is not null)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkGray;
+                    Console.WriteLine($"(Copy and run the suggested command, or keep chatting)");
+                    Console.ResetColor();
+                    Console.WriteLine();
+                }
+
+                if (response.EndConversation)
+                    break;
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+        }
     }
 
     // ── swarm list ──────────────────────────────────────────────────

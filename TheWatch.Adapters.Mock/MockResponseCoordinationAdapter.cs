@@ -430,3 +430,315 @@ public class MockNavigationAdapter : INavigationPort
 
     private static double DegreesToRadians(double degrees) => degrees * Math.PI / 180;
 }
+
+// ═══════════════════════════════════════════════════════════════
+// Mock Message Guardrails Port
+// ═══════════════════════════════════════════════════════════════
+
+/// <summary>
+/// Mock guardrails implementation using regex-based PII detection and a profanity blocklist.
+/// In production, replace with a cloud AI moderation service (Azure Content Safety,
+/// Google Cloud Natural Language, AWS Comprehend, or OpenAI Moderation API).
+///
+/// PII patterns detected:
+///   SSN:         \b\d{3}-\d{2}-\d{4}\b
+///   Phone:       \b\d{3}[-.]?\d{3}[-.]?\d{4}\b
+///   Email:       \b[\w.+-]+@[\w-]+\.[\w.]+\b
+///   Credit Card: \b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b
+/// </summary>
+public class MockMessageGuardrailsAdapter : IMessageGuardrailsPort
+{
+    private readonly ILogger<MockMessageGuardrailsAdapter> _logger;
+
+    // Rate limiting: track messages per sender in a sliding window
+    private readonly ConcurrentDictionary<string, List<DateTime>> _rateLedger = new();
+    private const int RateLimitMax = 30;
+    private static readonly TimeSpan RateWindow = TimeSpan.FromMinutes(1);
+
+    // PII regex patterns
+    private static readonly (string Name, System.Text.RegularExpressions.Regex Pattern)[] PiiPatterns =
+    {
+        ("SSN", new System.Text.RegularExpressions.Regex(@"\b\d{3}-\d{2}-\d{4}\b",
+            System.Text.RegularExpressions.RegexOptions.Compiled)),
+        ("PHONE", new System.Text.RegularExpressions.Regex(@"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b",
+            System.Text.RegularExpressions.RegexOptions.Compiled)),
+        ("EMAIL", new System.Text.RegularExpressions.Regex(@"\b[\w.+-]+@[\w-]+\.[\w.]+\b",
+            System.Text.RegularExpressions.RegexOptions.Compiled)),
+        ("CREDIT_CARD", new System.Text.RegularExpressions.Regex(@"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b",
+            System.Text.RegularExpressions.RegexOptions.Compiled)),
+    };
+
+    // Profanity blocklist — small set for mock; production uses a comprehensive list
+    private static readonly HashSet<string> ProfanityBlocklist = new(StringComparer.OrdinalIgnoreCase)
+    {
+        // Placeholder terms — real implementation uses industry-standard lists
+        "fuck", "shit", "bitch", "asshole", "damn", "bastard", "crap"
+    };
+
+    // Threat keywords
+    private static readonly string[] ThreatKeywords =
+    {
+        "kill you", "i'll hurt", "gonna beat", "threat", "weapon"
+    };
+
+    public MockMessageGuardrailsAdapter(ILogger<MockMessageGuardrailsAdapter> logger)
+    {
+        _logger = logger;
+    }
+
+    public Task<GuardrailsResult> EvaluateAsync(ResponderMessage message, CancellationToken ct = default)
+    {
+        var content = message.Content ?? "";
+        var senderId = message.SenderId;
+
+        // 1. Rate limiting
+        var now = DateTime.UtcNow;
+        var ledger = _rateLedger.GetOrAdd(senderId, _ => new List<DateTime>());
+        lock (ledger)
+        {
+            ledger.RemoveAll(t => now - t > RateWindow);
+            ledger.Add(now);
+            if (ledger.Count > RateLimitMax)
+            {
+                _logger.LogWarning("[Guardrails] Rate limited sender {SenderId}: {Count}/{Max} in window",
+                    senderId, ledger.Count, RateLimitMax);
+                return Task.FromResult(new GuardrailsResult(
+                    Verdict: GuardrailsVerdict.RateLimited,
+                    Reason: $"Rate limit exceeded: {ledger.Count} messages in the last minute (max {RateLimitMax})",
+                    RedactedContent: null,
+                    PiiDetected: false, PiiTypes: null,
+                    ProfanityDetected: false, ThreatDetected: false,
+                    RateLimited: true,
+                    MessagesSentInWindow: ledger.Count,
+                    RateLimitMax: RateLimitMax));
+            }
+        }
+
+        // 2. PII detection and redaction
+        var piiDetected = false;
+        var piiTypes = new List<string>();
+        var redactedContent = content;
+
+        foreach (var (name, pattern) in PiiPatterns)
+        {
+            if (pattern.IsMatch(content))
+            {
+                piiDetected = true;
+                piiTypes.Add(name);
+                redactedContent = pattern.Replace(redactedContent, "[REDACTED]");
+            }
+        }
+
+        // 3. Profanity filter (word-boundary check)
+        var profanityDetected = false;
+        var words = content.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var word in words)
+        {
+            var cleaned = word.Trim('.', ',', '!', '?', ';', ':');
+            if (ProfanityBlocklist.Contains(cleaned))
+            {
+                profanityDetected = true;
+                break;
+            }
+        }
+
+        // 4. Threat detection
+        var threatDetected = ThreatKeywords.Any(kw =>
+            content.Contains(kw, StringComparison.OrdinalIgnoreCase));
+
+        // 5. Determine verdict
+        // Block if profanity or threats found
+        if (profanityDetected || threatDetected)
+        {
+            var reasons = new List<string>();
+            if (profanityDetected) reasons.Add("profanity");
+            if (threatDetected) reasons.Add("threatening language");
+
+            _logger.LogWarning("[Guardrails] BLOCKED message from {SenderId}: {Reasons}",
+                senderId, string.Join(", ", reasons));
+
+            return Task.FromResult(new GuardrailsResult(
+                Verdict: GuardrailsVerdict.Blocked,
+                Reason: $"Message blocked: {string.Join(", ", reasons)} detected. " +
+                    "Please keep communication professional during emergencies.",
+                RedactedContent: null,
+                PiiDetected: piiDetected, PiiTypes: piiTypes.Count > 0 ? piiTypes.ToArray() : null,
+                ProfanityDetected: profanityDetected,
+                ThreatDetected: threatDetected,
+                RateLimited: false,
+                MessagesSentInWindow: ledger.Count,
+                RateLimitMax: RateLimitMax));
+        }
+
+        // Redact if PII found but content is otherwise fine
+        if (piiDetected)
+        {
+            _logger.LogInformation("[Guardrails] REDACTED PII ({Types}) from {SenderId}",
+                string.Join(", ", piiTypes), senderId);
+
+            return Task.FromResult(new GuardrailsResult(
+                Verdict: GuardrailsVerdict.Redacted,
+                Reason: $"Personal information ({string.Join(", ", piiTypes)}) was automatically redacted.",
+                RedactedContent: redactedContent,
+                PiiDetected: true, PiiTypes: piiTypes.ToArray(),
+                ProfanityDetected: false, ThreatDetected: false,
+                RateLimited: false,
+                MessagesSentInWindow: ledger.Count,
+                RateLimitMax: RateLimitMax));
+        }
+
+        // Approved
+        return Task.FromResult(new GuardrailsResult(
+            Verdict: GuardrailsVerdict.Approved,
+            Reason: null,
+            RedactedContent: null,
+            PiiDetected: false, PiiTypes: null,
+            ProfanityDetected: false, ThreatDetected: false,
+            RateLimited: false,
+            MessagesSentInWindow: ledger.Count,
+            RateLimitMax: RateLimitMax));
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Mock Responder Communication Port
+// ═══════════════════════════════════════════════════════════════
+
+public class MockResponderCommunicationAdapter : IResponderCommunicationPort
+{
+    private readonly ConcurrentDictionary<string, List<ResponderMessage>> _channels = new();
+    private readonly IMessageGuardrailsPort _guardrails;
+    private readonly IResponseTrackingPort _trackingPort;
+    private readonly ILogger<MockResponderCommunicationAdapter> _logger;
+
+    // Pre-defined quick responses — known-safe, skip profanity filter
+    private static readonly (string Code, string DisplayText, string Category)[] QuickResponses =
+    {
+        ("ON_MY_WAY",          "I'm on my way",                    "Movement"),
+        ("ARRIVED",            "I've arrived on scene",            "Movement"),
+        ("NEED_MEDICAL",       "Need medical assistance here",     "Request"),
+        ("NEED_BACKUP",        "Need additional responders",       "Request"),
+        ("NEED_SUPPLIES",      "Need supplies (first aid, water)", "Request"),
+        ("ALL_CLEAR",          "All clear — situation resolved",   "Status"),
+        ("SCENE_SECURED",      "Scene is secured",                 "Status"),
+        ("VICTIM_CONSCIOUS",   "Victim is conscious and alert",    "Medical"),
+        ("VICTIM_UNCONSCIOUS", "Victim is unconscious",            "Medical"),
+        ("VICTIM_BREATHING",   "Victim is breathing normally",     "Medical"),
+        ("CPR_IN_PROGRESS",    "Performing CPR",                   "Medical"),
+        ("STANDOWN",           "Standing down — enough responders", "Movement"),
+        ("DELAYED",            "I'm delayed — ETA update coming",  "Movement"),
+        ("HAZARD_PRESENT",     "Hazard present — approach with caution", "Safety"),
+    };
+
+    public MockResponderCommunicationAdapter(
+        IMessageGuardrailsPort guardrails,
+        IResponseTrackingPort trackingPort,
+        ILogger<MockResponderCommunicationAdapter> logger)
+    {
+        _guardrails = guardrails;
+        _trackingPort = trackingPort;
+        _logger = logger;
+    }
+
+    public async Task<(ResponderMessage Message, GuardrailsResult Guardrails)> SendMessageAsync(
+        ResponderMessage message, CancellationToken ct = default)
+    {
+        // Verify sender is an acknowledged responder for this incident
+        var authorized = await IsAuthorizedResponderAsync(message.RequestId, message.SenderId, ct);
+        if (!authorized)
+        {
+            _logger.LogWarning(
+                "[MockComm] Unauthorized message attempt: {SenderId} is not an acknowledged responder for {RequestId}",
+                message.SenderId, message.RequestId);
+
+            var blockedMsg = message with
+            {
+                Verdict = GuardrailsVerdict.Blocked,
+                GuardrailsNote = "You are not an acknowledged responder for this incident."
+            };
+
+            return (blockedMsg, new GuardrailsResult(
+                Verdict: GuardrailsVerdict.Blocked,
+                Reason: "Sender is not an acknowledged responder for this incident.",
+                RedactedContent: null,
+                PiiDetected: false, PiiTypes: null,
+                ProfanityDetected: false, ThreatDetected: false,
+                RateLimited: false, MessagesSentInWindow: 0, RateLimitMax: 30));
+        }
+
+        // Run guardrails pipeline
+        var guardrailsResult = await _guardrails.EvaluateAsync(message, ct);
+
+        // Apply verdict to message
+        var processed = message with
+        {
+            MessageId = string.IsNullOrEmpty(message.MessageId)
+                ? Guid.NewGuid().ToString("N")[..12]
+                : message.MessageId,
+            Verdict = guardrailsResult.Verdict,
+            GuardrailsNote = guardrailsResult.Reason,
+            RedactedContent = guardrailsResult.RedactedContent,
+            SentAt = DateTime.UtcNow
+        };
+
+        // Store if approved or redacted (not blocked or rate-limited)
+        if (guardrailsResult.Verdict is GuardrailsVerdict.Approved or GuardrailsVerdict.Redacted)
+        {
+            var channel = _channels.GetOrAdd(message.RequestId, _ => new List<ResponderMessage>());
+            lock (channel)
+            {
+                channel.Add(processed);
+            }
+
+            _logger.LogInformation(
+                "[MockComm] Message {MessageId} from {SenderName} ({SenderRole}) in incident {RequestId}: " +
+                "type={Type}, verdict={Verdict}",
+                processed.MessageId, processed.SenderName, processed.SenderRole,
+                processed.RequestId, processed.MessageType, processed.Verdict);
+        }
+        else
+        {
+            _logger.LogWarning(
+                "[MockComm] Message from {SenderId} in incident {RequestId} was {Verdict}: {Reason}",
+                processed.SenderId, processed.RequestId, processed.Verdict, guardrailsResult.Reason);
+        }
+
+        return (processed, guardrailsResult);
+    }
+
+    public Task<IReadOnlyList<ResponderMessage>> GetMessagesAsync(
+        string requestId, int limit = 100, DateTime? since = null,
+        CancellationToken ct = default)
+    {
+        if (!_channels.TryGetValue(requestId, out var channel))
+            return Task.FromResult<IReadOnlyList<ResponderMessage>>(Array.Empty<ResponderMessage>());
+
+        List<ResponderMessage> messages;
+        lock (channel)
+        {
+            var query = channel
+                .Where(m => m.Verdict is GuardrailsVerdict.Approved or GuardrailsVerdict.Redacted);
+
+            if (since.HasValue)
+                query = query.Where(m => m.SentAt > since.Value);
+
+            messages = query
+                .OrderByDescending(m => m.SentAt)
+                .Take(limit)
+                .Reverse()
+                .ToList();
+        }
+
+        return Task.FromResult<IReadOnlyList<ResponderMessage>>(messages);
+    }
+
+    public async Task<bool> IsAuthorizedResponderAsync(
+        string requestId, string userId, CancellationToken ct = default)
+    {
+        var acks = await _trackingPort.GetAcknowledgmentsAsync(requestId, ct);
+        return acks.Any(a => a.ResponderId == userId && a.Status != AckStatus.Declined);
+    }
+
+    public IReadOnlyList<(string Code, string DisplayText, string Category)> GetQuickResponses()
+        => QuickResponses;
+}

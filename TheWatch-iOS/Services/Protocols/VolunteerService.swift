@@ -19,6 +19,32 @@ protocol VolunteerServiceProtocol {
     ///   }
     func acceptResponse(userId: String, requestId: String) async throws -> AcknowledgmentResponse
     func declineResponse(userId: String, requestId: String) async throws
+
+    // ── Responder Communication ────────────────────────────────────
+
+    /// Send a message in an incident's responder channel.
+    /// All messages are filtered through server-side guardrails before delivery.
+    ///
+    /// Example:
+    ///   let result = try await service.sendMessage(
+    ///       requestId: incidentId,
+    ///       senderId: myUserId,
+    ///       senderName: "Maria Santos",
+    ///       content: "I can see the building, arriving in 2 min"
+    ///   )
+    ///   if result.verdict == .blocked {
+    ///       showAlert("Message not sent: \(result.reason ?? "")")
+    ///   }
+    func sendMessage(requestId: String, senderId: String, senderName: String,
+                     senderRole: String?, messageType: ResponderMessageType,
+                     content: String, latitude: Double?, longitude: Double?,
+                     quickResponseCode: String?) async throws -> SendMessageResult
+
+    /// Get message history for an incident's responder channel.
+    func getMessages(requestId: String, limit: Int, since: Date?) async throws -> [ResponderChatMessage]
+
+    /// Get available quick responses.
+    func getQuickResponses() async throws -> [QuickResponse]
 }
 
 @Observable
@@ -129,6 +155,80 @@ final class MockVolunteerService: VolunteerServiceProtocol {
 
     func declineResponse(userId: String, requestId: String) async throws {
         try await Task.sleep(nanoseconds: 200_000_000)
+    }
+
+    // ── Responder Communication ────────────────────────────────────
+
+    func sendMessage(requestId: String, senderId: String, senderName: String,
+                     senderRole: String?, messageType: ResponderMessageType,
+                     content: String, latitude: Double?, longitude: Double?,
+                     quickResponseCode: String?) async throws -> SendMessageResult {
+        try await Task.sleep(nanoseconds: 200_000_000)
+        return SendMessageResult(
+            messageId: UUID().uuidString,
+            verdict: .approved,
+            reason: nil,
+            redactedContent: nil,
+            piiDetected: false,
+            piiTypes: nil,
+            profanityDetected: false,
+            threatDetected: false,
+            rateLimited: false,
+            messagesSentInWindow: 1,
+            rateLimitMax: 30
+        )
+    }
+
+    func getMessages(requestId: String, limit: Int = 100, since: Date? = nil) async throws -> [ResponderChatMessage] {
+        try await Task.sleep(nanoseconds: 300_000_000)
+        return [
+            ResponderChatMessage(
+                requestId: requestId,
+                senderId: "resp-001",
+                senderName: "Maria Santos",
+                senderRole: "EMT",
+                content: "I'm 2 minutes out, approaching from the east",
+                verdict: .approved,
+                sentAt: Date().addingTimeInterval(-120)
+            ),
+            ResponderChatMessage(
+                requestId: requestId,
+                senderId: "resp-002",
+                senderName: "James Thompson",
+                senderRole: "Firefighter",
+                messageType: .quickResponse,
+                content: "I'm on my way",
+                quickResponseCode: "ON_MY_WAY",
+                verdict: .approved,
+                sentAt: Date().addingTimeInterval(-90)
+            ),
+            ResponderChatMessage(
+                requestId: requestId,
+                senderId: "resp-001",
+                senderName: "Maria Santos",
+                senderRole: "EMT",
+                content: "Arrived on scene. Victim is conscious and alert.",
+                verdict: .approved,
+                sentAt: Date().addingTimeInterval(-30)
+            )
+        ]
+    }
+
+    func getQuickResponses() async throws -> [QuickResponse] {
+        return [
+            QuickResponse(code: "ON_MY_WAY", displayText: "I'm on my way", category: "Movement"),
+            QuickResponse(code: "ARRIVED", displayText: "I've arrived on scene", category: "Movement"),
+            QuickResponse(code: "NEED_MEDICAL", displayText: "Need medical assistance here", category: "Request"),
+            QuickResponse(code: "NEED_BACKUP", displayText: "Need additional responders", category: "Request"),
+            QuickResponse(code: "ALL_CLEAR", displayText: "All clear — situation resolved", category: "Status"),
+            QuickResponse(code: "SCENE_SECURED", displayText: "Scene is secured", category: "Status"),
+            QuickResponse(code: "VICTIM_CONSCIOUS", displayText: "Victim is conscious and alert", category: "Medical"),
+            QuickResponse(code: "VICTIM_UNCONSCIOUS", displayText: "Victim is unconscious", category: "Medical"),
+            QuickResponse(code: "CPR_IN_PROGRESS", displayText: "Performing CPR", category: "Medical"),
+            QuickResponse(code: "HAZARD_PRESENT", displayText: "Hazard present — approach with caution", category: "Safety"),
+            QuickResponse(code: "STANDOWN", displayText: "Standing down — enough responders", category: "Movement"),
+            QuickResponse(code: "DELAYED", displayText: "I'm delayed — ETA update coming", category: "Movement"),
+        ]
     }
 }
 

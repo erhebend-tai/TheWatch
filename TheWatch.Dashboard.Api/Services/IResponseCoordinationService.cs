@@ -78,6 +78,40 @@ public interface IResponseCoordinationService
     Task<IReadOnlyList<ResponseRequest>> GetActiveResponsesAsync(
         string userId,
         CancellationToken ct = default);
+
+    // ── Responder Communication ────────────────────────────────────
+
+    /// <summary>
+    /// Send a message in an incident's responder channel.
+    /// Message passes through server-side guardrails before delivery.
+    /// If approved/redacted, broadcasts to all responders via SignalR.
+    /// </summary>
+    Task<(ResponderMessage Message, GuardrailsResult Guardrails)> SendResponderMessageAsync(
+        string requestId,
+        string senderId,
+        string senderName,
+        string? senderRole,
+        ResponderMessageType messageType,
+        string content,
+        double? latitude = null,
+        double? longitude = null,
+        string? quickResponseCode = null,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Get message history for an incident channel.
+    /// Only returns messages that passed guardrails.
+    /// </summary>
+    Task<IReadOnlyList<ResponderMessage>> GetResponderMessagesAsync(
+        string requestId,
+        int limit = 100,
+        DateTime? since = null,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Get the list of available quick responses (pre-defined safe messages).
+    /// </summary>
+    IReadOnlyList<(string Code, string DisplayText, string Category)> GetQuickResponses();
 }
 
 /// <summary>

@@ -1,0 +1,205 @@
+@page "/signin"
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+@inject IConfiguration Config
+
+<PageTitle>Sign In — TheWatch</PageTitle>
+
+<div class="signin-container">
+    <div class="signin-card">
+        <div class="signin-brand">
+            <div class="brand-icon">W</div>
+            <h1>TheWatch</h1>
+            <p class="subtitle">Command Center</p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+        }
+
+        <div class="signin-buttons">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       FullWidth="true"
+                       Size="Size.Large"
+                       StartIcon="@Icons.Custom.Brands.Google"
+                       OnClick="SignInWithGoogle"
+                       Disabled="_loading"
+                       Class="mb-3">
+                @if (_loading && _provider == "google")
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                Sign in with Google
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Dark"
+                       FullWidth="true"
+                       Size="Size.Large"
+                       StartIcon="@Icons.Custom.Brands.GitHub"
+                       OnClick="SignInWithGitHub"
+                       Disabled="_loading"
+                       Class="mb-3">
+                @if (_loading && _provider == "github")
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                Sign in with GitHub
+            </MudButton>
+        </div>
+
+        <MudDivider Class="my-4" />
+
+        <p class="signin-footer">
+            Authentication powered by Firebase.
+            <br />Your session is secured with a server-side cookie.
+        </p>
+    </div>
+</div>
+
+@code {
+    private bool _loading;
+    private string? _error;
+    private string? _provider;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Initialize Firebase JS SDK
+            var firebaseConfig = new
+            {
+                apiKey = Config["Firebase:WebApiKey"] ?? "AIzaSyAzPNS2_TSz72DO4yo1UpW3JSVQO_f6kzk",
+                authDomain = Config["Firebase:AuthDomain"] ?? "gen-lang-client-0590872284.firebaseapp.com",
+                projectId = Config["Firebase:ProjectId"] ?? "gen-lang-client-0590872284"
+            };
+            await JS.InvokeVoidAsync("firebaseAuth.init", firebaseConfig);
+        }
+    }
+
+    private async Task SignInWithGoogle()
+    {
+        _loading = true;
+        _provider = "google";
+        _error = null;
+        StateHasChanged();
+
+        try
+        {
+            var idToken = await JS.InvokeAsync<string>("firebaseAuth.signInWithGoogle");
+            await ExchangeTokenForSession(idToken);
+        }
+        catch (Exception ex)
+        {
+            _error = $"Google sign-in failed: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SignInWithGitHub()
+    {
+        _loading = true;
+        _provider = "github";
+        _error = null;
+        StateHasChanged();
+
+        try
+        {
+            var idToken = await JS.InvokeAsync<string>("firebaseAuth.signInWithGitHub");
+            await ExchangeTokenForSession(idToken);
+        }
+        catch (Exception ex)
+        {
+            _error = $"GitHub sign-in failed: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Send the Firebase ID token to our server-side auth endpoint,
+    /// which validates it and sets a session cookie.
+    /// </summary>
+    private async Task ExchangeTokenForSession(string idToken)
+    {
+        var response = await JS.InvokeAsync<object>("fetch", "/auth/session", new
+        {
+            method = "POST",
+            headers = new { Content_Type = "application/json" },
+            body = System.Text.Json.JsonSerializer.Serialize(new { idToken })
+        });
+
+        // After cookie is set, redirect to dashboard
+        Nav.NavigateTo("/", forceLoad: true);
+    }
+}
+
+<style>
+    .signin-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background: #0D1117;
+    }
+
+    .signin-card {
+        background: #161B22;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 16px;
+        padding: 48px 40px;
+        max-width: 400px;
+        width: 100%;
+        text-align: center;
+    }
+
+    .signin-brand {
+        margin-bottom: 32px;
+    }
+
+    .signin-brand .brand-icon {
+        width: 64px;
+        height: 64px;
+        background: #DC3545;
+        border-radius: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 32px;
+        color: white;
+        margin-bottom: 16px;
+    }
+
+    .signin-brand h1 {
+        color: #E6EDF3;
+        font-size: 28px;
+        margin: 0;
+    }
+
+    .subtitle {
+        color: #8B949E;
+        font-size: 14px;
+        margin-top: 4px;
+    }
+
+    .signin-buttons {
+        margin-top: 24px;
+    }
+
+    .signin-footer {
+        color: #8B949E;
+        font-size: 12px;
+        line-height: 1.6;
+    }
+</style>

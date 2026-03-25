@@ -35,6 +35,14 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IEscalationPort, MockEscalationAdapter>();
         services.AddSingleton<IParticipationPort, MockParticipationAdapter>();
         services.AddSingleton<INavigationPort, MockNavigationAdapter>();
+        services.AddSingleton<IMessageGuardrailsPort, MockMessageGuardrailsAdapter>();
+        services.AddSingleton<IResponderCommunicationPort, MockResponderCommunicationAdapter>();
+
+        // Register mock CCTV / security camera adapter
+        services.AddSingleton<ICCTVPort, MockCCTVAdapter>();
+
+        // Register mock guard reporting adapter
+        services.AddSingleton<IGuardReportPort, MockGuardReportAdapter>();
 
         // Register mock notification & SMS adapters
         services.AddSingleton<INotificationSendPort, MockNotificationSendAdapter>();
@@ -47,6 +55,16 @@ public static class ServiceCollectionExtensions
         //         Ring, Wyze, Tuya, Zigbee, Z-Wave, Matter
         services.AddSingleton<IIoTAlertPort, MockIoTAlertAdapter>();
         services.AddSingleton<IIoTWebhookPort, MockIoTWebhookAdapter>();
+
+        // Register mock Watch Call adapters
+        // Watch Calls: enrollment, mock training scenarios, live video calls, WebRTC signaling
+        services.AddSingleton<IWatchCallPort, MockWatchCallAdapter>();
+
+        // Scene narration: AI vision-powered neutral scene description (parrot-back)
+        services.AddSingleton<ISceneNarrationPort, MockSceneNarrationAdapter>();
+
+        // Swarm agent: interactive conversational agent for CLI swarm guidance
+        services.AddSingleton<ISwarmAgentPort, MockSwarmAgentAdapter>();
 
         return services;
     }
