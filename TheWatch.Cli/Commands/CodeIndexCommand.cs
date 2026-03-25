@@ -20,7 +20,7 @@
 //   thewatch codeindex --xml-manifest path/to/arch.xml — Use a custom XML manifest file
 //
 // Output CSV columns:
-//   repo, project, file, kind, name, signature, #tags, depends_on, lines, body_hash
+//   repo, project, file, kind, language, name, signature, #tags, depends_on, lines, body_hash
 //
 // Tags are auto-derived from:
 //   - Namespace segments → #emergency, #auth, #audit, #spatial, etc.
@@ -53,6 +53,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.MSBuild;
+using TheWatch.Cli.Services;
 using TheWatch.XML;
 
 namespace TheWatch.Cli.Commands;
@@ -358,6 +359,7 @@ public static class CodeIndexCommand
                     Project = projectName,
                     File = relPath,
                     Kind = kind,
+                    Language = "csharp",
                     Name = ns != null ? $"{ns}.{name}" : name,
                     Signature = signature,
                     Tags = tags,
@@ -383,6 +385,7 @@ public static class CodeIndexCommand
                     Project = projectName,
                     File = relPath,
                     Kind = "enum",
+                    Language = "csharp",
                     Name = ns != null ? $"{ns}.{name}" : name,
                     Signature = $"enum {name} ({memberCount} members)",
                     Tags = tags,
@@ -398,9 +401,21 @@ public static class CodeIndexCommand
 
     // ── File-system fallback scanner ────────────────────────────────
 
+    private static readonly string[] MultiLangExtensions = [
+        ".kt", ".kts", ".swift", ".py", ".pyi",
+        ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs",
+        ".c", ".h", ".cpp", ".cc", ".cxx", ".hpp",
+        ".java", ".rs", ".go", ".rb", ".dart",
+        ".sql", ".proto", ".tf", ".bicep",
+        ".ps1", ".psm1", ".sh", ".bash",
+        ".razor", ".xaml", ".css", ".scss", ".html"
+    ];
+
     private static async Task<List<CodeIndexRow>> ScanDirectoryAsync(string dir, string repoName, bool includeBodies)
     {
         var rows = new List<CodeIndexRow>();
+
+        // ── Scan C# files via Roslyn ────────────────────────────────
         var csFiles = Directory.GetFiles(dir, "*.cs", SearchOption.AllDirectories)
             .Where(f => !f.Contains("/obj/") && !f.Contains("\\obj\\")
                      && !f.Contains("/bin/") && !f.Contains("\\bin\\"));
@@ -434,6 +449,7 @@ public static class CodeIndexCommand
                     Project = projectName,
                     File = relPath,
                     Kind = kind,
+                    Language = "csharp",
                     Name = ns != null ? $"{ns}.{name}" : name,
                     Signature = BuildTypeSignature(typeDecl),
                     Tags = tags,
@@ -445,17 +461,136 @@ public static class CodeIndexCommand
             }
         }
 
+        // ── Scan non-CS files via MultiLanguageParser ───────────────
+        var multiLangFiles = MultiLangExtensions
+            .SelectMany(ext => Directory.GetFiles(dir, $"*{ext}", SearchOption.AllDirectories))
+            .Where(f => !f.Contains("/obj/") && !f.Contains("\\obj\\")
+                     && !f.Contains("/bin/") && !f.Contains("\\bin\\")
+                     && !f.Contains("/build/") && !f.Contains("\\build\\")
+                     && !f.Contains("/.gradle/") && !f.Contains("\\.gradle\\")
+                     && !f.Contains("/node_modules/") && !f.Contains("\\node_modules\\")
+                     && !f.Contains("/.venv/") && !f.Contains("\\.venv\\"))
+            .Distinct();
+
+        foreach (var file in multiLangFiles)
+        {
+            rows.AddRange(await ScanMultiLangFileAsync(file, repoName, includeBodies));
+        }
+
         return rows;
     }
 
-    // ── Mobile file scanner (Kotlin/Swift — tag-based, no AST) ──────
+    /// <summary>
+    /// Scans a single non-CS file using MultiLanguageParser, returning one row per
+    /// extracted symbol. Falls back to a single file-level row on parse failure.
+    /// </summary>
+    private static async Task<List<CodeIndexRow>> ScanMultiLangFileAsync(string file, string repoName, bool includeBodies)
+    {
+        var rows = new List<CodeIndexRow>();
+        var relPath = GetRelativePath(file);
+        var projectName = GuessProjectName(relPath);
+        var language = MultiLanguageParser.GetLanguage(file) ?? "unknown";
+
+        try
+        {
+            var content = await File.ReadAllTextAsync(file);
+            var symbols = MultiLanguageParser.TryParse(file, content);
+
+            if (symbols.Count > 0)
+            {
+                foreach (var sym in symbols)
+                {
+                    var tags = DeriveTags(relPath, projectName, sym.Kind, sym.Name, sym.Namespace);
+                    tags += $" #{language}";
+                    tags = tags.Trim();
+
+                    rows.Add(new CodeIndexRow
+                    {
+                        Repo = repoName,
+                        Project = projectName,
+                        File = relPath,
+                        Kind = sym.Kind,
+                        Language = language,
+                        Name = sym.Namespace != null ? $"{sym.Namespace}.{sym.Name}" : sym.Name,
+                        Signature = sym.Signature,
+                        Tags = tags,
+                        DependsOn = sym.DependsOn,
+                        Lines = sym.EndLine - sym.StartLine + 1,
+                        BodyHash = includeBodies ? HashBody(content[..Math.Min(content.Length, 4096)]) : ""
+                    });
+                }
+            }
+            else
+            {
+                // Fallback: file-level entry
+                rows.Add(CreateFileLevelRow(file, relPath, projectName, repoName, language, content));
+            }
+        }
+        catch
+        {
+            // Fallback: file-level entry on read/parse error
+            rows.Add(new CodeIndexRow
+            {
+                Repo = repoName,
+                Project = projectName,
+                File = relPath,
+                Kind = "source",
+                Language = language,
+                Name = Path.GetFileNameWithoutExtension(file),
+                Signature = $"{language} source",
+                Tags = $"#{language}",
+                DependsOn = "",
+                Lines = 0,
+                BodyHash = ""
+            });
+        }
+
+        return rows;
+    }
+
+    private static CodeIndexRow CreateFileLevelRow(string file, string relPath, string projectName, string repoName, string language, string content)
+    {
+        var fileName = Path.GetFileNameWithoutExtension(file);
+        var lineCount = content.Split('\n').Length;
+        var tags = $"#{language}";
+
+        // Add folder-based tags
+        var folderParts = relPath.Replace('\\', '/').Split('/');
+        foreach (var part in folderParts)
+        {
+            var tag = DeriveTagFromFolder(part.ToLowerInvariant());
+            if (tag != null) tags += $" {tag}";
+        }
+
+        var nameTags = DeriveTagsFromName(fileName);
+        if (nameTags.Length > 0) tags += $" {nameTags}";
+
+        return new CodeIndexRow
+        {
+            Repo = repoName,
+            Project = projectName,
+            File = relPath,
+            Kind = "source",
+            Language = language,
+            Name = fileName,
+            Signature = $"{language} source",
+            Tags = tags.Trim(),
+            DependsOn = "",
+            Lines = lineCount,
+            BodyHash = ""
+        };
+    }
+
+    // ── Mobile file scanner (Kotlin/Swift — AST via MultiLanguageParser) ──
 
     private static List<CodeIndexRow> ScanMobileFiles(string dir, string platform, string language)
     {
         var rows = new List<CodeIndexRow>();
         if (!Directory.Exists(dir)) return rows;
 
+        var projectName = platform == "android" ? "TheWatch-Android" : "TheWatch-iOS";
         var extensions = language == "kotlin" ? new[] { "*.kt" } : new[] { "*.swift" };
+
         foreach (var ext in extensions)
         {
             foreach (var file in Directory.GetFiles(dir, ext, SearchOption.AllDirectories))
@@ -465,68 +600,111 @@ public static class CodeIndexCommand
 
                 var relPath = GetRelativePath(file);
                 var fileName = Path.GetFileNameWithoutExtension(file);
-                var lines = File.ReadLines(file).Count();
 
-                // Derive kind from naming conventions and folder context
-                var folderContext = relPath.Replace('\\', '/').ToLowerInvariant();
-                var kind = fileName switch
+                string content;
+                try { content = File.ReadAllText(file); }
+                catch { continue; }
+
+                // ── Try MultiLanguageParser for real symbol extraction ──
+                var symbols = MultiLanguageParser.TryParse(file, content);
+
+                if (symbols.Count > 0)
                 {
-                    _ when fileName.EndsWith("ViewModel") => "viewmodel",
-                    _ when fileName.EndsWith("View") || fileName.EndsWith("Screen") || fileName.EndsWith("Page") => "view",
-                    _ when fileName.EndsWith("Service") || fileName.EndsWith("Port") => "service",
-                    _ when fileName.EndsWith("Repository") => "repository",
-                    _ when fileName.EndsWith("Adapter") => "adapter",
-                    _ when fileName.EndsWith("Model") || fileName.EndsWith("Models") => "model",
-                    _ when fileName.EndsWith("Controller") => "controller",
-                    _ when fileName.EndsWith("Coordinator") || fileName.EndsWith("Engine") || fileName.EndsWith("Worker") || fileName.EndsWith("Dispatcher") => "service",
-                    _ when fileName.StartsWith("Mock") => "mock",
-                    _ when fileName.EndsWith("Tests") || fileName.EndsWith("Test") => "test",
-                    _ when fileName.EndsWith("Config") || fileName.EndsWith("Configuration") || fileName.EndsWith("Constants") => "config",
-                    _ when fileName.EndsWith("Entity") || fileName.EndsWith("Dto") || fileName.EndsWith("Request") || fileName.EndsWith("Response") => "model",
-                    _ when folderContext.Contains("/models/") || folderContext.Contains("/model/") || folderContext.Contains("/data/model/") => "model",
-                    _ when folderContext.Contains("/views/") || folderContext.Contains("/screens/") || folderContext.Contains("/ui/") => "view",
-                    _ when folderContext.Contains("/viewmodels/") || folderContext.Contains("/viewmodel/") => "viewmodel",
-                    _ when folderContext.Contains("/services/") || folderContext.Contains("/service/") => "service",
-                    _ when folderContext.Contains("/repository/") || folderContext.Contains("/repositories/") => "repository",
-                    _ when folderContext.Contains("/di/") || folderContext.Contains("/navigation/") => "config",
-                    _ => "source"
-                };
+                    foreach (var sym in symbols)
+                    {
+                        var tags = $"#{platform} #{language}";
 
-                var tags = $"#{platform} #{language}";
+                        // Folder-based tags
+                        var folderParts = relPath.Replace('\\', '/').Split('/');
+                        foreach (var part in folderParts)
+                        {
+                            var tag = DeriveTagFromFolder(part.ToLowerInvariant());
+                            if (tag != null) tags += $" {tag}";
+                        }
 
-                // Folder-based tags
-                var folderParts = relPath.Replace('\\', '/').Split('/');
-                foreach (var part in folderParts)
-                {
-                    var tag = DeriveTagFromFolder(part.ToLowerInvariant());
-                    if (tag != null) tags += $" {tag}";
+                        // Name-based tags from the symbol name
+                        var nameTags = DeriveTagsFromName(sym.Name);
+                        if (nameTags.Length > 0) tags += $" {nameTags}";
+
+                        // Manifest enrichment
+                        var manifestTags = DeriveManifestTags(sym.Name, projectName);
+                        if (manifestTags.Length > 0) tags += $" {manifestTags}";
+
+                        rows.Add(new CodeIndexRow
+                        {
+                            Repo = "TheWatch",
+                            Project = projectName,
+                            File = relPath,
+                            Kind = sym.Kind,
+                            Language = language,
+                            Name = sym.Namespace != null ? $"{sym.Namespace}.{sym.Name}" : sym.Name,
+                            Signature = sym.Signature,
+                            Tags = tags.Trim(),
+                            DependsOn = sym.DependsOn,
+                            Lines = sym.EndLine - sym.StartLine + 1,
+                            BodyHash = ""
+                        });
+                    }
                 }
-
-                // Name-based tags
-                var nameTags = DeriveTagsFromName(fileName);
-                if (nameTags.Length > 0) tags += $" {nameTags}";
-
-                // Manifest enrichment for mobile files
-                var manifestTags = DeriveManifestTags(fileName, platform == "android" ? "TheWatch-Android" : "TheWatch-iOS");
-                if (manifestTags.Length > 0) tags += $" {manifestTags}";
-
-                rows.Add(new CodeIndexRow
+                else
                 {
-                    Repo = "TheWatch",
-                    Project = platform == "android" ? "TheWatch-Android" : "TheWatch-iOS",
-                    File = relPath,
-                    Kind = kind,
-                    Name = fileName,
-                    Signature = $"{language} {kind}",
-                    Tags = tags.Trim(),
-                    DependsOn = "",
-                    Lines = lines,
-                    BodyHash = ""
-                });
+                    // ── Fallback: file-level entry with name-based kind detection ──
+                    var lines = content.Split('\n').Length;
+                    var folderContext = relPath.Replace('\\', '/').ToLowerInvariant();
+                    var kind = fileName switch
+                    {
+                        _ when fileName.EndsWith("ViewModel") => "viewmodel",
+                        _ when fileName.EndsWith("View") || fileName.EndsWith("Screen") || fileName.EndsWith("Page") => "view",
+                        _ when fileName.EndsWith("Service") || fileName.EndsWith("Port") => "service",
+                        _ when fileName.EndsWith("Repository") => "repository",
+                        _ when fileName.EndsWith("Adapter") => "adapter",
+                        _ when fileName.EndsWith("Model") || fileName.EndsWith("Models") => "model",
+                        _ when fileName.EndsWith("Controller") => "controller",
+                        _ when fileName.EndsWith("Coordinator") || fileName.EndsWith("Engine") || fileName.EndsWith("Worker") || fileName.EndsWith("Dispatcher") => "service",
+                        _ when fileName.StartsWith("Mock") => "mock",
+                        _ when fileName.EndsWith("Tests") || fileName.EndsWith("Test") => "test",
+                        _ when fileName.EndsWith("Config") || fileName.EndsWith("Configuration") || fileName.EndsWith("Constants") => "config",
+                        _ when fileName.EndsWith("Entity") || fileName.EndsWith("Dto") || fileName.EndsWith("Request") || fileName.EndsWith("Response") => "model",
+                        _ when folderContext.Contains("/models/") || folderContext.Contains("/model/") || folderContext.Contains("/data/model/") => "model",
+                        _ when folderContext.Contains("/views/") || folderContext.Contains("/screens/") || folderContext.Contains("/ui/") => "view",
+                        _ when folderContext.Contains("/viewmodels/") || folderContext.Contains("/viewmodel/") => "viewmodel",
+                        _ when folderContext.Contains("/services/") || folderContext.Contains("/service/") => "service",
+                        _ when folderContext.Contains("/repository/") || folderContext.Contains("/repositories/") => "repository",
+                        _ when folderContext.Contains("/di/") || folderContext.Contains("/navigation/") => "config",
+                        _ => "source"
+                    };
+
+                    var tags = $"#{platform} #{language}";
+                    var folderParts = relPath.Replace('\\', '/').Split('/');
+                    foreach (var part in folderParts)
+                    {
+                        var tag = DeriveTagFromFolder(part.ToLowerInvariant());
+                        if (tag != null) tags += $" {tag}";
+                    }
+                    var fallbackNameTags = DeriveTagsFromName(fileName);
+                    if (fallbackNameTags.Length > 0) tags += $" {fallbackNameTags}";
+                    var fallbackManifestTags = DeriveManifestTags(fileName, projectName);
+                    if (fallbackManifestTags.Length > 0) tags += $" {fallbackManifestTags}";
+
+                    rows.Add(new CodeIndexRow
+                    {
+                        Repo = "TheWatch",
+                        Project = projectName,
+                        File = relPath,
+                        Kind = kind,
+                        Language = language,
+                        Name = fileName,
+                        Signature = $"{language} {kind}",
+                        Tags = tags.Trim(),
+                        DependsOn = "",
+                        Lines = lines,
+                        BodyHash = ""
+                    });
+                }
             }
         }
 
-        Console.WriteLine($"  {(platform == "android" ? "TheWatch-Android" : "TheWatch-iOS")}... {rows.Count} files");
+        Console.WriteLine($"  {projectName}... {rows.Count} symbols");
         return rows;
     }
 
@@ -827,7 +1005,7 @@ public static class CodeIndexCommand
     private static async Task WriteCsvAsync(string path, List<CodeIndexRow> rows)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("repo,project,file,kind,name,signature,tags,depends_on,lines,body_hash");
+        sb.AppendLine("repo,project,file,kind,language,name,signature,tags,depends_on,lines,body_hash");
 
         foreach (var row in rows.OrderBy(r => r.Project).ThenBy(r => r.File).ThenBy(r => r.Name))
         {
@@ -835,6 +1013,7 @@ public static class CodeIndexCommand
             sb.Append(CsvEscape(row.Project)); sb.Append(',');
             sb.Append(CsvEscape(row.File)); sb.Append(',');
             sb.Append(CsvEscape(row.Kind)); sb.Append(',');
+            sb.Append(CsvEscape(row.Language)); sb.Append(',');
             sb.Append(CsvEscape(row.Name)); sb.Append(',');
             sb.Append(CsvEscape(row.Signature)); sb.Append(',');
             sb.Append(CsvEscape(row.Tags)); sb.Append(',');
@@ -862,6 +1041,7 @@ public static class CodeIndexCommand
         public string Project { get; init; } = "";
         public string File { get; init; } = "";
         public string Kind { get; init; } = "";
+        public string Language { get; init; } = "";
         public string Name { get; init; } = "";
         public string Signature { get; init; } = "";
         public string Tags { get; init; } = "";
