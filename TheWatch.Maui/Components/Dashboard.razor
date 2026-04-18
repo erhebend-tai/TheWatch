@@ -1,0 +1,32 @@
+@using TheWatch.Maui.Services
+@inject ILifeSafetyService LifeSafetyService
+
+<div class="dashboard-container">
+    <div class="card">
+        <div class="status-indicator">
+            <div class="dot @(LifeSafetyService.IsSosActive ? "active" : "")"></div>
+            <span>SYSTEM STATUS: @(LifeSafetyService.IsSosActive ? "SOS ACTIVE" : "NOMINAL")</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <h4>Recent Alerts</h4>
+        <div class="alert-item">
+            <p>Community Alert: Wildfire smoke reported near region 5.</p>
+            <small>2 minutes ago</small>
+        </div>
+        <div class="alert-item">
+            <p>Family Check-in: Jane Doe missed her scheduled check-in.</p>
+            <small>15 minutes ago</small>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        // This is where we would connect to a real-time service like SignalR
+        // to get live updates for the dashboard.
+        await base.OnInitializedAsync();
+    }
+}

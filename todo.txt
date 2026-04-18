@@ -1,1 +1,27 @@
-- GCF Integration
+# To-Do: TheWatch Mobile & Architecture Consolidation
+
+## Phase 1: Native Shell & Life-Safety Core (Priority 1)
+- [ ] **Android SOS Trigger:** Implement triple-press volume button listener in `MainActivity.cs` to trigger `ILifeSafetyService.TriggerSos()`.
+- [ ] **iOS SOS Trigger:** Implement the Lock Screen Notification Content Extension as planned in `docs/ios-lockscreen-sos-plan.md`.
+- [ ] **Background Service:** Enhance `AndroidLifeSafetyService` and `IosLifeSafetyService` to run as a foreground/background service that can survive the app being minimized.
+- [ ] **Native Bridge:** Implement `INativeDeviceBridge` to expose device-specific info (battery, ID) to the Blazor layer.
+
+## Phase 2: Blazor UI & Feature Implementation (Priority 2)
+- [ ] **Dashboard Real-time:** Connect the Blazor `Dashboard.razor` to a real-time data source (SignalR or mock).
+- [ ] **Map & Directions View:**
+    - Create a new Blazor component for map display (`MapComponent.razor`).
+    - Integrate a map control (e.g., via JS interop).
+    - Implement entities from `todo.txt` for `MapAnnotation`, `TurnByTurnRoute`, etc.
+- [ ] **Family Health UI (P7):**
+    - Build Blazor components for Vitals, Check-ins, Prescriptions, and Evidence.
+    - Create forms for submitting new data.
+
+## Phase 3: Data & Sync Layer (Priority 3)
+- [ ] **Local Database:** Set up SQLite in the MAUI project.
+- [ ] **Sync Engine:** Implement an `OfflineSyncEngine` service to handle queuing data and syncing with the backend when online, inspired by `SyncEngine.kt`.
+- [ ] **Repositories:** Create repository implementations (`AlertRepository`, `UserRepository`) that use the Sync Engine to provide an offline-first data access layer.
+
+## Phase 4: Architecture & Tooling (Priority 4)
+- [ ] **Architecture Manifest:** Continue the work on `TheWatch.XML/ArchitectureManifest.cs` to validate and report on project structure.
+- [ ] **Generative Extractor:** Finalize and run the `MonolithExtractor` to process legacy repositories into the new architecture.
+- [ ] **CI/CD Pipeline:** Define a pipeline that builds and tests the Native Shell, Blazor UI, and runs the `DocGen` and `AiPromptGenerator` services.

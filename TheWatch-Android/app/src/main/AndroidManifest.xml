@@ -53,6 +53,8 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
             android:theme="@style/Theme.TheWatch">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

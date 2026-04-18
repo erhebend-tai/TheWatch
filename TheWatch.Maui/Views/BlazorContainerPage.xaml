@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:b="clr-namespace:Microsoft.AspNetCore.Components.WebView.Maui;assembly=Microsoft.AspNetCore.Components.WebView.Maui"
+             xmlns:local="clr-namespace:TheWatch.Maui"
+             x:Class="TheWatch.Maui.Views.BlazorContainerPage"
+             Title="TheWatch Dashboard">
+
+    <Grid>
+        <b:BlazorWebView HostPage="wwwroot/index.html">
+            <b:BlazorWebView.RootComponents>
+                <b:RootComponent Selector="#app" ComponentType="{x:Type local:MainBlazorComponent}" />
+            </b:BlazorWebView.RootComponents>
+        </b:BlazorWebView>
+
+        <!-- Native SOS Button Overlay (Always on top) -->
+        <Button Text="SOS" 
+                Clicked="OnSosClicked"
+                BackgroundColor="Red" 
+                TextColor="White"
+                HeightRequest="80"
+                WidthRequest="80"
+                CornerRadius="40"
+                HorizontalOptions="End"
+                VerticalOptions="End"
+                Margin="20" />
+    </Grid>
+</ContentPage>

@@ -1,14 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <TargetFrameworks>net10.0-android;net10.0-ios</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
 
     <ApplicationTitle>TheWatch Mobile</ApplicationTitle>
     <ApplicationId>com.thewatch.mobile</ApplicationId>
     <ApplicationDisplayVersion>1.0.0</ApplicationDisplayVersion>
     <ApplicationVersion>1</ApplicationVersion>
 
-    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">17.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">31.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
 
     <UseMaui>true</UseMaui>
     <SingleProject>true</SingleProject>
@@ -16,12 +19,52 @@
     <Description>Life-safety emergency response application — SOS triggers, volunteer dispatch, real-time sitreps</Description>
   </PropertyGroup>
 
+  <!-- Android Permissions -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-android'">
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+  </ItemGroup>
+
+  <!-- iOS Permissions -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-ios'">
+    <CustomEntitlements Include="Platforms\iOS\Entitlements.plist" />
+    <BundleResource Include="Platforms\iOS\Resources\**\*" />
+
+    <!-- Location -->
+    <MauiInfoPList Include="NSLocationWhenInUseUsageDescription">
+        <Value>TheWatch needs your location to dispatch emergency responders.</Value>
+    </MauiInfoPList>
+    <MauiInfoPList Include="NSLocationAlwaysAndWhenInUseUsageDescription">
+        <Value>TheWatch needs continuous location access to monitor your safety.</Value>
+    </MauiInfoPList>
+    <MauiInfoPList Include="NSLocationAlwaysUsageDescription">
+        <Value>TheWatch needs continuous location access to monitor your safety.</Value>
+    </MauiInfoPList>
+     <MauiInfoPList Include="UIBackgroundModes">
+        <Value>location</Value>
+        <Value>audio</Value> <!-- Required for background audio -->
+    </MauiInfoPList>
+
+    <!-- Microphone -->
+    <MauiInfoPList Include="NSMicrophoneUsageDescription">
+        <Value>TheWatch needs microphone access to listen for emergency voice commands.</Value>
+    </MauiInfoPList>
+    <MauiInfoPList Include="NSSpeechRecognitionUsageDescription">
+        <Value>TheWatch needs speech recognition access to understand emergency voice commands.</Value>
+    </MauiInfoPList>
+  </ItemGroup>
+
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" />
     <PackageReference Include="Microsoft.Maui.Controls" />
     <PackageReference Include="Microsoft.Maui.Essentials" />
     <PackageReference Include="CommunityToolkit.Maui" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="sqlite-net-pcl" />
   </ItemGroup>
 
   <ItemGroup>
